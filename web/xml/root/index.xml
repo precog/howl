@@ -29,6 +29,19 @@
         height="50" width="150"/><br/>
       </p>
       <p>
+        <strong>Wednesday, March 02, 2005</strong>
+        TAG HOWL_0_1_8 was created November 11, 2004.<br/>
+        Bugs fixed: 300934, 300953, 300955, 300957,
+        300969, 300970, 300986.<br/><br/>
+        The HOWL_0_1_8 TAG has been integrated with JOTM;
+        watch the JOTM site for an announcement for availability
+        of the updated version.<br/><br/>
+        The CVS BUG Tracker has been updated.  Any bug that is
+        closed has been updated to reflec the TAG the fix was
+        included in.  Browse by group to obtain a list of bugs
+        corrected in any HOWL TAG.
+      </p>
+      <p>
         <strong>Wednesday, November 17, 2004</strong>
         Michael Giroux presents HOWL at ApacheCon '2004 in Las Vegas.
         <br/>
