@@ -314,8 +314,17 @@ class LogBufferManager extends LogObject
       forceQueue[fqGet] = null;      // so someone using debug doesn't think it is in the queue 
       fqGet = (fqGet + 1) % forceQueue.length;
       
-      // BUG 300803 - do not try the write if we already have an error
-      if (!haveIOException)
+      if (haveIOException)
+      {
+        // BUG 300803 - do not try the write if we already have an error
+        // but we have to increment count of waitingThreads so count
+        // does not go negative
+        synchronized(logBuffer.waitingThreadsLock)
+        {
+          logBuffer.waitingThreads += 1;
+        }
+      }
+      else
       {
         // write the logBuffer to disk (hopefully non-blocking)
         try {
