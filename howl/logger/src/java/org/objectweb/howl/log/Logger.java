@@ -87,6 +87,14 @@ public class Logger extends LogObject
   private LogFileManager lfmgr = null;
   
   /**
+   * @return activeMark member of the associated LogFileManager.
+   */
+  protected long getActiveMark()
+  {
+    return lfmgr.activeMark;
+  }
+  
+  /**
    * Construct a Logger using default Configuration object.
    * @throws IOException
    */
@@ -143,14 +151,7 @@ public class Logger extends LogObject
     throws LogClosedException, LogRecordSizeException, LogFileOverflowException,
                 InterruptedException, IOException
   {
-    if (isClosed) throw new LogClosedException();
-
-    // QUESTION: should we deal with exceptions here?
-
-    long key = bmgr.put(LogRecordType.USER, data, sync);
-    lfmgr.setCurrentKey(key);
-
-    return key;
+    return put(LogRecordType.USER, data, sync);
   }
   
   /**
@@ -173,9 +174,35 @@ public class Logger extends LogObject
     throws LogClosedException, LogRecordSizeException, LogFileOverflowException,
       InterruptedException, IOException
   {
-    return put(new byte[][]{data}, sync);
+    return put(LogRecordType.USER, new byte[][]{data}, sync);
   }
 
+  /**
+   * Sub-classes call this method to write log records with
+   * a specific record type.
+   * 
+   * @param type a record type defined in LogRecordType.
+   * @param data record data to be logged.
+   * @param sync boolean indicating whether call should
+   * wait for data to be written to physical disk.
+   * 
+   * @return a log key that can be used to reference
+   * the record.
+   */
+  protected long put(short type, byte[][] data, boolean sync)
+  throws LogClosedException, LogRecordSizeException, LogFileOverflowException,
+  InterruptedException, IOException
+  {
+    if (isClosed) throw new LogClosedException();
+    
+    // QUESTION: should we deal with exceptions here?
+
+    long key = bmgr.put(type, data, sync);
+    lfmgr.setCurrentKey(key);
+    
+    return key;
+  }
+  
   /**
    * sets the LogFile's mark.
    * 
@@ -232,6 +259,9 @@ public class Logger extends LogObject
   public void setAutoMark(boolean autoMark)
     throws InvalidLogKeyException, LogClosedException, LogFileOverflowException, IOException, InterruptedException
   {
+    if (this.isClosed)
+      throw new LogClosedException();
+    
     lfmgr.setAutoMark(autoMark);
   }
   
@@ -324,11 +354,31 @@ public class Logger extends LogObject
   public void replay(ReplayListener listener) throws LogConfigurationException
   {
     try {
-      replay(listener, lfmgr.activeMark);
+      bmgr.replay(listener, lfmgr.activeMark, false);
     } catch (InvalidLogKeyException e) {
       // should not happen -- use assert to catch during development
       assert e == null : "Unhandled InvalidLogKeyException" + e.toString();
     }
+  }
+  
+  /**
+   * Allows sub-classes of Logger to replay control records.
+   * 
+   * @param listener ReplayListener to receive the records 
+   * @param mark starting mark (log key) for the replay.
+   * @param replayCtrlRecords boolean indicating whether to
+   * return CTRL records.
+   * @throws InvalidLogKeyException
+   * If the <i> mark </i> parameter specifies an invalid log key
+   * (one that does not exist in the current set of log files.)
+   * @throws LogConfigurationException
+   * 
+   * @see org.objectweb.howl.log.LogBufferManager#replay(ReplayListener, long, boolean)
+   */
+  protected void replay(ReplayListener listener, long mark, boolean replayCtrlRecords)
+  throws InvalidLogKeyException, LogConfigurationException
+  {
+    bmgr.replay(listener, mark, replayCtrlRecords);
   }
   
   /**
