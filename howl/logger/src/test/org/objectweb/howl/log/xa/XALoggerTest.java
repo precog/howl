@@ -44,6 +44,7 @@ import junit.framework.TestSuite;
 import org.objectweb.howl.log.LogException;
 import org.objectweb.howl.log.LogRecord;
 import org.objectweb.howl.log.LogRecordType;
+import org.objectweb.howl.log.LogTestWorker;
 import org.objectweb.howl.log.ReplayListener;
 import org.objectweb.howl.log.TestDriver;
 
@@ -442,6 +443,18 @@ public class XALoggerTest extends TestDriver
     assertEquals("replayListener.count", replayListener.getActiveTxUsed(), replayListener.count);
     
   }
+  
+  public void testXALoggerThroughput() throws Exception, LogException {
+    
+    log.open(openListener);
+    assertNull("openListener.exception", openListener.exception);
+
+    log.setAutoMark(true);
+    prop.setProperty("msg.count", "1000");
+    runWorkers(LogTestWorker.class);
+  }
+  
+
   /**
    * Construct a TestSuite with tests ordered on test name.
    * 
