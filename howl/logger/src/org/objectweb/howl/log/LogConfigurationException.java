@@ -2,16 +2,18 @@
  * JOnAS: Java(TM) Open Application Server
  * Copyright (C) 2004 Bull S.A.
  * Contact: jonas-team@objectweb.org
- * Created on Mar 24, 2004
+ * Created on Apr 7, 2004
  */
 package org.objectweb.howl.log;
 
 
 /**
  * @author Michael Giroux
- *
  */
-public class LoggerFactory
+public class LogConfigurationException extends LogException
 {
-// TODO: implement LoggerFactory
+  public LogConfigurationException() { }
+
+  public LogConfigurationException(String s) { super(s); }
+
 }

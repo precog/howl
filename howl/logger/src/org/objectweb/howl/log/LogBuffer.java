@@ -22,10 +22,24 @@ abstract class LogBuffer
   ByteBuffer buffer = null;
 
   /**
-   * buffer number used by owner to index into an array of buffers
-   * or possibly some other purpose.
+   * buffer number used by owner (LogBufferManager) to index into an array of buffers.
+   * 
+   * <p>Actual use of <i> index </i> is determined by the buffer manager implementation.
    */
   short index = 0;
+
+  /**
+   * currentTimeMillis that buffer was initialized.
+   * 
+   * <p>Implementations of LogBuffer should provide some means
+   * to persist <i> tod </i> to the file to allow recovery
+   * operations to determine when a buffer was written.
+   * 
+   * <p>Used during replay situations to validate block integrity.
+   * The TOD field from the block header is compared with the TOD field
+   * of the block footer to verify that an entire block was written.
+   */
+  long tod = 0;
 
   /**
    * number of waiting threads.
@@ -76,11 +90,40 @@ abstract class LogBuffer
    */
   LogFile lf = null;
   
-/**
+  /**
+   * switch to enable computation of checksum.
+   * 
+   * <p>Since it takes some CPU to compute checksums over a buffer,
+   * it might be useful to disable the checksum, at least for performance
+   * measurements.
+   * <p>When <i> doChecksum </i> is true then an implementation class
+   * should compute a checksum and store the value in the buffer during
+   * the write() method.
+   * <p>Use of checksums is optional and depends on the actual implementation
+   * class. 
+   */
+  boolean doChecksum = true;
+ 
+  /**
+   * Number of used data bytes in the buffer.
+   * 
+   * <p>This is different than buffer capacity().  The bytes used is the
+   * number of bytes of usable data in a buffer.  Bytes between the
+   * bytes used count and the buffer footer are undefined, possibly
+   * uninitialized or residue.
+   * 
+   * <p>set by operations that read data from files into the
+   * buffer such as read().
+   * <p>checked by operations that retrieve logical records
+   * from the buffer get().
+   */
+  int bytesUsed = 0;
+
+  /**
    * default constructor.
    * <p>after creating a new instance of LogBuffer the caller must
    * invoke config().
-   * @see #config
+   * @see #configure
    */
   LogBuffer()
   {
@@ -103,6 +146,7 @@ abstract class LogBuffer
   
   /**
    * sets index and ByteBuffer variables.
+   * 
    * <p>The LogBufferManager creates a pool of LogBuffer objects.  The
    * class name for the LogBuffer implementation is specified via configuration.
    * The LogBufferManager instantiates LogBuffer objects using
@@ -110,15 +154,21 @@ abstract class LogBuffer
    * is created, each LogBuffer instance is configured using the config()
    * method.
    * 
-   * TODO: consider using Properties for more generalized configuration.
+   * QUESTION: should LogBufferManager provide a Properties object for
+   * additional configuration information?
    * 
-   * @param size of the underlying ByteBuffer byte[].
+   * @param bmgr reference to the LogBufferManager that owns this LogBuffer.
+   * <p>configuration information is obtained from the buffer manager.
    * @param index into an array of buffers maintained by LogBufferManager.
    */
-  final void config(int size, short index)
+  final void configure(LogBufferManager bmgr, short index)
   {
     this.index = index;
-    buffer = ByteBuffer.allocateDirect(size);
+    buffer = ByteBuffer.allocateDirect(bmgr.getBufferSize());
+    
+    this.doChecksum = bmgr.doChecksum;
+
+    // TODO: consider using Properties obtained from LogBufferManager for additional configuration
   }
 
   /**
@@ -164,7 +214,7 @@ abstract class LogBuffer
     return "(" + name + ")";
   }
   
-    /**
+  /**
    * initialize members for LogBuffer implementation class for reuse.
    * <p>LogBufferManager maintains a pool of LogBuffer objects. Each
    * time a LogBuffer is allocated from the pool for use as the current
@@ -187,6 +237,27 @@ abstract class LogBuffer
    */ 
   abstract LogBuffer init(int bsn, LogFileManager lfm) throws LogFileOverflowException;
 
+  /**
+   * read a block of data from the LogFile object provided
+   *  in the <i> lf </i> parameter starting at the position
+   * specified in the <i> postiion </i> parameter.
+   * 
+   * <p>Used by LogFileManager implementations to read
+   * blocks of data that are formatted by a specific LogBuffer
+   * implementation.
+   * 
+   * <p>The LogFileManager uses LogBufferManager.getLogBuffer() method to obtain
+   * a buffer that is used for reading log files.
+   *   
+   * @param lf LogFile to read.
+   * @param position within the LogFile to be read.
+   * 
+   * @return this LogBuffer reference.
+   * @throws IOException
+   * @throws InvalidLogBufferException
+   */
+  abstract LogBuffer read(LogFile lf, long position) throws IOException, InvalidLogBufferException;
+  
   /**
    * returns <b>true</b> if the buffer should be forced to disk.
    * <p>The criteria for determining if a buffer should be

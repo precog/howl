@@ -2,6 +2,7 @@
  * JOnAS: Java(TM) Open Application Server
  * Copyright (C) 2004 Bull S.A.
  * Contact: jonas-team@objectweb.org
+ * 
  */
 package org.objectweb.howl.log;
 
@@ -16,7 +17,7 @@ import java.lang.InterruptedException;
  * Provides a generalized buffer manager for journals and loggers.
  *
  * <p>log records are written to disk as blocks
- * of data.  Block size is a multiple of 512 bytes
+ * of data.  Block size is a multiple of 512 data
  * to assure optimum disk performance.
  */
 class LogBufferManager
@@ -73,9 +74,6 @@ class LogBufferManager
    */
   private int flushSleepTime = 50;
 
-  // maximum size of a callers data record
-  private int maxRecordSize = 0; // initialized in open()
-
   /**
    * number of log Write forces
    */
@@ -95,16 +93,17 @@ class LogBufferManager
    * number of times buffer was forced because it is full
    */
   private long noRoomInBuffer = 0;
+  
+  /**
+   * number of times buffer size was increased because
+   * of threads waiting for buffers.
+   */
+  private int growPoolCounter = 0;
 
   /**
    * number of fatal errors in buffer management logic
    */
   private int bufferManagerError = 0;
-
-  /**
-   * number of times fillBuffer forced for timeout
-   */
-  private long flushOnTimeout = 0;
 
   /**
    * next block sequence number for fillBuffer
@@ -140,6 +139,7 @@ class LogBufferManager
   int threadsWaitingForceThreshold = Integer.MAX_VALUE;
   
   // reasons for doing force
+  long forceOnTimeout = 0;
   long forceNoWaitingThreads = 0;
   long forceHalfOfBuffers = 0;
   long forceMaxWaitingThreads = 0;
@@ -152,17 +152,21 @@ class LogBufferManager
   Thread flushManager = null;
   
   /**
+   * name of flush manager thread
+   */
+  private String flushManagerName = "FlushManager";
+  
+  /**
    * name of LogBuffer implementation used by this LogBufferManager instance.
    */
   String bufferClassName = null;
   
-  LogBufferManager(LogFileManager lfm)
-  {
-    assert lfm != null;
-    
-    this.lfm = lfm;
-  }
-
+  /**
+   * switch indicating whether or not to compute buffer checksums.
+   * <p>configured by -Dhowl.LogBuffer.checksum
+   */
+  boolean doChecksum = true;
+  
   /**
    * forces buffer to disk.
    *
@@ -186,7 +190,7 @@ class LogBufferManager
         --waitingForBSN;
       }
     }
-
+    
     // write the buffer to disk (hopefully non-blocking)
     try
     {
@@ -238,6 +242,10 @@ class LogBufferManager
       {
         // number of waiting threads exceeds configured limit
         ++forceMaxWaitingThreads;
+      }
+      else if (Thread.currentThread().getName().equals(flushManagerName))
+      {
+        ++forceOnTimeout;
       }
       else
       {
@@ -337,6 +345,43 @@ class LogBufferManager
     }
     return fillBuffer;
   }
+  
+  /**
+   * perform initialization following reposition of LogFileManager.
+   * 
+   * @param bsn last Block Sequence Number written by Logger. 
+   */
+  void init(LogFileManager lfm, int bsn)
+  {
+    assert lfm != null : "constructor requires non-null LogFileManager parameter";
+    this.lfm = lfm;
+    
+    nextFillBSN = bsn;
+    nextWriteBSN = ++bsn;
+  }
+  
+  /**
+   * return a new instance of LogBuffer.
+   * <p>Actual LogBuffer implementation class is specified by
+   * configuration.
+   * 
+   * @return a new instance of LogBuffer
+   */
+  LogBuffer getLogBuffer() throws ClassNotFoundException
+  {
+    LogBuffer lb = null;
+    Class lbcls = this.getClass().getClassLoader().loadClass(bufferClassName);
+
+    try {
+      lb = (LogBuffer)lbcls.newInstance();
+    } catch (InstantiationException e) {
+      throw new ClassNotFoundException(e.toString());
+    } catch (IllegalAccessException e) {
+      throw new ClassNotFoundException(e.toString());
+    }
+    
+    return lb; 
+  }
 
   /**
    * writes byte[] to log.
@@ -350,15 +395,11 @@ class LogBufferManager
    *   record for the configured buffer size. 
    */
   long put(short type, byte[] data, boolean sync)
-    throws LogClosedException, LogRecordSizeException, LogFileOverflowException, 
+    throws LogRecordSizeException, LogFileOverflowException, 
                 InterruptedException, IOException
   {
     long token = 0;
     LogBuffer currentBuffer = null;
-
-    // make sure data fits into a buffer
-    if (data.length > maxRecordSize)
-      throw new LogRecordSizeException();
 
     do {
       // allocate the current fillBuffer
@@ -397,56 +438,42 @@ class LogBufferManager
   }
 
   /**
-   * opens designated log file and allocates IO buffers.
+   * Allocate pool of IO buffers for Logger.
    * 
-   * TODO: move open and close to the Logger class
+   * <p>The LogBufferManager class is a generalized manager for any
+   * type of LogBuffer.  The class name for the type of LogBuffer
+   * to use is specified by configuration parameters.
+   * 
+   * @throws ClassNotFoundException
+   * if the configured LogBuffer class cannot be found.
+   * 
+   * @see #configure
    */
   void open()
-    throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException
+    throws ClassNotFoundException
   {
     configure();
     
-    Class lbcls = null;
-    lbcls = this.getClass().getClassLoader().loadClass(bufferClassName);
-
     freeBuffer = new LogBuffer[bufferPoolSize];
     for (short i=0; i< bufferPoolSize; ++i)
     {
-      // freeBuffer[i] = new BlockLogBuffer(bufferSize, i);
-      freeBuffer[i] = (LogBuffer)lbcls.newInstance();
-      freeBuffer[i].config(bufferSize, i);
+      freeBuffer[i] = getLogBuffer();
+      freeBuffer[i].configure(this, i); // TODO: should 'this' be Properties?
     }
-
-    try
-    {
-      fillBuffer = getFillBuffer();
-    }
-    catch (LogFileOverflowException e)
-    {
-      // should not happen on open so ignore it for now
-
-      // QUESTION: can this happen if we are doing recovery?
-      
-      // QUESTION: do we need a separate openForRecovery or open(mode) for read and rw?
-    }
-    assert fillBuffer != null : "open(): unexpected null pointer returned by getFillBuffer()";
-    assert fillBuffer.buffer != null : "open(): null ByteBuffer pointer; fillBuffer.buffer";
-    
-    // remember maximum record size so put() can reject records that
-    // are too big without causing a BufferOverflowException
-    maxRecordSize = fillBuffer.buffer.remaining();
 
     // start a thread to flush buffers that have been waiting more than 50 ms.
-    flushManager = new FlushManager("FlushManager");
+    flushManager = new FlushManager(flushManagerName);
+    flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
     flushManager.start();
-
   }
-
+  
   /**
-   * flush active buffers to disk and shut down the FlushManager
-   * thread.
+   * flush active buffers to disk and wait for all LogBuffers to
+   * be returned to the freeBuffer pool.
+   * 
+   * <p>May be called multiple times.
    */
-  void stop() throws IOException
+  void flushAll() throws IOException
   {
     try
     {
@@ -468,11 +495,6 @@ class LogBufferManager
       ; // ignore it
     }
 
-    // shutdown the flush manager
-    if (flushManager != null)
-    {
-      flushManager.interrupt();
-    }
   }
 
   /**
@@ -487,14 +509,27 @@ class LogBufferManager
     double avgThreadsWaitingForce = (totalThreadsWaitingForce / (double)forceCount);
     String name = this.getClass().getName();
     StringBuffer stats = new StringBuffer(
-           "\n<LogBufferManager  class='" + name + "'>" + 
-           "\n  <poolsize    value='" + freeBuffer.length + "'></poolsize>" + 
-           "\n  <bufferwait  value='" + waitForBuffer     + "'>Wait for available buffer</bufferwait>" +
+           "\n<LogBufferManager  class='" + name + "'>" +
+           "\n  <bufferSize value='" + this.bufferSize + "'>" +
+                "Buffer Size (in bytes)" +
+                 "</bufferSize>" +
+           "\n  <poolsize    value='" + freeBuffer.length + "'>" +
+                "Number of buffers in the pool" +
+                "</poolsize>" + 
+           "\n  <initialPoolSize value='" + bufferPoolSize + "'>" +
+                "Initial number of buffers in the pool" +
+                "</initialPoolSize>" +
+           "\n  <bufferwait  value='" + waitForBuffer     + "'>" +
+                "Wait for available buffer" +
+                "</bufferwait>" +
+           "\n  <growPoolCounter value='" + growPoolCounter + "'>" +
+                "Number of times buffer pool was grown" +
+                "</growPoolCounter>" +
            "\n  <bsnwait     value='" + waitForBSN        + "'>Waits for BSN</bsnwait>" +
            "\n  <forcecount  value='" + forceCount        + "'>Number of force() calls</forcecount>" +
            "\n  <bufferfull  value='" + noRoomInBuffer    + "'>Buffer full</bufferfull>" + 
            "\n  <nextfillbsn value='" + nextFillBSN       + "'></nextfillbsn>" +
-           "\n  <forceOnTimeout value='" + flushOnTimeout + "'></forceOnTimeout>" +
+           "\n  <forceOnTimeout value='" + forceOnTimeout + "'></forceOnTimeout>" +
            "\n  <forceNoWaitingThreads value='" + forceNoWaitingThreads + "'>force because no other trheads waiting on force</forceNoWaitingThreads>" +
            "\n  <forceHalfOfBuffers value='" + forceHalfOfBuffers + "'>force due to 1/2 of buffers waiting</forceHalfOfBuffers>" +
            "\n  <forceMaxWaitingThreads value='" + forceMaxWaitingThreads + "'>force due to max waiting threads</forceMaxWaitingThreads>" +
@@ -505,7 +540,10 @@ class LogBufferManager
          );
     
     for (int i=0; i < freeBuffer.length; ++i)
+    {
+      assert freeBuffer[i] != null : "freeBuffer[" + i + "] is null";
       stats.append(freeBuffer[i].getStats());
+    }
 
     stats.append(
          "\n</LogBufferPool>" +
@@ -529,6 +567,15 @@ class LogBufferManager
     bufferPoolSize = Integer.getInteger("howl.log.bufferPoolSize",bufferPoolSize).shortValue();
     threadsWaitingForceThreshold = Integer.getInteger("howl.log.maxWaitingThreads",threadsWaitingForceThreshold).intValue();
     bufferClassName = System.getProperty("howl.LogBuffer.class", "org.objectweb.howl.log.LogException");
+    doChecksum = Boolean.getBoolean("howl.LogBuffer.checksum");
+  }
+
+  /**
+   * @return current value of bufferSize instance variable.
+   */
+  protected int getBufferSize()
+  {
+    return bufferSize;
   }
 
   /**
@@ -545,6 +592,9 @@ class LogBufferManager
     public void run()
     {
       LogBuffer buffer = null;
+      LogBufferManager parent = LogBufferManager.this;
+      
+      long waitForBuffer = parent.waitForBuffer;
 
       for (;;)
       {
@@ -553,13 +603,51 @@ class LogBufferManager
         try
         {
           sleep(flushSleepTime); // check for timeout every 50 ms
+          
+          /*
+           * Dynamically grow buffer pool until number of waits
+           * for a buffer is less than 1/2 the pool size.
+           */
+          long bufferWaits = parent.waitForBuffer - waitForBuffer;
+          int increment = freeBuffer.length / 2;
+          if (bufferWaits > increment)
+          {
+            // increase size of buffer pool if number of waits > 1/2 buffer pool size
+            LogBuffer[] fb = new LogBuffer[freeBuffer.length + increment];
+            
+            ++growPoolCounter;
+
+            // initialize the new slots
+            boolean haveNewArray = true;
+            for(int i=freeBuffer.length; i < fb.length; ++i)
+            {
+              try {
+                fb[i] = getLogBuffer();
+                fb[i].configure(parent, (short)i);
+              } catch (ClassNotFoundException e) {
+                haveNewArray = false;
+                break;
+              }
+            }
+            if (haveNewArray)
+            {
+              synchronized(bufferManagerLock)
+              {
+                // copy original buffers to new array
+                for(int i=0; i<freeBuffer.length; ++i)
+                  fb[i] = freeBuffer[i];
+
+                freeBuffer = fb;
+              }
+            }
+          }
+          waitForBuffer = parent.waitForBuffer;
 
           synchronized(bufferManagerLock)
           {
             buffer = fillBuffer;
             if (buffer != null && buffer.shouldForce())
             {
-              ++flushOnTimeout;
               fillBuffer = null;
             }
             else

@@ -9,7 +9,7 @@ package org.objectweb.howl.log;
  * An implementation of BlockLogBuffer that does *not* perform IO.
 
  * <p>This class implements a sink for log records.  It can be used to
- * measure the performance of the log implementation sans IO.
+ * measure the performance of the log implementation without IO.
  *  
  * @author Michael Giroux
  *

@@ -1,6 +1,8 @@
 /*
+ * JOnAS: Java(TM) Open Application Server
+ * Copyright (C) 2004 Bull S.A.
+ * Contact: jonas-team@objectweb.org
  * Created on Mar 24, 2004
- *
  */
 package org.objectweb.howl.log;
 
@@ -32,17 +34,22 @@ class LogFile
    * channel methods come through this LogFile object to allow
    * for statistics collection.  
    */
-  private FileChannel channel = null;
+  FileChannel channel = null;
   
   /**
-   * number of times this file position was reset to zero
+   * number of times this file position was reset to zero.
    */
   int rewindCounter = 0;
   
   /**
-   * total number of bytes written
+   * total number of data written.
    */
   long bytesWritten = 0;
+  
+  /**
+   * total number of data read from this file.
+   */
+  long bytesRead = 0;
   
   /**
    * log key for the first record in the next file. 
@@ -67,6 +74,12 @@ class LogFile
   long tod = 0;
   
   /**
+   * indicates the file was created during the call to open()
+   * @see #open
+   */
+  boolean newFile = true;
+  
+  /**
    * construct an instance of LogFile for a given file name
    * @param name filename
    */
@@ -77,10 +90,17 @@ class LogFile
   
   /**
    * open the file and get the associated nio FileChannel for the file.
+   * 
+   * <p>If the file does not exist, then the newFile member is set true.
+   * 
    * @throws FileNotFoundException
+   * if the parent directory structure does not exist. 
    */
   LogFile open() throws FileNotFoundException
   {
+    // remember whether the file existed or not
+    newFile = !name.exists();
+    
     channel = new RandomAccessFile(name, "rw").getChannel();
     return this;
   }
@@ -110,9 +130,38 @@ class LogFile
   }
   
   /**
+   * Helper provides access to the FileChannel.read() method
+   * for the FileChannel associated with this LogFile.
+   * 
+   * <p>Hides actual FileChannel and allows capture of statistics.
+   * 
+   * <p>uses FileChannel.read(ByteBuffer, long) method so that
+   * file position remains unchanged after the operation.
+   * 
+   * <p>This method is used by LogFileManager during open and
+   * restart processing.
+   * 
+   * @param lb LogBuffer containing a ByteBuffer used by read.
+   * @param position absolute file position for the read.
+   * @return number of data read
+   * @throws IOException
+   * @see FileChannel#read(ByteBuffer,long)
+   */
+  int read(LogBuffer lb, long position) throws IOException
+  {
+    lb.buffer.clear();
+    
+    // NOTE: file position is not changed by following call
+    int bytesRead = channel.read(lb.buffer, position);
+    if (bytesRead > 0)
+      this.bytesRead += bytesRead;
+    
+    return bytesRead;
+  }
+  
+  /**
    * Helper provides access to the FileChannel.write() method for
    * the FileChannel associated with this LogFile.
-   * <p>Hides actual FileChannel and allows capture of statistics.
    * @param lb Reference to a LogBuffer object that is to be written.
    * @throws IOException
    */
@@ -124,9 +173,8 @@ class LogFile
       ++rewindCounter;
       lb.rewind = false;
     }
-    
-    channel.write(lb.buffer);
-    bytesWritten += lb.buffer.capacity();
+
+    bytesWritten += channel.write(lb.buffer);
   }
   
   /**
@@ -149,13 +197,25 @@ class LogFile
   String getStats()
   {
     String clsname = this.getClass().getName();
-    
-    String result = "\n<LogFile class='" + clsname + "' file='" + name + "'>" +
+
+    StringBuffer result = new StringBuffer("\n<LogFile class='" + clsname + "' file='" + name + "'>" +
     "\n  <rewindCount value='" + rewindCounter + "'>Number of times this file was rewind to position(0)</rewindCount>" +
-    "\n  <bytesWritten value='" + bytesWritten + "'>Number of bytes written to the file</bytesWritten>" +
-      "\n</LogFile>" +
-      "\n";
+    "\n  <bytesWritten value='" + bytesWritten + "'>Number of data written to the file</bytesWritten>"
+    );
+
+    long position = 0L;
+    try {
+      position = channel.position();
+    }
+    catch(IOException e) { /* ignore the exception */ }
+    finally {
+      result.append("\n  <position value='" + position + "'>FileChannel.position()</position>");
+    }
     
-    return result;
+    result.append("\n</LogFile>" +
+    "\n"
+        );
+    
+    return result.toString();
   }
 }

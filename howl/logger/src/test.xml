@@ -1,4 +1,4 @@
-<?xml version='1.0'>
+<?xml version='1.0'?>
 <Logger  class='org.objectweb.howl.log.Logger'>
 <LogBufferManager  class='org.objectweb.howl.log.LogBufferManager'>
   <poolsize    value='32'></poolsize>
@@ -132,6 +132,6 @@
 </LogFile>
 
 </LogFiles>
-</LogFileManager
+</LogFileManager>
 </Logger>
 
