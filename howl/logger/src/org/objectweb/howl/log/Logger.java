@@ -6,7 +6,6 @@
 package org.objectweb.howl.log;
 
 import java.io.IOException;
-import java.io.FileNotFoundException;
 
 /**
  * Manage a configured set of two or more physical log files.
@@ -155,8 +154,6 @@ public class Logger
   /**
    * open Log files and perform necessart initialization.
    * 
-   * TODO: consider boolean restart parameter or replayListener parameter
-   * 
    * TODO: consider open(String name) to allow named configurations.
    *       this would allow utility to open two loggers and copy 
    *       old records to new files.
@@ -215,11 +212,14 @@ public class Logger
    * most likely because the configured LogBuffer class cannot be found.
    * @throws InvalidLogKeyException
    * if <i> mark </i> is not a valid log key.
+   * 
+   * @see LogBufferManager#replay(ReplayListener, long, boolean)
    */
   public void replay(ReplayListener listener, long mark)
     throws InvalidLogKeyException, LogConfigurationException
   {
-    bmgr.replay(listener, mark);
+    // replay only the user records.
+    bmgr.replay(listener, mark, false);
   }
   
   /**

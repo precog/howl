@@ -10,6 +10,12 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 /**
+ * LogRecord class used by Logger.replay().
+ * 
+ * <p>This class may be extended by applications to provide
+ * Java Bean mappings for application data fields within the
+ * record.
+ * 
  * @author Michael Giroux
  */
 public final class LogRecord
@@ -55,7 +61,9 @@ public final class LogRecord
    * constructs an instance of LogRecord with a byte[]
    * of <i> size </i> data.
    * 
-   * @param size number of data to allocate for the data buffer.
+   * @param size initial size of data buffer.
+   * <p>the get() method will reallocate the data buffer
+   * to accomdate larger records.
    */
   public LogRecord(int size)
   {
@@ -95,7 +103,8 @@ public final class LogRecord
    * <p>Following the call to get()
    * the number of data bytes transferred into this LogRecord's
    * data buffer is available in
-   * LogRecord.length. The LogRecord.dataBuffer.limit is also set.
+   * LogRecord.length. The LogRecord.dataBuffer.limit is also set
+   * to the number of bytes transferred.
    * <p>Sets LogRecord.type to LogRecordType.EOB if the position of this
    * LogBuffer is at or beyond bytes used.
    * <p>Sets the limit of this LogRecord to the number of bytes in the logical
@@ -104,14 +113,11 @@ public final class LogRecord
    * 
    * @param lb LogBuffer to get the next logical record from.
    * @return this LogRecord.
-   * @throws LogRecordSizeException
-   * if capacity of this <i> LogRecord.dataBuffer </i> is not sufficient to
-   * hold the entire record data.
    * @throws InvalidLogBufferException
    * if the size of the data record exceeds the bytes used for the buffer.
    * @see LogRecordType
    */
-  protected LogRecord get(LogBuffer lb) throws LogRecordSizeException, InvalidLogBufferException
+  final LogRecord get(LogBuffer lb) throws InvalidLogBufferException
   {
     short type = 0;
     short length = 0;
@@ -131,14 +137,18 @@ public final class LogRecord
         buffer.reset();
         throw new InvalidLogBufferException();
       }
-      if (length > data.length) {
-        buffer.reset();
-        throw new LogRecordSizeException();
-      }
       if (buffer.position() + length > lb.bytesUsed) {
         buffer.reset();
         throw new InvalidLogBufferException();
       }
+      
+      if (length > data.length) {
+        // reallocate buffer to accomodate record
+        data = new byte[length];
+        dataBuffer = ByteBuffer.wrap(data);
+        dataBuffer.clear();
+      }
+      
       if (length > 0)
         buffer.get(data, 0, length);
       key = logKey;   
@@ -147,6 +157,9 @@ public final class LogRecord
     {
       // no data left in this buffer
       type = LogRecordType.CTRL | LogRecordType.EOB;
+      
+      // set key to first record in next block 
+      key = ((long) (lb.bsn + 1) << 24); 
     }
     
     this.type = type;

@@ -9,8 +9,7 @@ package org.objectweb.howl.log;
 /**
  * Checked exception thrown when the byte[] passed to <i>put</i>
  * is larger than the configured buffer size.
- * <p>Thrown by <i> LogRecord.get() </i> if the LogRecord
- * buffer is smaller than the record being read from the log.
+ * 
  * <p>LogBufferManager does not support spanned records
  * (records that span physical blocks).  Increase the
  * configured journal block size to accomodate larger

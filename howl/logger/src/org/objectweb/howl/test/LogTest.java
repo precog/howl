@@ -12,7 +12,6 @@ import java.io.File;
 import java.util.Date;
 
 import org.objectweb.howl.log.LogClosedException;
-import org.objectweb.howl.log.LogConfigurationException;
 import org.objectweb.howl.log.LogException;
 import org.objectweb.howl.log.LogRecord;
 import org.objectweb.howl.log.LogRecordType;
@@ -44,14 +43,14 @@ public class LogTest
       testXAJournalThroughput();
       testXAJournalValidate();
     } catch (Exception e) {
-      System.out.println("Exception\n");
+      System.err.println("Exception\n");
       e.printStackTrace();
     } catch (LogException e) {
-      System.out.println("LogException\n");
+      System.err.println("LogException\n");
       e.printStackTrace();
     }
     catch (AssertionError e) {
-      System.out.println("AssertionError\n");
+      System.err.println("AssertionError\n");
       e.printStackTrace();
     }
     finally
@@ -120,6 +119,7 @@ public class LogTest
   {
     LogRecord logrec = new LogRecord(MESSAGE_SIZE);
     long recordCount = 0;
+    long previousKey = 0;
     boolean done = false;
     
     public void onRecord(LogRecord lr)
@@ -131,8 +131,13 @@ public class LogTest
           notify();
         }
       }
-      else
+      else {
         ++recordCount;
+        if (lr.key <= previousKey) {
+          System.err.println("Key Out of Sequence; total/prev/this: " + recordCount + " / " +
+              Long.toHexString(previousKey) + " / " + Long.toHexString(lr.key));
+        }
+      }
     }
     public void onError(LogException e)
     {
@@ -145,9 +150,12 @@ public class LogTest
       return logrec;
     }
     
-    void run() throws InterruptedException, LogConfigurationException
+    void run() throws Exception, LogException
     {
-      log.replay(this);
+      Logger log = new Logger();
+      log.open();
+      log.replay(this, 0L);
+      log.close();
       
       synchronized (this)
       {

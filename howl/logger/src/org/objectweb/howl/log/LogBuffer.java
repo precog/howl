@@ -56,7 +56,9 @@ abstract class LogBuffer
    * buffer sequence number.
    * <p>LogBufferManager maintains a sequence number
    * of buffers written. The sequence number is stored
-   * in the block header of each log block. 
+   * in the block header of each log block.
+   * <p>Initialized to zero.
+   * <p>Set to -1 by read() if bytes read is -1 (end of file) 
    */
   int bsn = 0;
   
@@ -86,7 +88,7 @@ abstract class LogBuffer
    * files to be performed in parallel, each LogBuffer must keep track of its own
    * LogFile.
    * 
-   * @see LogFileManager#getLogFile(LogBuffer)
+   * @see LogFileManager#getLogFileForWrite(LogBuffer)
    */
   LogFile lf = null;
   

@@ -180,6 +180,9 @@ class BlockLogBuffer extends LogBuffer
         buffer.putShort(type).putShort((short)data.length).put(data);
         todPut = System.currentTimeMillis();
         
+        // update LogFile.highMark just in case someone tries to replay the log while it is active.
+        lf.highMark = logKey;
+        
         if (sync) ++waitingThreads;
       }
     }
@@ -299,7 +302,7 @@ class BlockLogBuffer extends LogBuffer
      * LogFileManager will put a header record into this buffer
      * so we must make this call after all other initialization is complete.
      */
-    lf = lfm.getLogFile(this);
+    lf = lfm.getLogFileForWrite(this);
     assert lf != null: "LogFileManager returned null LogFile pointer";
     
     // set maxRecordSize again for user records
@@ -342,8 +345,10 @@ class BlockLogBuffer extends LogBuffer
     
     this.lf = lf;
     
-    // fill the buffer with a block of data
-    int bytesRead = lf.read(this, position);
+    // fill our ByteBuffer with a block of data from the file
+    // NOTE: file position is not changed by following call
+    buffer.clear();
+    int bytesRead = lf.channel.read(buffer, position);
     if (bytesRead == -1)
     {
       // end of file

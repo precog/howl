@@ -7,8 +7,6 @@
 package org.objectweb.howl.log;
 
 
-import org.objectweb.howl.log.LogRecordSizeException;
-
 import java.io.IOException;
 
 import java.lang.InterruptedException;
@@ -40,7 +38,7 @@ class LogBufferManager
   /**
    * reference to LogFileManager that owns this Buffer Manager instance.
    * 
-   * @see LogFileManager#getLogFile(LogBuffer)
+   * @see LogFileManager#getLogFileForWrite(LogBuffer)
    */
   private LogFileManager lfm = null;
   
@@ -85,11 +83,6 @@ class LogBufferManager
   private long waitForBuffer = 0;
   
   /**
-   * number of times any task waited for BSN to increment
-   */
-  private long waitForBSN = 0;
-
-  /**
    * number of times buffer was forced because it is full
    */
   private long noRoomInBuffer = 0;
@@ -108,7 +101,7 @@ class LogBufferManager
   /**
    * next block sequence number for fillBuffer
    */
-  int nextFillBSN = 0;
+  int nextFillBSN = 1;
 
   /**
    * next BSN to be written to log
@@ -168,10 +161,22 @@ class LogBufferManager
   boolean doChecksum = true;
 
   /**
-   * maximum number of threads waiting in bsnManagerLock for
-   * bsn to increment to the bsn of the buffer.
+   * queue of buffers waiting to be written.  The queue guarantees that 
+   * buffers are written to disk in BSN order.
+   * <p>Buffers are added to the queue when put() detects the buffer is full.
+   * <p>Buffers are removed from the queue in force() and written to disk.
    */
-  private short maxWaitingForBSN;
+  private LogBuffer[] forceQueue = null;
+  
+  /**
+   * next put index into <i> forceQueue </i>.
+   */
+  private volatile int fqPut = 0;
+
+  /**
+   * next get index from <i> forceQueue </i>.
+   */
+  private volatile int fqGet = 0;
   
   /**
    * forces buffer to disk.
@@ -179,41 +184,28 @@ class LogBufferManager
    * <p>batches multiple buffers into a single force
    * when possible.
    */
-  private void force(LogBuffer buffer)
+  private void force()
     throws IOException, InterruptedException
   {
+    LogBuffer buffer = null;
+
     // make sure buffers are written in ascending BSN sequence
     synchronized(bsnManagerLock)
     {
-      if (buffer.bsn != nextWriteBSN)
-      {
-        ++waitingForBSN;
-        if (waitingForBSN > maxWaitingForBSN)
-          maxWaitingForBSN = waitingForBSN;
-        while (buffer.bsn != nextWriteBSN)
-        {
-          ++waitForBSN;
-          bsnManagerLock.wait();
-        }
-        --waitingForBSN;
+      buffer = forceQueue[fqGet]; // buffer stuffed into forceQ
+      fqGet = (fqGet + 1) % forceQueue.length;
+      
+      // write the buffer to disk (hopefully non-blocking)
+      try {
+        assert buffer.bsn == nextWriteBSN : "BSN error expecting " + nextWriteBSN + " found " + buffer.bsn;
+        buffer.write(false);
+        nextWriteBSN = buffer.bsn + 1;
+      }
+      catch (IOException ioe) {
+        // ignore for now. buffer.iostatus is checked later for errors.
       }
     }
     
-    // write the buffer to disk (hopefully non-blocking)
-    try
-    {
-      buffer.write(false);  
-    }
-    catch (IOException ioe)
-    {
-      // ignore for now. buffer.iostatus is checked later for errors.
-    }
-    
-    synchronized(bsnManagerLock)
-    {
-      ++nextWriteBSN;
-      bsnManagerLock.notifyAll();
-    }
     
     threadsWaitingForce += buffer.getWaitingThreads();
     if (threadsWaitingForce > maxThreadsWaitingForce)
@@ -236,7 +228,7 @@ class LogBufferManager
       {
         doforce = false;
       }
-      else if (waitingForBSN == 0)
+      else if (fqGet == fqPut)
       {
         // no other threads waiting so force now
         ++forceNoWaitingThreads;
@@ -259,7 +251,7 @@ class LogBufferManager
       {
         doforce = false;
       }
-      
+
       if (doforce)
       {
         // force() is guaranteed to have forced everything that
@@ -292,6 +284,7 @@ class LogBufferManager
 
     releaseBuffer(buffer);
   }
+
   /**
    * Waits for buffer to be forced to disk.
    *
@@ -346,7 +339,8 @@ class LogBufferManager
         {
           LogBuffer b = freeBuffer[nextIndex];
           freeBuffer[nextIndex] = null;
-          fillBuffer = b.init(++nextFillBSN, lfm);
+          fillBuffer = b.init(nextFillBSN, lfm);
+          ++nextFillBSN;
         }
         ++nextIndex;
       }
@@ -408,6 +402,9 @@ class LogBufferManager
         {
           // buffer is full -- make it unavailable to other threads until force() completes
           fillBuffer = null;
+          forceQueue[fqPut] = currentBuffer;
+          fqPut = (fqPut + 1) % forceQueue.length;
+          assert fqPut < forceQueue.length : "unexpected fqPut value " + fqPut;
         }
       }
 
@@ -415,7 +412,7 @@ class LogBufferManager
       {
         // force current buffer if there was no room for data
         ++noRoomInBuffer;
-        force(currentBuffer);
+        force();
         if (currentBuffer.iostatus == LogBufferStatus.ERROR)
           throw currentBuffer.ioexception;
       }
@@ -428,53 +425,58 @@ class LogBufferManager
 
     return token;
   }
-
   /**
+   * Replays log from requested mark forward to end of log.
+   * 
+   * @param listener ReplayListener to receive notifications for each log record.
+   * @param mark log key for the first record to be replayed.
+   * <p>If mark is zero then the entire active log is replayed.
+   * @param replayCtrlRecords indicates whether to return control records.
+   * <p>used by utility routines such as CopyLog.
+   * 
    * @see Logger.replay(ReplayListener, long)
    */
-  void replay(ReplayListener listener, long mark)
+  void replay(ReplayListener listener, long mark, boolean replayCtrlRecords)
   	throws LogConfigurationException, InvalidLogKeyException
   {
     if (mark < 0)
       throw new InvalidLogKeyException("log key [" + mark + "] must be >= zero");
-    
-    // DEBUG:
-    System.err.println("begin replay from mark: " + Long.toHexString(mark));
     
     LogBuffer buffer = null;
     
     // get a LogBuffer for reading
     try {
       buffer = getLogBuffer();
+      buffer.configure(this, (short)-1);
     } catch (ClassNotFoundException e) {
       throw new LogConfigurationException(e.toString());
     }
-    buffer.configure(this, (short)-1);
-
+    
     // get a LogRecord from caller
     LogRecord record = listener.getLogRecord();
 
-    // get log file containing the requested mark
-    LogFile lf = lfm.getLogFile(mark);
-    if (lf == null) {
-      record.type = LogRecordType.CTRL | LogRecordType.END_OF_LOG;
-    }
-    // position log to mark
-    assert lf != null : "LogFile pointer is null";
-    long markPosition = ((mark - lf.highMark) >> 24) // number of blocks to skip over
-                      * bufferSize;
+    // read block containing requested mark
     try {
-      buffer.read(lf, markPosition);
-    } catch (InvalidLogBufferException e) {
-      listener.onError(e);
-      return;
+      lfm.read(buffer, bsnFromMark(mark));
     } catch (IOException e) {
+      String msg = "Error reading " + buffer.lf.name + " @ position [" + buffer.lf.position + "]";
+      listener.onError(new LogException(msg + e.toString()));
+      return;
+    } catch (InvalidLogBufferException e) {
       listener.onError(new LogException(e.toString()));
       return;
     }
 
+    // get log file containing the requested mark
+    if (buffer.bsn == -1) {
+      record.type = LogRecordType.CTRL | LogRecordType.END_OF_LOG;
+      listener.onRecord(record);
+      return;
+    }
+    
     // verify we have the desired block
-    long markBSN = mark >> 24;
+    // if requested mark == 0 then we start with the oldest block available
+    long markBSN = (mark == 0) ? buffer.bsn : bsnFromMark(mark);
     if (markBSN != buffer.bsn) {
       InvalidLogBufferException lbe = new InvalidLogBufferException(
           "block read [" + buffer.bsn + "] not block requested: " + markBSN);
@@ -482,12 +484,75 @@ class LogBufferManager
       return;
     }
     
-    // TODO: replay from a specific mark
+    /*
+     * position buffer to requested mark.
+     * 
+     * Although the mark contains a buffer offset, we search forward
+     * through the buffer to guarantee that we have the start
+     * of a record.  This protects against using marks that were
+     * not generated by the current Logger.
+     */
+    try {
+      record.get(buffer);
+      if (mark > 0) {
+        while(record.key < mark) {
+          record.get(buffer);
+        }
+        if (record.key != mark) {
+          String msg = "The initial mark [" + Long.toHexString(mark) + 
+            "] requested for replay was not found in the log.";
+          listener.onError(new InvalidLogKeyException(msg));
+          return;
+        }
+      }
+    } catch (InvalidLogBufferException e) {
+      listener.onError(new LogException(e.toString()));
+      return;
+    }
     
-    // return end of log indicator
-    record.type = LogRecordType.CTRL | LogRecordType.END_OF_LOG;
-    listener.onRecord(record);
+    /*
+     * If we get this far then we have found the requested mark.
+     * Replay the log starting at the requested mark through the end of log.
+     */
+    long nrecs = 0;
+    int nextBSN = 0;
+    while (true) {
+      if (record.isEOB()) {
+        // read next block from log
+        nextBSN = buffer.bsn + 1;
+        try {
+          lfm.read(buffer, nextBSN);
+        } catch (IOException e) {
+          listener.onError(new LogException(e.toString()));
+          return;
+        } catch (InvalidLogBufferException e) {
+          listener.onError(new LogException(e.toString()));
+          return;
+        }
+        
+        // return end of log indicator
+        if (buffer.bsn == -1) {
+          record.type = LogRecordType.CTRL | LogRecordType.END_OF_LOG;
+          listener.onRecord(record);
+          return;
+        }
+      }
+      else if (!record.isCTRL() || replayCtrlRecords) {
+        listener.onRecord(record);
+      }
+
+      ++nrecs;
+
+      // get next record
+      try {
+        record.get(buffer);
+      } catch (InvalidLogBufferException e) {
+        listener.onError(e);
+        return;
+      }
+    }
   }
+  
   /**
    * Allocate pool of IO buffers for Logger.
    * 
@@ -511,11 +576,16 @@ class LogBufferManager
       freeBuffer[i] = getLogBuffer();
       freeBuffer[i].configure(this, i); // TODO: should 'this' be Properties?
     }
+    
+    // TODO: test forceQueue
+    forceQueue = new LogBuffer[bufferPoolSize + 1]; // guarantee we never overrun this queue
 
     // start a thread to flush buffers that have been waiting more than 50 ms.
-    flushManager = new FlushManager(flushManagerName);
-    flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
-    flushManager.start();
+    if (flushManager == null) {
+      flushManager = new FlushManager(flushManagerName);
+      flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
+      flushManager.start();
+    }
   }
   
   /**
@@ -529,9 +599,9 @@ class LogBufferManager
   {
     assert lfm != null : "constructor requires non-null LogFileManager parameter";
     this.lfm = lfm;
-    
-    nextFillBSN = bsn;
-    nextWriteBSN = ++bsn;
+
+    nextFillBSN = bsn + 1;
+    nextWriteBSN = nextFillBSN;
   }
   
   /**
@@ -592,12 +662,6 @@ class LogBufferManager
            "\n  <growPoolCounter value='" + growPoolCounter + "'>" +
                 "Number of times buffer pool was grown" +
                 "</growPoolCounter>" +
-           "\n  <bsnwait     value='" + waitForBSN        + "'>" +
-           		  "Waits for BSN" +
-           		  "</bsnwait>" +
-           "\n  <maxWaitForBSN value='" + maxWaitingForBSN + "'>" +
-           		  "Maximum number of threads waiting for BSN increment" +
-                "</maxWaitForBSN>" +
            "\n  <forcecount  value='" + forceCount        + "'>Number of force() calls</forcecount>" +
            "\n  <bufferfull  value='" + noRoomInBuffer    + "'>Buffer full</bufferfull>" + 
            "\n  <nextfillbsn value='" + nextFillBSN       + "'></nextfillbsn>" +
@@ -611,10 +675,16 @@ class LogBufferManager
            "\n"
          );
     
+    /*
+     * collect stats for each buffer that is in the freeBuffer list.
+     * If log is active one or more buffers will not be in the freeBuffer list.
+     * The only time we can be sure that all buffers are in the list is
+     * when the log is closed. 
+     */
     for (int i=0; i < freeBuffer.length; ++i)
     {
-      assert freeBuffer[i] != null : "freeBuffer[" + i + "] is null";
-      stats.append(freeBuffer[i].getStats());
+      if (freeBuffer[i] != null)
+        stats.append(freeBuffer[i].getStats());
     }
 
     stats.append(
@@ -641,6 +711,30 @@ class LogBufferManager
     bufferClassName = System.getProperty("howl.LogBuffer.class", "org.objectweb.howl.log.LogException");
     doChecksum = Boolean.getBoolean("howl.LogBuffer.checksum");
     
+  }
+
+  /**
+   * returns the BSN value portion of a log key <i> mark </i>.
+   * 
+   * @param mark log key or log mark to extract BSN from.
+   * 
+   * @return BSN portion of <i> mark </i>
+   */
+  int bsnFromMark(long mark)
+  {
+    return (int) (mark >> 24);
+  }
+  
+  /**
+   * generate a log mark (a.k.a. log key).
+   * @param bsn Block Sequence Number.
+   * @param offset offset within block.
+   * <p>May be zero to allow access to the beginning of a block.
+   * @return a log key.
+   */
+  long markFromBsn(int bsn, int offset)
+  {
+    return ((long)bsn << 24) | offset;
   }
 
   /**
@@ -704,6 +798,7 @@ class LogBufferManager
             }
             if (haveNewArray)
             {
+              LogBuffer[] fq = new LogBuffer[fb.length + 1];
               synchronized(bufferManagerLock)
               {
                 // copy original buffers to new array
@@ -711,6 +806,20 @@ class LogBufferManager
                   fb[i] = freeBuffer[i];
 
                 freeBuffer = fb;
+
+                synchronized(bsnManagerLock)
+                {
+                  // copy existing force queue entries to new force queue
+                  int fqx = 0;
+                  while (fqGet != fqPut)
+                  {
+                    fq[fqx++] = forceQueue[fqGet++];
+                    fqGet %= forceQueue.length;
+                  }
+                  forceQueue = fq;
+                  fqGet = 0;
+                  fqPut = fqx;
+                }
               }
             }
           }
@@ -729,7 +838,12 @@ class LogBufferManager
 
           if (buffer != null)
           {
-              force(buffer);
+            synchronized(bufferManagerLock)
+            {
+              forceQueue[fqPut] = buffer;
+              fqPut = (fqPut + 1) % forceQueue.length;
+            }
+              force();
           }
 
         }

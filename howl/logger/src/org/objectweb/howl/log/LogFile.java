@@ -47,11 +47,6 @@ class LogFile
   long bytesWritten = 0;
   
   /**
-   * total number of data read from this file.
-   */
-  long bytesRead = 0;
-  
-  /**
    * log key for the first record in the next file. 
    * <p>when a file switch occurs, the LogFileManager stores the mark
    * for the file header record of the next log file into this LogFile object.
@@ -69,9 +64,26 @@ class LogFile
   long highMark = Long.MIN_VALUE;
   
   /**
+   * BSN of first block in the file.
+   * 
+   * <p>Initialized by LogFileManager and updated as
+   * log files are reused.
+   * <p>Used by LogFileManager.read() to calculate offset into a file to
+   * read a specific block.
+   */
+  int firstBSN = 0;
+  
+  /**
    * currentTimeMillis when LogFileManager switched to this LogFile. 
    */
   long tod = 0;
+  
+  /**
+   * FileChannel.position() of last read or write.
+   * 
+   * <p>May be used to report the file position when IOException occurs. 
+   */
+  long position = 0;
   
   /**
    * indicates the file was created during the call to open()
@@ -117,49 +129,6 @@ class LogFile
   {
     channel.close();
     return this;
-  }
-  
-  /**
-   * A convenience helper method providing access to the
-   * current position of the FileChannel for this LogFile.
-   * 
-   * @return a long containing current position of the channel for this LogFile
-   * @throws IOException thrown by FileChannel.positio()
-   * @see java.nio.channels.FileChannel#position()
-   */
-  long position() throws IOException
-  {
-    return channel.position();
-  }
-  
-  /**
-   * Helper provides access to the FileChannel.read() method
-   * for the FileChannel associated with this LogFile.
-   * 
-   * <p>Hides actual FileChannel and allows capture of statistics.
-   * 
-   * <p>uses FileChannel.read(ByteBuffer, long) method so that
-   * file position remains unchanged after the operation.
-   * 
-   * <p>This method is used by LogFileManager during open and
-   * restart processing.
-   * 
-   * @param lb LogBuffer containing a ByteBuffer used by read.
-   * @param position absolute file position for the read.
-   * @return number of data read
-   * @throws IOException
-   * @see FileChannel#read(ByteBuffer,long)
-   */
-  int read(LogBuffer lb, long position) throws IOException
-  {
-    lb.buffer.clear();
-    
-    // NOTE: file position is not changed by following call
-    int bytesRead = channel.read(lb.buffer, position);
-    if (bytesRead > 0)
-      this.bytesRead += bytesRead;
-    
-    return bytesRead;
   }
   
   /**
