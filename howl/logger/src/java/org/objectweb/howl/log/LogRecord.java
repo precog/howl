@@ -188,7 +188,7 @@ public class LogRecord
    * helper for get().
    * <p>returns the next record in the LogBuffer.
    * @param lb
-   * @return
+   * @return the next LogRecord in the LogBuffer
    * @throws InvalidLogBufferException
    */
   private LogRecord getNext(LogBuffer lb) throws InvalidLogBufferException
