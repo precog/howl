@@ -142,8 +142,6 @@ public class XALoggerTest extends TestCase
    * creates worker objects and runs the test as defined by
    * the calling testXxx() routine.
    * @param workers number of XAWorker objects to create
-   * @param delayedWorkers number of XAWorker objects that should be delayed
-   * @param delay amount of delay XAWorkers will use between commit and done
    * @throws LogException
    * @throws Exception
    */
