@@ -152,7 +152,7 @@ public class TestDriver extends TestCase {
    * @param workerClass Class object representing the type of worker to be created.
    * @return requested worker class instance
    */
-  TestWorker getWorker(Class workerClass) throws ClassNotFoundException
+  protected TestWorker getWorker(Class workerClass) throws ClassNotFoundException
   {
     TestWorker worker = null;
     Class cls = this.getClass().getClassLoader().loadClass(workerClass.getName());

@@ -36,6 +36,7 @@ import org.objectweb.howl.log.LogException;
 import org.objectweb.howl.log.LogRecord;
 import org.objectweb.howl.log.ReplayListener;
 import org.objectweb.howl.log.TestDriver;
+import org.objectweb.howl.log.TestWorker;
 
 /**
  * 
@@ -186,6 +187,18 @@ public class XALoggerTest extends TestDriver
     
     delayedWorkers = 4;
     runWorkers(XAWorker.class);
+  }
+  
+  public void testRMFailure()
+  throws LogException, Exception
+  {
+    log.open(new XLTReplayListener());
+    log.setAutoMark(false);
+    
+    XAWorker w = (XAWorker)getWorker(XAWorker.class);
+    w.setWorkerIndex(workers + 1);
+    w.logCommit(1);
+    
   }
   
   /**

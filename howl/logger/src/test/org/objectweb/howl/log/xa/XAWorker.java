@@ -64,7 +64,7 @@ public class XAWorker extends TestWorker {
   }
   
   
-  XACommittingTx logCommit(int id)
+  public XACommittingTx logCommit(int id)
       throws LogException, Exception
   {
     // journalize COMMIT record
@@ -73,7 +73,7 @@ public class XAWorker extends TestWorker {
     return xalog.putCommit(commitDataRecord);
   }
   
-  void logDone(XACommittingTx tx)
+  public void logDone(XACommittingTx tx)
   throws LogException, Exception
   {
     // journalize FORGET record
