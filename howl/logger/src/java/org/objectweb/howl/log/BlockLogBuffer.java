@@ -466,16 +466,17 @@ class BlockLogBuffer extends LogBuffer
 
   /**
    * determines if buffer should be forced to disk.
+   * 
    * <p>If there are any waiting threads, then buffer
    * is forced when it is 50 ms old.  Otherwise, if there
-   * are no waiting threads, we wait 1 second before we
+   * are no waiting threads, we wait 1/4 second before we
    * force.
    *
-   * @return true if buffer has waiting threads older than 50 ms
+   * @return true if buffer should be forced now.
    */ 
   boolean shouldForce()
   {
-    int forceDelta = getWaitingThreads() > 0 ? 50 : 1000;
+    int forceDelta = getWaitingThreads() > 0 ? 50 : 250;
     long now = System.currentTimeMillis();
 
     return ((todPut + forceDelta) < now);
