@@ -33,14 +33,24 @@
 package org.objectweb.howl.log;
 
 /**
- * Exception thrown when XAJournalReader detects a journal block
- * with an invalid header.
+ * Exception thrown when XAJournalReader detects a journal block with an invalid
+ * header.
  */
-public class InvalidLogHeaderException extends LogException
-{
+public class InvalidLogHeaderException extends LogException {
 
-    public InvalidLogHeaderException() { }
+  public InvalidLogHeaderException() {}
 
-    public InvalidLogHeaderException(String s) { super(s); }
+  public InvalidLogHeaderException(String s) {
+    super(s);
+  }
+
+  public InvalidLogHeaderException(Throwable cause) {
+    initCause(cause);
+  }
+
+  public InvalidLogHeaderException(String s, Throwable cause) {
+    super(s);
+    initCause(cause);
+  }
 
 }
