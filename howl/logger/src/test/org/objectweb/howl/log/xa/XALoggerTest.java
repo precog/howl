@@ -444,8 +444,17 @@ public class XALoggerTest extends TestDriver
     
   }
   
-  public void testXALoggerThroughput() throws Exception, LogException {
+  public void testXALoggerThroughput_rw() throws Exception, LogException {
     
+    log.open(openListener);
+    assertNull("openListener.exception", openListener.exception);
+
+    prop.setProperty("msg.count", "1000");
+    runWorkers(LogTestWorker.class);
+  }
+  
+  public void testXALoggerThroughput_rwd() throws Exception, LogException {
+    cfg.setLogFileMode("rwd");
     log.open(openListener);
     assertNull("openListener.exception", openListener.exception);
 
