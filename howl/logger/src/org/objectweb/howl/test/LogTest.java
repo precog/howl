@@ -115,6 +115,13 @@ public class LogTest
       System.err.println("End test: elapsed time " + (endTime - beginTime) + " ms");
   }
 
+  public void testXAJournalValidate() throws Exception, LogException {
+    System.err.println("Begin Journal Validation");
+    LogReader reader = new LogReader();
+    reader.run();
+    System.err.println("End Journal Validation; total records processed: " + reader.recordCount);
+  }
+
   class LogReader implements ReplayListener
   {
     LogRecord logrec = new LogRecord(MESSAGE_SIZE);
@@ -124,7 +131,7 @@ public class LogTest
     
     public void onRecord(LogRecord lr)
     {
-      if (lr.type == (LogRecordType.CTRL | LogRecordType.END_OF_LOG))
+      if (lr.type == LogRecordType.END_OF_LOG)
       {
         synchronized(this) {
           done = true;
@@ -168,15 +175,9 @@ public class LogTest
     
   }
 
-  public void testXAJournalValidate() throws Exception, LogException {
-    System.err.println("Begin Journal Validation");
-    LogReader reader = new LogReader();
-    reader.run();
-    System.err.println("End Journal Validation; total records processed: " + reader.recordCount);
-  }
-
   final Object mutex = new Object();
-  long totalBytes = 0;
+  long totalBytes = 0L;
+  long totalLatency = 0L;
   private long journalTest(final Logger logger, final int MESSAGE_SYNC_COUNT, String testName)
     throws Exception
   {
@@ -186,6 +187,7 @@ public class LogTest
           public void run() {
             long bytes = 0;
             Date today = new Date();
+            long latency = 0L;
 
             boolean exception = false;
 
@@ -214,6 +216,8 @@ public class LogTest
               boolean doTimeStamp = Boolean.getBoolean("howl.log.test.timeStamp");
 
               for (int i = 0; i < MESSAGE_COUNT; i++) {
+                long latencyStart = System.currentTimeMillis();
+                
                 // put message number into data buffer
                 int msg = i;
                 for(int j = 4; j > 0; --j)
@@ -236,6 +240,8 @@ public class LogTest
                 System.arraycopy(data,1,donerec,1,4);
                 logger.put(donerec, false);
                 bytes += donerec.length;
+                
+                latency += (System.currentTimeMillis() - latencyStart);
                 
               }
             
@@ -261,6 +267,7 @@ public class LogTest
               synchronized(mutex)
               {
                 totalBytes += bytes;
+                totalLatency += latency;
               }
               synchronized(stopBarrier)
               {
@@ -300,8 +307,10 @@ public class LogTest
   {
     long mc = ((long)MESSAGE_COUNT*2)*WORKERS;
     float kb = (((float)totalBytes)/(1024));
-    long duration = (stopTime - startTime);        
+    long duration = (stopTime - startTime);
+    long avgLatency = totalLatency / (MESSAGE_COUNT * WORKERS);
     System.err.println(" wrote: "+mc+" messages in " + duration +" ms. ("+(mc*1000/(duration))+" m/s)");
     System.err.println(" wrote: "+kb+" kb in " + duration +" ms. ("+(kb*1000/(duration))+" kb/s)");
+    System.err.println(" average latency: " + avgLatency + " ms.");
   }
 }
