@@ -227,6 +227,16 @@ public class ConfigurationTest extends TestCase
     }
   }
   
+  /**
+   * Verify that construct using a File works correctly.
+   * <p>Creates a default Configuration then modifies some properties
+   * and writes a new property file. Finally, constructs a Configuration
+   * using the file (just created) and verifies the properties to
+   * be the ones saved.
+   * 
+   * @throws LogException
+   * @throws Exception
+   */
   public void testConstructFromFile()
   throws LogException, Exception
   {
@@ -238,7 +248,7 @@ public class ConfigurationTest extends TestCase
     prop.setProperty("minBuffers", Integer.toString(cfg.getMinBuffers() + 1));
     
     // save the Properties object to a file
-    File file = new File("conf/testConstructFromFile.properties");
+    File file = new File("target/conf/testConstructFromFileLog.properties");
     prop.store(new FileOutputStream(file),"testConstructFromFile test properties");
     
     // construct a new Configuration using the test properties
