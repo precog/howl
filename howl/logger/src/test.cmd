@@ -21,9 +21,9 @@ set java_opts=%java_opts% -Dxa.workers=200
 set java_opts=%java_opts% -Dhowl.log.test.setautomark=true
 set java_opts=%java_opts% -Dhowl.log.test.timeStamp=false
 
-:: set class=org.objectweb.howl.test.LogTest
-:: set class=org.objectweb.howl.test.XALoggerTest
-set class=org.objectweb.howl.test.ConfigurationTest
+:: set class=org.objectweb.howl.log.LogTest
+:: set class=org.objectweb.howl.log.xa.XALoggerTest
+set class=org.objectweb.howl.log.ConfigurationTest
 
 setlocal
 set JAVA_HOME=C:\java\j2sdk1.4.2_05

@@ -30,70 +30,24 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.objectweb.howl.test;
+package org.objectweb.howl.log;
+
+import java.util.Properties;
+
+import org.objectweb.howl.log.xa.XALogger;
 
 /**
- * Partial implementation of Doug Lea's CyclicBarier used to establish
- * test environments with pre-determined number of threads in execution.
+ * HOWL JUnit test cases implement the TestDriver interface.
  * 
+ * <p>The constructor for Test Worker classes take a TestDriver object
+ * to gain access to the start and stop Barriers, and configuration
+ * Properties.
+ *  
  * @author Michael Giroux
  */
-public class Barrier {
-  /**
-   * number of threads that need to enter barrier() before
-   * releasing all of them.
-   */
-  protected int count; // number of parties still waiting
-  
-  public Barrier(int count)
-  {
-    if (count <= 0) throw new IllegalArgumentException();
-    this.count = count;
-  }
-  
-  /**
-   * wait for <var>count</var> to become zero. 
-   */
-  public synchronized void barrier()
-  {
-    // let test driver know when it is the last waiting thread
-    if (--count <= 1)
-    {
-      notifyAll();
-    }
-    
-    while(count > 0)
-    {
-      try {
-        wait();
-      } catch (InterruptedException ex) {
-        Thread.currentThread().interrupt(); // propagate
-      }
-    }
-  }
-  
-  /**
-   * @return number of threads that have not hit the barrier yet.
-   * <p>Used by test drivers to determine when count == 1
-   * so the test driver itself can call barrier() to set
-   * all worker threads into execution.
-   */
-  public synchronized int getCount()
-  {
-    return count;
-  }
-  
-  /**
-   * decrement count and notify other threads.
-   * <p>Used by worker threads to signal the
-   * test driver that the work thread has terminated.
-   * The test driver should be sitting in barrier() waiting
-   * for the count to go to zero.
-   */
-  public synchronized void release()
-  {
-    --count;
-    notifyAll();
-  }
-
+public interface TestDriver {
+  org.objectweb.howl.log.Barrier getStartBarrier();
+  org.objectweb.howl.log.Barrier getStopBarrier();
+  Properties getProperties();
+  XALogger getXALogger();
 }

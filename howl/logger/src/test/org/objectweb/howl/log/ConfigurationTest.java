@@ -30,22 +30,15 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.objectweb.howl.test;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.Properties;
-
-import org.objectweb.howl.log.Configuration;
-import org.objectweb.howl.log.LogException;
-import org.objectweb.howl.log.xa.XALogger;
-import org.objectweb.howl.log.LogConfigurationException;
+package org.objectweb.howl.log;
 
 import junit.framework.TestCase;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.util.Properties;
 
 /**
  * 

@@ -30,26 +30,19 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.objectweb.howl.test;
+package org.objectweb.howl.log;
 
 import java.io.File;
 import java.util.Date;
 
-import org.objectweb.howl.log.LogClosedException;
-import org.objectweb.howl.log.LogException;
-import org.objectweb.howl.log.LogRecord;
-import org.objectweb.howl.log.LogRecordType;
-import org.objectweb.howl.log.ReplayListener;
+import junit.framework.TestCase;
 
-import org.objectweb.howl.log.Configuration;
-import org.objectweb.howl.log.Logger;
-
-public class LogTest
+public class LogTest extends TestCase
 {
   File journalFile = null;
 
-  Barrier startBarrier;
-  Barrier stopBarrier;
+  org.objectweb.howl.log.Barrier startBarrier;
+  org.objectweb.howl.log.Barrier stopBarrier;
 
   int startedThreads = 0;
   int stoppedThreads = 0;
@@ -61,30 +54,15 @@ public class LogTest
   
   Logger log = null;
   
-  void run()
+  public void testXAJournal() throws Exception
   {
-    try {
-      testXAJournalThroughput();
-      testXAJournalValidate();
-    } catch (LogException e) {
-      System.err.println("LogException\n");
-      e.printStackTrace();
-    } catch (Exception e) {
-      System.err.println("Exception\n");
-      e.printStackTrace();
-    } catch (AssertionError e) {
-      System.err.println("AssertionError\n");
-      e.printStackTrace();
-    }
-    finally
-    {
+      doXAJournalThroughput();
+      doXAJournalValidate();
       System.out.println(log.getStats());
-    }
   }
 
-  public static void main(String[] args)
-  {
-    new LogTest().run();
+  public static void main(String[] args) throws Exception {
+    new LogTest().testXAJournal();
   }
 
   /**
@@ -92,7 +70,7 @@ public class LogTest
    * 
    * @throws Exception
    */
-  public void testXAJournalThroughput()
+  public void doXAJournalThroughput()
     throws Exception, LogException
   {
       Configuration cfg = new Configuration(new File("conf/log.properties"));
@@ -104,8 +82,8 @@ public class LogTest
       MESSAGE_COUNT = Integer.getInteger("xa.msg.count",5).intValue();
       MESSAGE_SIZE = Integer.getInteger("xa.msg.size",80).intValue();
       
-      startBarrier = new Barrier(WORKERS + 1);
-      stopBarrier = new Barrier(WORKERS + 1);
+      startBarrier = new org.objectweb.howl.log.Barrier(WORKERS + 1);
+      stopBarrier = new org.objectweb.howl.log.Barrier(WORKERS + 1);
 
       long beginTime = System.currentTimeMillis();
 
@@ -132,7 +110,7 @@ public class LogTest
       System.err.println("End test: elapsed time " + (endTime - beginTime) + " ms");
   }
 
-  public void testXAJournalValidate() throws Exception, LogException {
+  public void doXAJournalValidate() throws Exception, LogException {
     System.err.println("Begin Journal Validation");
     LogReader reader = new LogReader();
     reader.run();

@@ -30,7 +30,11 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.objectweb.howl.test;
+package org.objectweb.howl.log.xa;
+
+import junit.framework.TestCase;
+import org.objectweb.howl.log.Configuration;
+import org.objectweb.howl.log.LogException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,26 +42,19 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Properties;
 
-import org.objectweb.howl.log.Configuration;
-import org.objectweb.howl.log.LogException;
-import org.objectweb.howl.log.xa.XALogger;
-import org.objectweb.howl.log.LogConfigurationException;
-
-import junit.framework.TestCase;
-
 /**
  * 
  * @author Michael Giroux
  */
 public class XALoggerTest extends TestCase
-  implements TestDriver
+  implements org.objectweb.howl.log.TestDriver
 {
   XALogger log = null;
   Configuration cfg = null;
   
   Properties prop = null;
-  Barrier startBarrier = null;
-  Barrier stopBarrier = null;
+  org.objectweb.howl.log.Barrier startBarrier = null;
+  org.objectweb.howl.log.Barrier stopBarrier = null;
   
   int workers = 0;
   
@@ -74,9 +71,9 @@ public class XALoggerTest extends TestCase
   
   public final Properties getProperties() { return prop; }
   
-  public final Barrier getStartBarrier() { return startBarrier; }
+  public final org.objectweb.howl.log.Barrier getStartBarrier() { return startBarrier; }
 
-  public final Barrier getStopBarrier() { return stopBarrier; }
+  public final org.objectweb.howl.log.Barrier getStopBarrier() { return stopBarrier; }
   
   public final XALogger getXALogger() { return log; }
   
@@ -152,8 +149,8 @@ public class XALoggerTest extends TestCase
     
     XAWorker[] xaWorker = new XAWorker[workers];
     
-    startBarrier = new Barrier(workers + 1);
-    stopBarrier = new Barrier(workers + 1);
+    startBarrier = new org.objectweb.howl.log.Barrier(workers + 1);
+    stopBarrier = new org.objectweb.howl.log.Barrier(workers + 1);
 
     for (int i = 0; i < workers; ++i)
     {

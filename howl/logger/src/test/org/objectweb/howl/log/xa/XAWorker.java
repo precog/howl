@@ -30,7 +30,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.objectweb.howl.test;
+package org.objectweb.howl.log.xa;
 
 import java.util.Date;
 import java.util.Properties;
@@ -92,7 +92,7 @@ public class XAWorker extends Thread {
   /**
    * reference to our test driver.
    */
-  final TestDriver driver;
+  final org.objectweb.howl.log.TestDriver driver;
   
   /**
    * XALogger obtained from test driver.
@@ -195,7 +195,7 @@ public class XAWorker extends Thread {
    * @param driver provides access to configuration information
    * and other features supplied by the test driver.
    */
-  XAWorker(TestDriver driver)
+  XAWorker(org.objectweb.howl.log.TestDriver driver)
   {
     this.driver = driver;
     config = driver.getProperties();
