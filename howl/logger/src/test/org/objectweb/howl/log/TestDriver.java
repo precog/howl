@@ -89,6 +89,8 @@ public class TestDriver extends TestCase {
   {
     public TestException() { super(); }
     public TestException(String s) { super(s); }
+    public TestException(Throwable cause) { super(cause); }
+    public TestException(String s, Throwable cause) { super(s, cause); }
   }
   
   /**
@@ -207,14 +209,19 @@ public class TestDriver extends TestCase {
     // create the worker threads and get them started
     for (int i = 0; i < workers; ++i)
     {
-      TestWorker w = getWorker(workerClass);
-      worker[i] = w;
-      if (i < delayedWorkers) 
-      {
-        w.setDelayBeforeDone(delayBeforeDone);
+      try {
+        TestWorker w = getWorker(workerClass);
+        worker[i] = w;
+        if (i < delayedWorkers) 
+        {
+          w.setDelayBeforeDone(delayBeforeDone);
+        }
+        w.setWorkerIndex(i);   
+        w.start();
+      } catch (OutOfMemoryError e) {
+        System.err.println(e.toString() + ": " + i + " threads created");
+        throw e;
       }
-      w.setWorkerIndex(i);   
-      w.start();
     }
 
     synchronized(startBarrier)
@@ -244,8 +251,7 @@ public class TestDriver extends TestCase {
       totalTransactions += w.transactions;
       if (w.exception != null)
       {
-        exception = new TestException();
-        exception.initCause(w.exception);
+        exception = new TestException(w.exception);
       }
     }
     
@@ -260,7 +266,7 @@ public class TestDriver extends TestCase {
     
     // append test metrics
     stats.append(
-        "\n<TestMetrics>" +
+        "\n<TestMetrics name='" + getName() + "'>" +
         "\n  <elapsedTime value='" + elapsedTime +
         "'>Elapsed time (ms) for run</elapsedTime>" +
         "\n  <totalTransactions value='" + totalTransactions +
