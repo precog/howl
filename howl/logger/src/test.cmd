@@ -1,17 +1,18 @@
 @echo off
+setlocal
 
 set JUNIT_HOME=c:\java\junit3.8.1
 
-set java_opts=-cp bin;%EMMA_HOME%\lib\emma.jar;%JUNIT_HOME%\bin
-set java_opts=%java_opts% -showversion -Xnoclassgc -ea -esa
+set java_opts=%java_opts% -cp bin;%EMMA_HOME%\lib\emma.jar;%JUNIT_HOME%\bin
+set java_opts=%java_opts% -showversion -Xnoclassgc -da -dsa
 set java_opts=%java_opts% -server
 
-setlocal
-set JAVA_HOME=C:\java\j2sdk1.4.2_05
+set JAVA_HOME=C:\java\j2sdk1.4.2_06
 set mode=1.4
 
 if "%1"=="tiger" (
 set JAVA_HOME=C:\java\jdk1.5.0
+set java_opts=%java_opts% -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=8888 -Dcom.sun.management.jmxremote.ssl=false
 set mode=1.5
 )
 
@@ -39,5 +40,7 @@ set emma=emmarun -r html -sp ./src/java;./src/test -ix -org.objectweb.howl.log.*
 
 pushd ..
 echo on
-%java_home%\bin\java %java_opts% %emma%  org.objectweb.howl.log.allTest
+%java_home%\bin\java %java_opts% %emma%  org.objectweb.howl.log.ThroughputTest
+@echo off
 popd
+endlocal
