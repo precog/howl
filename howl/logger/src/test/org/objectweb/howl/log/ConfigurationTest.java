@@ -52,8 +52,10 @@ public class ConfigurationTest extends TestCase
   Properties prop = null;
 
   PrintStream systemErr;
+    private File baseDir;
+    private File outDir;
 
-  public static void main(String[] args) {
+    public static void main(String[] args) {
     junit.textui.TestRunner.run(ConfigurationTest.class);
   }
   
@@ -64,7 +66,11 @@ public class ConfigurationTest extends TestCase
    */
   protected void setUp() throws Exception {
     super.setUp();
-    
+
+    String baseDirName = System.getProperty("basedir", ".");
+    baseDir = new File(baseDirName);
+    outDir = new File(baseDir, "target/test-resources");
+    outDir.mkdirs();
     systemErr = System.err;
     prop = new Properties();
   }
@@ -246,7 +252,7 @@ public class ConfigurationTest extends TestCase
   public void testConstrucFromFile_FileNotFound()
   throws LogException, Exception
   {
-    File file = new File("conf/filenotfound.properties");
+    File file = new File(baseDir, "src/test-resources/filenotfound.properties");
     try {
       cfg = new Configuration(file);
       fail("Expected LogConfigurationException");
@@ -278,8 +284,7 @@ public class ConfigurationTest extends TestCase
     prop.setProperty("minBuffers", Integer.toString(cfg.getMinBuffers() + 1));
     
     // save the Properties object to a file
-      File baseDir = getBaseDirFile();
-    File file = new File(baseDir, "target/conf/testConstructFromFileLog.properties");
+    File file = new File(outDir, "testConstructFromFileLog.properties");
     prop.store(new FileOutputStream(file),"testConstructFromFile test properties");
     
     // construct a new Configuration using the test properties
@@ -297,11 +302,6 @@ public class ConfigurationTest extends TestCase
     
     
   }
-
-    private File getBaseDirFile() {
-        String baseDir = System.getProperty("basedir", ".");
-        return new File(baseDir);
-    }
 
     /**
    * compare a Configuration object with <var> this.cfg </var>.
@@ -389,8 +389,7 @@ public class ConfigurationTest extends TestCase
   public void testStore() throws Exception
   {
     cfg = new Configuration();
-    File baseDir = getBaseDirFile();
-    File file = new File(baseDir, "target/conf/" + getName() + ".properties");
+    File file = new File(outDir, getName() + ".properties");
     cfg.store(new FileOutputStream(file));
   }
   

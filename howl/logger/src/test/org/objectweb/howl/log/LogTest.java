@@ -32,6 +32,7 @@
  */
 package org.objectweb.howl.log;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 
 public class LogTest extends TestDriver
@@ -79,7 +80,7 @@ public class LogTest extends TestDriver
   public void testLoggerReplay() throws Exception, LogException {
     log.open();
     TestLogReader reader = new TestLogReader();
-    reader.run();
+    reader.run(cfg);
     System.err.println("End Journal Validation; total records processed: " + reader.recordCount);
   }
   
@@ -136,15 +137,22 @@ public class LogTest extends TestDriver
   public void testFileNotFoundException() throws Exception
   {
     // set log dir to some invalid value
-    cfg.setLogFileDir(prop.getProperty("test.invalid.dir", "$:/logs"));
+    String invalid = prop.getProperty("test.invalid.dir", "$:/logs");
+    cfg.setLogFileDir(invalid);
     try {
       log.open();
+      //we haven't found a name that can't be created on mac osx, so if file is created, that's ok...
+      File test = new File(invalid);
+      if (test.exists()) {
+        System.err.println("testFileNotFoundException succeeded in creating file that was supposed to have an invalid name: "  + invalid);
+        return;
+      }
       fail("expected FileNotFoundException");
     } catch (FileNotFoundException e) {
       // this is what we expected
     }
   }
-  
+
   public void testInvalidFileSetException_1() throws Exception
   {
     // a single log file is not allowed
@@ -201,7 +209,6 @@ public class LogTest extends TestDriver
     log.setAutoMark(true);
     runWorkers(LogTestWorker.class);
   }
-
   
   /**
    * Verify that file mode "rw" works as expected.

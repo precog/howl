@@ -56,6 +56,9 @@ import junit.framework.TestCase;
  */
 public class TestDriver extends TestCase {
   protected Logger log = null;
+
+  private File basedir;
+
   protected Configuration cfg = null;
   
   // output stream for test report
@@ -99,7 +102,7 @@ public class TestDriver extends TestCase {
     String key = null;
     
     prop = new Properties();
-    prop.load(new FileInputStream("conf/test.properties"));
+    prop.load(new FileInputStream(new File(basedir, "src/test-resources/test.properties"))); 
     
 
     val = prop.getProperty( key = "test.workers", "200" );
@@ -125,8 +128,10 @@ public class TestDriver extends TestCase {
    */
   protected void setUp() throws Exception {
     super.setUp();
+    String basedirName = System.getProperty("basedir", ".");
+    basedir = new File(basedirName);
     parseProperties();
-    cfg = new Configuration(new File("conf/log.properties"));
+    cfg = new Configuration(new File(basedir, "src/test-resources/log.properties"));
     
     String reportDir = prop.getProperty( "test.report.dir", "reports");
     if (!reportDir.endsWith("/"))

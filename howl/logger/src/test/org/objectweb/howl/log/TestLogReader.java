@@ -32,7 +32,7 @@
  */
 package org.objectweb.howl.log;
 
-import java.io.File;
+
 
 
 class TestLogReader implements ReplayListener
@@ -70,9 +70,8 @@ class TestLogReader implements ReplayListener
     return logrec;
   }
   
-  void run() throws Exception, LogException
+  void run(Configuration cfg) throws Exception, LogException
   {
-    Configuration cfg = new Configuration(new File("conf/log.properties"));
     Logger log = new Logger(cfg);
     log.open();
     log.replay(this, 0L);
