@@ -1,6 +1,9 @@
 logs
 doc
 bin
-target
 coverage
+target
+reports
+findbugs.fb
+jrarecording.xml.encr.zip
 lprofile.txt
