@@ -48,7 +48,7 @@ class TestLogReader implements ReplayListener
     {
       synchronized(this) {
         done = true;
-        notify();
+        notifyAll();
       }
     }
     else {
