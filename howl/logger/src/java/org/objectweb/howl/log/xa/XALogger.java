@@ -58,7 +58,7 @@ public class XALogger extends Logger
    * larger number of transactions in COMMITING state.
    * <p>When the Logger detects that a log file overflow
    * condition is about to occur 
-   * {@link LogEventListener.logOverflowNotification(long)}
+   * {@link org.objectweb.howl.log.LogEventListener#logOverflowNotification(long)}
    * is invoked to allow the application to move older records
    * forward in the log.  This approach avoides the need to
    * move records forward every time a log file switch occurs.
@@ -134,6 +134,16 @@ public class XALogger extends Logger
   int movedRecordCount = 0;
   
   /**
+   * number of ms that threads waited for overflow processing to complete.
+   */
+  long totalWaitForThis = 0L;
+  
+  /**
+   * number of times threads waited for overflow processing to complete.
+   */
+  int waitForThisCount = 0;
+  
+  /**
    * log key below which COMMIT records will be copied forward
    * by logOverflowNotification to avoid log overflow exceptions.
    * 
@@ -151,8 +161,8 @@ public class XALogger extends Logger
   private void growActiveTxArray()
   {
     // allocate new arrays
-    XACommittingTx[] newActiveTx    = new XACommittingTx[activeTx.length + 100];
-    XACommittingTx[] newAvailableTx = new XACommittingTx[activeTx.length + 100];
+    XACommittingTx[] newActiveTx    = new XACommittingTx[activeTx.length + 50];
+    XACommittingTx[] newAvailableTx = new XACommittingTx[newActiveTx.length];
 
     // initialize new elements
     for (int i = activeTx.length; i < newActiveTx.length; ++ i)
@@ -189,15 +199,15 @@ public class XALogger extends Logger
   private void init()
   {
     // allocate a table of active transaction objects
-    activeTx = new XACommittingTx[100];
-    for (int i=0; i < 100; ++i)
+    activeTx = new XACommittingTx[50];
+    for (int i=0; i < activeTx.length; ++i)
       activeTx[i] = null;
     
     // allocate and initialize the table of indexes
     // for available entries in activeTx.
     // initially, all entries are available.
-    availableTx = new XACommittingTx[100];
-    for (int i=0; i < 100; ++i)
+    availableTx = new XACommittingTx[activeTx.length];
+    for (int i=0; i < activeTx.length; ++i)
       availableTx[i] = new XACommittingTx(i);
     
     // register the event listener
@@ -232,9 +242,9 @@ public class XALogger extends Logger
    * Write a begin COMMIT record to the log.
    * <p>Call blocks until the data is forced to disk.
    * 
-   * @param tx Object that implements XACommittingTx interface.
+   * @param record byte[][] containing data to be logged
    * 
-   * @return log key associated with the COMMIT record
+   * @return XACommittingTx object to be used whe putting the DONE record.
    * 
    * @throws IOException
    * @throws InterruptedException
@@ -248,6 +258,18 @@ public class XALogger extends Logger
     XACommittingTx tx = null;
     long key = 0L;
     long overflowFence = 0L;
+    
+    // wait for overflow notification processor to finish.
+    // failure to do might cause the overflow processor to get LogFileOverflowException
+    long beginWait = System.currentTimeMillis();
+    synchronized(this)
+    {
+      if (this.overflowFence != 0L)
+        ++waitForThisCount;
+      while (this.overflowFence != 0L)
+        wait();
+      totalWaitForThis += (System.currentTimeMillis() - beginWait);
+    }
     
     /*
      * The following loop handles the (hopefully very rare) case 
@@ -278,14 +300,28 @@ public class XALogger extends Logger
       
       // get an available entry index and save reference
       tx = availableTx[atxGet];
+      assert tx != null : "availableTx[" + atxGet +"] is null";
       availableTx[atxGet] = null;
       atxGet = (atxGet + 1) % activeTx.length;
 
-      // update XACommittingTx with values for this COMMIT
-      tx.setLogKey(key);
-      tx.setRecord(record);
-      tx.setDone(false);
-      tx.setMoving(false);
+      /*
+       * update XACommittingTx with values for this COMMIT
+       * 
+       * DEBUG Note: to test tx for null, we could put a
+       * breakpoint on any of the following statements and
+       * set a condition for tx == null.  However, this uses
+       * a lot of CPU time and makes the debug session run
+       * very slow.  It seems to be faster to wrap the code
+       * it a try/catch and set a breakpoint in the catch.
+       */
+      try {
+        tx.setLogKey(key);
+        tx.setRecord(record);
+        tx.setDone(false);
+        tx.setMoving(false);
+      } catch (NullPointerException npe) {
+        throw npe;
+      }
 
       int index = tx.getIndex();
       activeTx[index] = tx;
@@ -304,6 +340,7 @@ public class XALogger extends Logger
    * <p>Remove XACommittingTx object from the list of
    * active transactions.
    * 
+   * @param record byte[][] containing data to be logged
    * @param tx the XACommittingTx that was returned
    * by the putCommit() routine for this transaction.
    * 
@@ -324,13 +361,10 @@ public class XALogger extends Logger
       int index = tx.getIndex();
       
       // validate the entry
-      assert activeTx[index] == tx : "activeTx[] corruption at offset " + index;
+      if (activeTx[index] != tx) throw new IllegalArgumentException();
       
       // remove this entry from the activeTx table so overflow processor does not see it
       activeTx[index] = null;
-
-      --atxUsed;
-      assert atxUsed >= 0 : "Negative atxUsed (" + atxUsed + ")";
     }
     
     // mark entry as DONE and wait (if necessary) for move to complete
@@ -345,7 +379,14 @@ public class XALogger extends Logger
     }
     
     // write the DONE record
-    long doneKey = put(record, false);
+    long doneKey = 0L;
+    do {
+      try {
+        doneKey = put(record, false);
+      } catch (LogFileOverflowException e) {
+        Thread.sleep(10);  
+      }
+    } while (doneKey == 0L);
 
 
     // make entry available for re-use.
@@ -353,6 +394,9 @@ public class XALogger extends Logger
     {
       availableTx[atxPut] = tx;
       atxPut = (atxPut + 1) % activeTx.length;
+
+      --atxUsed;
+      assert atxUsed >= 0 : "Negative atxUsed (" + atxUsed + ")";
     }
     
     return doneKey;
@@ -385,6 +429,8 @@ public class XALogger extends Logger
     long newMark = Long.MAX_VALUE;
     XACommittingTx tx = null;
     long txKey = 0L;
+    
+    if (overflowFence == 0) throw new IllegalArgumentException("overflowFence == 0");
     
     // increment number of times we are notified
     ++overflowNotificationCount;
@@ -449,9 +495,13 @@ public class XALogger extends Logger
     
     // set new mark using oldest log key encountered during scan of activeTx[]
     try {
+      // if we have not moved any records, set new mark at the beginning of next file.
+      if (newMark == Long.MAX_VALUE)
+        newMark = overflowFence;
       mark(newMark, true);  // force = true
     } catch (InvalidLogKeyException e) { // should never happen
-      assert false : "invalid log key during logOverflowNotification processing";
+      System.err.println(e.toString());
+      Thread.yield();
     } catch (LogClosedException e) { // should never happen
       assert false : "Log closed during logOverflowNotification processing";
     } catch (IOException e) {
@@ -461,11 +511,15 @@ public class XALogger extends Logger
     }
 
     // let putCommit know that overflow processing is idle
-    synchronized(this) { this.overflowFence = 0L; }
+    synchronized(this)
+    {
+      this.overflowFence = 0L;
+      notifyAll();
+    }
   }
   
   /**
-   * return an XML document containing statistics for
+   * return an XML node containing statistics for
    * this object along with the base Logger,
    * the LogFile pool and the LogBuffer pool.
    * 
@@ -475,8 +529,6 @@ public class XALogger extends Logger
   {
     String name = this.getClass().getName();
     StringBuffer stats = new StringBuffer(
-        "<?xml version='1.0' ?>" +
-        // TODO: define style sheet and link in root node
         "\n<XALogger  class='" + name + "'>" 
     );
     
@@ -496,7 +548,15 @@ public class XALogger extends Logger
         
         "\n<overflowNotificationCount value='" + overflowNotificationCount + 
         "'>number of times log overflow notification event was called." +
-        "</overflowNotificationCount>"
+        "</overflowNotificationCount>" +
+        
+        "\n<waitForThisCount value='" + waitForThisCount +
+        "'>Number of times threads waited for overflow processing to complete" +
+        "</waitForThisCount>" +
+        
+        "\n<totalWaitForThis value='" + totalWaitForThis +
+        "'>Total time (ms) threads waited for overflow processing to complete" +
+        "</totalWaitForThis>"
         );
     
     stats.append(super.getStats());
