@@ -48,7 +48,6 @@ public class LogTest extends TestDriver
     super.setUp();
 
     log = new Logger(cfg);
-    log.open();
   }
   
 
@@ -59,6 +58,7 @@ public class LogTest extends TestDriver
   public void testLoggerSingleThread()
     throws LogException, Exception
   {
+    log.open();
     log.setAutoMark(true);
     
     prop.setProperty("msg.count", "10");
@@ -69,18 +69,31 @@ public class LogTest extends TestDriver
   public void testLoggerAutomarkTrue()
     throws LogException, Exception
   {
+    log.open();
     log.setAutoMark(true);
 
     runWorkers(LogTestWorker.class);
   }
   
   public void testLoggerReplay() throws Exception, LogException {
+    log.open();
     TestLogReader reader = new TestLogReader();
     reader.run();
     System.err.println("End Journal Validation; total records processed: " + reader.recordCount);
   }
   
-  public void testLoggerThroughput() throws Exception, LogException {
+  public void testLoggerThroughput_rw() throws Exception, LogException {
+    log.open();
+    log.setAutoMark(true);
+    prop.setProperty("msg.force.interval", "0");
+    prop.setProperty("msg.count", "1000");
+    runWorkers(LogTestWorker.class);
+  }
+  
+  public void testLoggerThroughput_rwd() throws Exception, LogException {
+    cfg.setLogFileMode("rwd");
+    log.open();
+    
     log.setAutoMark(true);
     prop.setProperty("msg.force.interval", "0");
     prop.setProperty("msg.count", "1000");
@@ -88,6 +101,7 @@ public class LogTest extends TestDriver
   }
   
   public void testLogClosedException() throws Exception, LogException {
+    log.open();
     log.close();
     try {
       log.setAutoMark(false);
@@ -99,21 +113,16 @@ public class LogTest extends TestDriver
   
   public void testLoggerThroughput_checksumEnabled() throws Exception
   {
-    log.close();
     cfg.setChecksumEnabled(true);
-    log = new Logger(cfg);
     log.open();
     runWorkers(LogTestWorker.class);
   }
   
   public void testLogConfigurationException_maxLogFiles() throws Exception
   {
-    log.close();
-    
     // increase number of log files for current set
     cfg.setMaxLogFiles(cfg.getMaxLogFiles() + 1);
-    log = new Logger(cfg);
-    
+
     // try to open the log -- we should get an error
     try {
       log.open();
@@ -125,11 +134,8 @@ public class LogTest extends TestDriver
   
   public void testFileNotFoundException() throws Exception
   {
-    log.close();
-    
     // set log dir to some invalid value
     cfg.setLogFileDir(prop.getProperty("test.invalid.dir", "$:/logs"));
-    log = new Logger(cfg);
     try {
       log.open();
       fail("expected FileNotFoundException");
@@ -140,11 +146,8 @@ public class LogTest extends TestDriver
   
   public void testInvalidFileSetException_1() throws Exception
   {
-    log.close();
-    
     // a single log file is not allowed
     cfg.setMaxLogFiles(1);
-    log = new Logger(cfg);
     
     // open should catch this and get an error
     try {
@@ -156,6 +159,7 @@ public class LogTest extends TestDriver
   }
   
   public void testLogRecordSizeException() throws Exception {
+    log.open();
     // record size == block size is guaranteed to fail
     byte[] data = new byte[cfg.getBufferSize()];
     
@@ -170,6 +174,7 @@ public class LogTest extends TestDriver
   
   public void testInvalidLogKeyException() throws Exception {
     TestLogReader tlr = new TestLogReader();
+    log.open();
     
     // try log key == -1
     try {
