@@ -71,6 +71,7 @@ public class ThroughputTest extends TestDriver {
   {
     cfg.setChecksumEnabled(true);
     log.open();
+    log.setAutoMark(true);  // BUG 300955
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
