@@ -269,10 +269,15 @@ class BlockLogBuffer extends LogBuffer
     // Try to stuff an End-Of-Block (EOB) marker
     // so we can find end of data in a hex dump
     // EOB\n
-    try {
-      buffer.putInt(EOB); // "EOB\n".getBytes()
-    } catch (BufferOverflowException e) {
-    	/* ignore it -- we do not care if it does not get written */
+    // 2004-09-27 mg check buffer.remaining to avoid overhead of the 
+    //               BufferOverflowException
+    if (buffer.remaining() >= 4)
+    {
+      try {
+        buffer.putInt(EOB); // "EOB\n".getBytes()
+      } catch (BufferOverflowException e) {
+      	/* ignore it -- we do not care if it does not get written */
+      }
     }
     
     
