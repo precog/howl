@@ -79,12 +79,12 @@ public class Logger extends LogObject
   /**
    * Manages a pool of buffers used for log file IO.
    */
-  private LogBufferManager bmgr = null;
+  LogBufferManager bmgr = null;
   
   /**
    * Manages a pool of files used for log file IO.
    */
-  private LogFileManager lfmgr = null;
+  LogFileManager lfmgr = null;
   
   /**
    * @return activeMark member of the associated LogFileManager.
