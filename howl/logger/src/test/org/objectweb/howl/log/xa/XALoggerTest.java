@@ -449,7 +449,6 @@ public class XALoggerTest extends TestDriver
     log.open(openListener);
     assertNull("openListener.exception", openListener.exception);
 
-    log.setAutoMark(true);
     prop.setProperty("msg.count", "1000");
     runWorkers(LogTestWorker.class);
   }
