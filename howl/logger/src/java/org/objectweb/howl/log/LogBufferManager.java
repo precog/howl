@@ -204,6 +204,7 @@ class LogBufferManager extends LogObject
   long forceNoWaitingThreads = 0;
   long forceHalfOfBuffers = 0;
   long forceMaxWaitingThreads = 0;
+  long forceOnFileSwitch = 0;
   
   /**
    * thread used to flush long waiting buffers
@@ -330,17 +331,15 @@ class LogBufferManager extends LogObject
       int forcebsn = nextWriteBSN - 1;
       
       boolean doforce = true;
-      if (logBuffer.bsn <= lastForceBSN)
-      {
-        // this logBuffer has already been forced by another thread
-        doforce = false;
-      }
-      else if (fqGet == fqPut)
-      {
-        // no other logBuffers waiting in forceQueue
-        ++forceNoWaitingThreads;
-      }
-      else if (timeout)
+      
+      /*
+       * 2004-06-25 Michael Giroux
+       *   Remove test for logBuffer.bsn < forcebsn.  This cannot
+       *   happen now that we stay in the forceManagerLock.
+       * 
+       *   Rearranged tests to improve the accuracy of the counters. 
+       */
+      if (timeout)
       {
         ++forceOnTimeout;
       }
@@ -353,6 +352,16 @@ class LogBufferManager extends LogObject
       {
         // number of waiting threads exceeds configured limit
         ++forceMaxWaitingThreads;
+      }
+      else if (logBuffer.forceNow)
+      {
+        // number of times we forced due to switch to next log file
+        ++forceOnFileSwitch;
+      }
+      else if (fqGet == fqPut)
+      {
+        // no other logBuffers waiting in forceQueue
+        ++forceNoWaitingThreads;
       }
       else
       {
@@ -836,9 +845,10 @@ class LogBufferManager extends LogObject
            "\n  <bufferfull  value='" + noRoomInBuffer    + "'>Buffer full</bufferfull>" + 
            "\n  <nextfillbsn value='" + nextFillBSN       + "'></nextfillbsn>" +
            "\n  <forceOnTimeout value='" + forceOnTimeout + "'></forceOnTimeout>" +
-           "\n  <forceNoWaitingThreads value='" + forceNoWaitingThreads + "'>force because no other trheads waiting on force</forceNoWaitingThreads>" +
+           "\n  <forceNoWaitingThreads value='" + forceNoWaitingThreads + "'>force because no other threads waiting on force</forceNoWaitingThreads>" +
            "\n  <forceHalfOfBuffers value='" + forceHalfOfBuffers + "'>force due to 1/2 of buffers waiting</forceHalfOfBuffers>" +
            "\n  <forceMaxWaitingThreads value='" + forceMaxWaitingThreads + "'>force due to max waiting threads</forceMaxWaitingThreads>" +
+           "\n  <forceOnFileSwitch value='" + forceOnFileSwitch + "'>force last block prior to switching to next file</forceOnFileSwitch>" +
            "\n  <maxThreadsWaitingForce value='" + maxThreadsWaitingForce + "'>maximum threads waiting</maxThreadsWaitingForce>" +
            "\n  <avgThreadsWaitingForce value='" + avgThreadsWaitingForce + "'>Avg threads waiting force</avgThreadsWaitingForce>" +
            "\n  <LogBufferPool>" +

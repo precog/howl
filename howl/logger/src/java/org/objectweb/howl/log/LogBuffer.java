@@ -110,6 +110,14 @@ abstract class LogBuffer extends LogObject
   boolean rewind = false;
   
   /**
+   * set true by LogFileManager if the buffer must be forced
+   * due to file switch.
+   * 
+   * <p>BUG: 300505
+   */
+  boolean forceNow = false;
+  
+  /**
    * IOException from last write
    */
   IOException ioexception = null;

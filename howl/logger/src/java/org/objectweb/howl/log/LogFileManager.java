@@ -296,7 +296,8 @@ class LogFileManager extends LogObject
    * As buffers are written to disk the buffer
    * sequence number is incremented.
    * The LogFileManager is able to compute the seek
-   * address for a buffer as a function of <i>lf.bsn</i> and buffer size.
+   * address for a buffer as a function of <i>lf.bsn</i> and buffer size
+   * when using LogBuffer implementations with fixed buffer sizes.
    * 
    * <p>In all cases, getLogFile records a header record into the buffer
    * containing the current state of the automark mode and the current
@@ -350,7 +351,7 @@ class LogFileManager extends LogObject
           
           // indicate that the new file must be rewound before this buffer is written
           lb.rewind = true;
-
+          
           short type = LogRecordType.FILE_HEADER;
           
           fileHeaderBB.clear();
@@ -380,6 +381,9 @@ class LogFileManager extends LogObject
 
           lb.lf = currentLogFile;
           lb.put(type, markRecord, false);
+          
+          // BUG: 300505 issue force for last block of file
+          lb.forceNow = ((lb.bsn  % maxBlocksPerFile) == 0);
           
           // TODO: detech 50% full and notify event listener
         }
