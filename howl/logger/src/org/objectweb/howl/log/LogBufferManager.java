@@ -435,7 +435,7 @@ class LogBufferManager
    * @param replayCtrlRecords indicates whether to return control records.
    * <p>used by utility routines such as CopyLog.
    * 
-   * @see Logger.replay(ReplayListener, long)
+   * @see org.objectweb.howl.log.Logger#replay(ReplayListener, long)
    */
   void replay(ReplayListener listener, long mark, boolean replayCtrlRecords)
   	throws LogConfigurationException, InvalidLogKeyException
@@ -727,7 +727,7 @@ class LogBufferManager
   }
   
   /**
-   * generate a log mark (a.k.a. log key).
+   * generate a log mark (log key).
    * @param bsn Block Sequence Number.
    * @param offset offset within block.
    * <p>May be zero to allow access to the beginning of a block.
