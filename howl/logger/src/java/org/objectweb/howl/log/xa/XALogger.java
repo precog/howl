@@ -855,8 +855,7 @@ public class XALogger extends Logger
     try {
       super.replay(xaListener, getActiveMark(), true); // replay CTRL records also
     } catch (InvalidLogKeyException e) {
-      LogClosedException lce = new LogClosedException(e);
-      throw lce;
+      throw new LogClosedException(e);
     }
     
     // something very wrong if we come back from replay and we have not cleared the flag.
@@ -865,6 +864,37 @@ public class XALogger extends Logger
       LogClosedException lce = new LogClosedException(xaListener.replayException);
       throw lce;
     }
+  }
+  
+  public void close() throws IOException, InterruptedException
+  {
+    if (isClosed) return;
+    
+    long newMark = Long.MAX_VALUE;
+    XACommittingTx tx = null;
+
+    // set new log mark at oldest activeTx entry
+    synchronized(activeTxLock)
+    {
+      for (int i=0; i < activeTx.length; ++i)
+      {
+          tx = activeTx[i];
+          if (tx == null) continue;
+          long key = tx.getLogKey();
+          if (key < newMark) newMark = key;
+      }
+      if (newMark < Long.MAX_VALUE)
+      {
+        try {
+          this.mark(newMark, true);
+        } catch (InvalidLogKeyException e) {
+          // will not happen
+        } catch (LogClosedException e) {
+          // will not happen
+        }
+      }
+    }
+    super.close();
   }
   
   
@@ -1035,6 +1065,12 @@ public class XALogger extends Logger
      */
     final HashMap activeTxHashMap;
     
+    // counters that might be interesting to a test case
+    public int unmatchedDoneCount = 0;
+    public int commitCount = 0;
+    public int doneCount = 0;
+    public int movedCount = 0;
+    
     OpenReplayListener(ReplayListener tmListener)
     {
       // FEATURE 300768 - allow null ReplayListener during open()
@@ -1053,9 +1089,8 @@ public class XALogger extends Logger
       ((XALogRecord)lr).setTx(tx);
 
       // pass all non-CTRL records onto TM
-      if (! lr.isCTRL())
-      {
-        if (tmListener != null) tmListener.onRecord(lr);
+      if (!lr.isCTRL() && tmListener != null) {
+        tmListener.onRecord(lr);
         return;
       }
       
@@ -1076,6 +1111,7 @@ public class XALogger extends Logger
           break;
           
         case LogRecordType.XACOMMITMOVED:
+          ++movedCount;
           if (b.getShort() != 8)
             throw new IllegalArgumentException();
           // QUESTION: is there a better way to handle this here?
@@ -1108,6 +1144,7 @@ public class XALogger extends Logger
           // FALL THROUGH and process as XACOMMIT
           
         case LogRecordType.XACOMMIT:
+          ++commitCount;
           tx = activeTxAdd(lr.key, lr.getFields());
         
           // remember this entry in the HashMap
@@ -1127,13 +1164,13 @@ public class XALogger extends Logger
          * The record is not passed on to the TM. 
          */  
         case LogRecordType.XADONE:
+          ++doneCount;
           if (b.getShort() != 8)
             throw new IllegalArgumentException();
           // QUESTION: is there a better way to handle this here?
           
           xacommitKey = b.getLong();
           assert b.remaining() == 0 : "Unexpected data in XADONE record";
-          
           /*
            * If the XACOMMIT record was recorded to a different file
            * it is possible we will not see the XACOMMIT, but we
@@ -1141,7 +1178,10 @@ public class XALogger extends Logger
            * ignore this XADONE if it occurs. 
            */
           tx = (XACommittingTx)activeTxHashMap.remove(new Long(xacommitKey));
-          if (tx == null) break;
+          if (tx == null) {
+            ++unmatchedDoneCount;
+            break;
+          }
           
           // remove this entry from the activeTx table
           synchronized(activeTxLock)
