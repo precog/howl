@@ -47,6 +47,22 @@
           online.
         </p>
       </s2>
+      <s2 name="Presentations">
+        <table border="0">
+          <tr>
+            <th>Date</th>
+            <th>Title</th>
+            <th>Event</th>
+            <th>Document Link</th>
+          </tr>
+          <tr>
+            <td>2004-11-17</td>
+            <td><em>High-Speed ObjectWeb Logger for J2EE Application Servers</em></td>
+            <td>ApacheCon'04, Las Vegas, NV, USA</td>
+            <td>[<a href="presentations/2004ApacheConHigh-speedObjectWebLogger.ppt">ppt</a>]</td>
+          </tr>
+        </table>
+      </s2>
     </s1>
   </body>
 </document>
