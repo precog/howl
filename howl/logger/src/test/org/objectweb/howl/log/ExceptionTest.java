@@ -92,4 +92,19 @@ public class ExceptionTest extends TestDriver {
     System.err.println("End " + getName());
   }
 
+  /**
+   * Verify that file mode "rw" works as expected.
+   * 
+   * <p>We cannot use the worker infrastructure because
+   * we need to write to two logs so we can validate the
+   * results.
+   * <p>The test requires that we cause an IOException
+   * then run a separate test to verify file content. 
+   * 
+   * @throws Exception
+   */
+  public void testVerifyMode_rw() throws Exception
+  {
+  }
+  
 }
