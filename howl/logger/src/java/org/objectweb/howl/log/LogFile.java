@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.RandomAccessFile;
 
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 
 /**
  * An individual file within a set of log files managed by a Logger.
@@ -123,6 +124,11 @@ class LogFile
   boolean newFile = true;
   
   /**
+   * FileLock acquired when file is opened.
+   */
+  FileLock lock = null;
+  
+  /**
    * construct an instance of LogFile for a given file name
    * @param file filename
    */
@@ -141,7 +147,7 @@ class LogFile
    * if the parent directory structure does not exist. 
    * @see java.io.RandomAccessFile#RandomAccessFile(java.lang.String, java.lang.String)
    */
-  LogFile open(String fileMode) throws FileNotFoundException
+  LogFile open(String fileMode) throws LogConfigurationException, FileNotFoundException
   {
     this.fileMode = fileMode;
 
@@ -152,17 +158,34 @@ class LogFile
     if (!newFile) newFile = file.length() == 0;
     
     channel = new RandomAccessFile(file, fileMode).getChannel();
+    
+    //  FEATURE 300922; lock file to prevent simultanious access
+    try {
+      lock = channel.tryLock();
+    } catch (IOException e) {
+      throw new LogConfigurationException(e);
+    }
+    if (lock == null)
+      throw new LogConfigurationException("Unable to obtain lock on " + file.getAbsolutePath());
+    // TODO: log lock acquired
     return this;
   }
   
   /**
-   * Close the channel associated with this LogFile
+   * Close the channel associated with this LogFile.
+   * <p>Also releases the lock that is held on the file.
    * @return this LogFile
    * @throws IOException
    */
   LogFile close() throws IOException
   {
-    position = channel.position(); // remember postion at close
+    position = channel.position();     // remember postion at close
+    //  FEATURE 300922; unlock the file if we obtained a lock.
+    if (lock != null)
+    {
+      lock.release();
+      // TODO: log lock released
+    }
     channel.close();
     return this;
   }
