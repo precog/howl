@@ -42,14 +42,13 @@ public class LogTest
       createJournalFile();
       testXAJournalThroughput();
       testXAJournalValidate();
-    } catch (Exception e) {
-      System.err.println("Exception\n");
-      e.printStackTrace();
     } catch (LogException e) {
       System.err.println("LogException\n");
       e.printStackTrace();
-    }
-    catch (AssertionError e) {
+    } catch (Exception e) {
+      System.err.println("Exception\n");
+      e.printStackTrace();
+    } catch (AssertionError e) {
       System.err.println("AssertionError\n");
       e.printStackTrace();
     }
@@ -245,13 +244,13 @@ public class LogTest
                 
               }
             
-            } catch (Exception e) {
-              System.err.println(Thread.currentThread().getName());
-              e.printStackTrace(System.err);
-              exception = true;
             } catch (LogClosedException e) {
               // ignore this for now
             } catch (LogException e) {
+              System.err.println(Thread.currentThread().getName());
+              e.printStackTrace(System.err);
+              exception = true;
+            } catch (Exception e) {
               System.err.println(Thread.currentThread().getName());
               e.printStackTrace(System.err);
               exception = true;
@@ -261,8 +260,8 @@ public class LogTest
               if (exception)
               {
                 try {logger.close(); }
-                catch (Exception e) { exception = true; }
                 catch (LogException e) { exception = true; }
+                catch (Exception e) { exception = true; }
               }
               synchronized(mutex)
               {
