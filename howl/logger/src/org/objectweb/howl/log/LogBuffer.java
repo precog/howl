@@ -88,7 +88,7 @@ abstract class LogBuffer
    * files to be performed in parallel, each LogBuffer must keep track of its own
    * LogFile.
    * 
-   * @see LogFileManager#getLogFileForWrite(LogBuffer)
+   * @see org.objectweb.howl.log.LogFileManager#getLogFileForWrite(LogBuffer)
    */
   LogFile lf = null;
   
@@ -135,7 +135,6 @@ abstract class LogBuffer
    * decrements count of waiting threads and returns updated value.
    *
    * @return number of threads still waiting after the release.
-   * @see #put(short,byte[],boolean)
    */
   final int release()
   {
@@ -188,7 +187,6 @@ abstract class LogBuffer
    * be forced to disk.
    * <p>The count of waiting threads (<i> waitingThreads </i>)
    * has been incremented in <i> put() </i>.
-   * @see #put(short,byte[],boolean)
    */
   final void sync() throws IOException, InterruptedException
   {
@@ -271,10 +269,12 @@ abstract class LogBuffer
    * @return true if buffer should be forced immediately.
    */ 
   abstract boolean shouldForce();
-
+  
   /**
    * puts a data record into the buffer and returns a token for record.
+   * 
    * <p>PRECONDITION: caller holds a bufferManager monitor.
+   * 
    * <p>The caller must set the sync parameter true if the thread
    * will ultimately call sync() after a successful put().
    * This strategy allows the waitingThreads counter to be
@@ -285,21 +285,27 @@ abstract class LogBuffer
    * 
    * @param type short containing implementation defined record
    * type information.
-   * @param data byte[] to be written to log
+   * @param data byte[][] to be written to log.
+   * The arrays are concatenated into a single log record whose size
+   * is the sum of the individual array sizes. 
+   * During replay the entire record is returned as a single
+   * byte[].  The ReplayListener is responsible for
+   * decomposing the record into the original array of byte[].
    * @param sync true if thread will call sync following the put.
    * Causes count of waitingThreads to be incremented.
    * 
-   * @throws LogRecordSizeException if <i> data </i> is larger than
+   * @throws LogRecordSizeException
+   * if the sum of all <i> data[] </i> array sizes is larger than
    * the maximum allowed record size for the configured buffer size.
    *
-   * @return 0 if no room in buffer for record, otherwise a long
-   * that contains the physical position of the record is returned.
+   * @return  a long that contains the physical position of the record is returned.
    * The value returned by put() is an encoding of the physical 
    * position.  The format of the returned value is implementation
    * specific, and should be treated as opaque by the caller.
+   * Returns 0 if there is no room for the record in the current buffer.
    */
-  abstract long put(short type, byte[] data, boolean sync) throws LogRecordSizeException;
-
+  abstract long put(short type, byte[][] data, boolean sync) throws LogRecordSizeException;
+  
   /**
    * write ByteBuffer to the LogFile.
    *
@@ -325,7 +331,7 @@ abstract class LogBuffer
    *
    * <p>QUESTION: should waiters be interupted if IO Error occurs?
    * @see #init(int, LogFileManager)
-   * @see LogFile#write(LogBuffer)
+   * @see org.objectweb.howl.log.LogFile#write(LogBuffer)
    */
   abstract void write(boolean force) throws IOException;
   

@@ -125,7 +125,11 @@ class BlockLogBuffer extends LogBuffer
    * <p>use this constructor when doing performance measurements
    * on the implementation sans file IO.
    * 
-   * @param doWrite
+   * @param doWrite false to disable IO for performance measurements.
+   * <p>When set to false, the write() method does not issue writes
+   * to the file.  This reduces the elapse time of a force() to
+   * zero and allows performance of the log logic (sans IO) to be
+   * measured. 
    */
   BlockLogBuffer(boolean doWrite)
   {
@@ -134,37 +138,18 @@ class BlockLogBuffer extends LogBuffer
   }
 
   /**
-   * adds a data record to the buffer and returns a log key for record.
-   * 
-   * <p>PRECONDITION: caller holds bufferManager monitor.
-   * 
-   * <p>The caller must set the sync parameter true if the thread will
-   * call sync() after a successful put().  This strategy allows
-   * the waitingThreads counter to be incremented while the
-   * current thread holds the bufferManager monitor.
-   * 
-   * <p>The log key returned by <i> put() </i> is an opaque value
-   * used by the application to maintain links between related records.
-   * The key allows the record to be located within the log and
-   * retrieved directly using the key if needed.
-   * For example, applications that wish
-   * to maintain a linked list of related records may include the
-   * log key as part of the data records to form a backward link
-   * to the prior record.
-   * 
-   * <p>The buffer manager and file managers within this package
-   * use the key to manage the log files.
-   * 
-   * @param data byte[] to be written to log
-   * @param sync true if thread will call sync following the put.
-   * Causes count of waitingThreads to be incremented.
-   *
-   * @return 0 if no room in buffer for record.
+   * puts a data record into the buffer and returns a token for record. 
    */
-  long put(short type, byte[] data, boolean sync) throws LogRecordSizeException
+  long put(short type, byte[][] data, boolean sync) throws LogRecordSizeException
   {
     long logKey = 0L;
-    int recordSize = recordHeaderSize + data.length;
+    int dataSize = 0;
+    int recordSize = recordHeaderSize;
+
+    for (int i=0; i < data.length; ++i)
+      dataSize += data[i].length;
+    
+    recordSize += dataSize;
     
     synchronized(buffer)
     {
@@ -177,7 +162,9 @@ class BlockLogBuffer extends LogBuffer
         logKey = ((long)bsn << 24) | buffer.position();
   
         // put a new record into the buffer
-        buffer.putShort(type).putShort((short)data.length).put(data);
+        buffer.putShort(type).putShort((short)dataSize);
+        for (int i=0; i < data.length; ++i)
+          buffer.put(data[i]);
         todPut = System.currentTimeMillis();
         
         // update LogFile.highMark just in case someone tries to replay the log while it is active.

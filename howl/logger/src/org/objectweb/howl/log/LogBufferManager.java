@@ -370,23 +370,23 @@ class LogBufferManager
     
     return lb; 
   }
-
+  
   /**
-   * writes byte[] to log.
+   * writes <i> data </i> byte[][] to log and returns a log key.
    * <p>waits for IO to complete if sync is true.
    *
-   * @return token reference to block
+   * @return token reference (log key) for record just written
    * @throws LogRecordSizeException
    *   when size of byte[] is larger than the maximum possible
    *   record for the configured buffer size. 
    */
-  long put(short type, byte[] data, boolean sync)
+  long put(short type, byte[][] data, boolean sync)
     throws LogRecordSizeException, LogFileOverflowException, 
                 InterruptedException, IOException
   {
     long token = 0;
     LogBuffer currentBuffer = null;
-
+    
     do {
       // allocate the current fillBuffer
       synchronized(bufferManagerLock)
@@ -425,6 +425,7 @@ class LogBufferManager
 
     return token;
   }
+  
   /**
    * Replays log from requested mark forward to end of log.
    * 
