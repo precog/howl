@@ -23,6 +23,11 @@
         journalization API with methods necessary to support JOTM
         recovery operations.
       </p>
+      <p>
+        HOWL is intended to be used for logging of temporary data
+        such as XA transaction events.  HOWL is not a replacement
+        for traditional log kits such as LOG4J and J2SE Logging.
+      </p>
       <s2 name="">
       <p>
         <img src="images/latest.gif" alt="Latest news" border="0" 
