@@ -32,6 +32,8 @@
  */
 package org.objectweb.howl.log.xa;
 
+import java.nio.ByteBuffer;
+
 /**
  * XA Transaction Managers write log records using the XALogger subclass of
  * the basic HOWL Logger.  The XALogger methods keep track of transactions
@@ -111,11 +113,19 @@ public class XACommittingTx {
    * sets the log key associated with the COMMIT record
    * for this transaction.
    * 
+   * <p>also updates LogKeyBytes with byte[] form of logKey
+   * for subsequent recording in XADONE record.
+   * 
    * @param logKey a log key returned by Logger.put()
    * 
    * @see org.objectweb.howl.log.Logger#put(byte[][], boolean)
    */
-  final void setLogKey(long logKey) { this.logKey = logKey; }
+  final void setLogKey(long logKey)
+  {
+    this.logKey = logKey;
+    LogKeyBB.clear();
+    LogKeyBB.putLong(logKey);
+  }
   
   /**
    * Flag indicating that the TM has called XALogger.putDone().
@@ -180,5 +190,23 @@ public class XACommittingTx {
   {
     this.index = index;
   }
+  
+  /**
+   * byte[] representation of logKey.
+   * <p>Recorded to the log by XALogger#putDone
+   * as the record data of the XADONE record.
+   */
+  private byte[] logKeyBytes = new byte[8];
+  
+  /**
+   * Used to putLong(logKey) into logKeyBytes.
+   */
+  private ByteBuffer LogKeyBB = ByteBuffer.wrap(logKeyBytes);
+  
+  /**
+   * data record for XADONE record generated
+   * by XALogger#putDone().
+   */
+  byte[][] logKeyData = new byte[][] { logKeyBytes };
   
 }
