@@ -68,7 +68,7 @@ public class LogRecord
    * array of individual record fields as
    * passed to Logger.put(byte[][])
    * 
-   * @see #getFields();
+   * @see #getFields()
    */
   protected byte[][] fields = null;
   
