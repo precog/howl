@@ -57,9 +57,16 @@ class LogBufferManager extends LogObject
     threadsWaitingForceThreshold = config.getThreadsWaitingForceThreshold();
     forceRequired = config.getLogFileMode().equals("rw");
     
+    flushPartialBuffers = config.isFlushPartialBuffers();
+    
     flushManager = new FlushManager(flushManagerName);
     flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
   }
+  
+  /**
+   * @see Configuration#flushPartialBuffers
+   */
+  private final boolean flushPartialBuffers; 
   
   /**
    * boolean is set <b> true </b> when an IOException is returned
@@ -146,6 +153,18 @@ class LogBufferManager extends LogObject
    * <p>synchronized by forceManagerLock
    */
   int nextWriteBSN = 1;
+  
+  /**
+   * number of buffers waiting to be forced.
+   * <p>synchronized by bufferManagerLock.
+   * <p>incremented in put() and decremented in releaseBuffer().
+   * When a thread calls put() with sync parameter set true,
+   * and buffersWaitingForce is also zero, then put() causes
+   * the buffer to be forced immediately.  This strategy
+   * minimizes latency in situations of low load, such as
+   * a single thread running.
+   */
+  int buffersWaitingForce = 0;
   
   /**
    * last BSN forced to log.
@@ -453,7 +472,7 @@ class LogBufferManager extends LogObject
       {
         forceManagerLock.wait();
       }
-     } // synchronized(forceManagerLock)
+    } // synchronized(forceManagerLock)
     
     // notify threads waiting for this buffer to force
     synchronized(logBuffer)
@@ -500,11 +519,12 @@ class LogBufferManager extends LogObject
   }
 
   /**
-   * decrements count of waiting threads and returns buffer
-   * to freeBuffer list if count goes to zero.
-   * <p>Threads waiting on this buffer are notified
-   * when count goes to zero. 
+   * decrements count of threads waiting on this buffer.
+   * <p>If count goes to zero, buffer is returned to
+   * the freeBuffer list, and any threads waiting for
+   * a free buffer are notified.
    * @param buffer LogBuffer to be released
+   * @see #buffersWaitingForce
    */
   private void releaseBuffer(LogBuffer buffer)
   {
@@ -514,6 +534,8 @@ class LogBufferManager extends LogObject
       {
         freeBuffer[buffer.index] = buffer;
         bufferManagerLock.notifyAll();
+        --buffersWaitingForce;
+        assert buffersWaitingForce >= 0 : "buffersWaitingForce < 0";
       }
     }
   }
@@ -579,11 +601,22 @@ class LogBufferManager extends LogObject
   /**
    * writes <i> data </i> byte[][] to log and returns a log key.
    * <p>waits for IO to complete if sync is true.
+   * 
+   * <p>MG 27/Jan/05 modified code to force buffer if caller
+   * has set sync == true, and there are no buffers waiting
+   * to be written.  This causes buffers to be written
+   * immediately in a single threaded and/or low volume
+   * situation.  Change suggested by developers at ApacheCon
+   * and at ObjectWebCon.  This feature is disabled by default
+   * and is enabled by setting the log configuration property
+   * XXX to true.
    *
    * @return token reference (log key) for record just written
    * @throws LogRecordSizeException
    *   when size of byte[] is larger than the maximum possible
-   *   record for the configured buffer size. 
+   *   record for the configured buffer size.
+   * 
+   * @see #buffersWaitingForce 
    */
   long put(short type, byte[][] data, boolean sync)
     throws LogRecordSizeException, LogFileOverflowException, 
@@ -591,6 +624,7 @@ class LogBufferManager extends LogObject
   {
     long token = 0;
     LogBuffer currentBuffer = null;
+    boolean forceNow = false;
     
     do {
       // allocate the current fillBuffer
@@ -603,12 +637,17 @@ class LogBufferManager extends LogObject
         }
         
         token = currentBuffer.put(type, data, sync);
-        if (token == 0)
+        if (sync && buffersWaitingForce == 0)
+        {
+          forceNow = flushPartialBuffers;
+        }
+        if (token == 0 || forceNow)
         {
           // buffer is full -- make it unavailable to other threads until force() completes
           fillBuffer = null;
           forceQueue[fqPut] = currentBuffer;
           fqPut = (fqPut + 1) % forceQueue.length;
+          ++buffersWaitingForce;
         }
       }
 
@@ -617,6 +656,11 @@ class LogBufferManager extends LogObject
         // force current buffer if there was no room for data
         ++noRoomInBuffer;
         force(false);
+      }
+      else if (forceNow)
+      {
+        force(true);
+        releaseBuffer(currentBuffer);
       }
       else if (sync)  // otherwise sync as requested by caller
       {
@@ -1218,6 +1262,7 @@ class LogBufferManager extends LogObject
 
           if (buffer != null)
           {
+              parent.forceOnTimeout++;
               force(true);
           }
 
