@@ -204,7 +204,7 @@ public class Configuration {
    * for most applications.
    * <p>Larger buffers may provide improved performance
    * for applications with transaction rates that
-   * exceed 5K TX/Sec.
+   * exceed 5K TX/Sec and a large number of threads.
    */
   private int bufferSize = 4 * 1024;
   
