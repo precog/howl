@@ -835,46 +835,42 @@ class LogBufferManager extends LogObject
     
     StringBuffer stats = new StringBuffer(
            "\n<LogBufferManager  class='" + name + "'>" +
-           "\n  <bufferSize value='" + config.getBufferSize() + "'>" +
-                "Buffer Size (in bytes)" +
-                 "</bufferSize>" +
-           "\n  <poolsize    value='" + freeBuffer.length + "'>" +
-                "Number of buffers in the pool" +
-                "</poolsize>" + 
-           "\n  <initialPoolSize value='" + config.getMinBuffers() + "'>" +
-                "Initial number of buffers in the pool" +
-                "</initialPoolSize>" +
-           "\n  <growPoolCounter value='" + growPoolCounter + "'>" +
-                "Number of times buffer pool was grown" +
-                "</growPoolCounter>" +
-           "\n  <bufferwait  value='" + getWaitForBuffer()     + "'>" +
-                "Wait for available buffer" +
-                "</bufferwait>" +
-           "\n  <forceCount  value='" + forceCount        + "'>Number of channel.force() calls</forceCount>" +
-           "\n  <totalForceTime   value='" + totalForceTime         + "'>Total time (ms) spent in channel.force</totalForceTime>" +
-           "\n  <avgForceTime value='" + avgForceTime + "'>Average channel.force() time (ms)</avgForceTime>" + 
-           "\n  <totalTimeBetweenForce value='" + totalTimeBetweenForce + "'>Total time (ms) between calls to channel.force()</totalTimeBetweenForce>" + 
-           "\n  <minTimeBetweenForce value='" + minTimeBetweenForce + "'>Minimum time (ms) between calls to channel.force()</minTimeBetweenForce>" + 
-           "\n  <maxTimeBetweenForce value='" + maxTimeBetweenForce + "'>Maximum time (ms) between calls to channel.force()</maxTimeBetweenForce>" + 
-           "\n  <avgTimeBetweenForce value='" + avgTimeBetweenForce + "'>Average time (ms) between calls to channel.force()</avgTimeBetweenForce>" + 
-           "\n  <writeCount  value='" + writeCount        + "'>Number of channel.write() calls</writeCount>" +
-           "\n  <avgBuffersPerForce value='" + avgBuffersPerForce + "'>Average number of buffers per force</avgBuffersPerForce>" +
-           "\n  <minBuffersForced value='" + minBuffersForced + "'>Minimum number of buffers forced</minBuffersForced>" +
-           "\n  <maxBuffersForced value='" + maxBuffersForced + "'>Maximum number of buffers forced</maxBuffersForced>" +
-           "\n  <totalWriteTime   value='" + totalWriteTime         + "'>Total time (ms) spent in channel.write</totalWriteTime>" +
-           "\n  <avgWriteTime value='" + avgWriteTime + "'>Average channel.write() time (ms)</avgWriteTime>" + 
-           "\n  <maxWriteTime value='" + maxWriteTime + "'>Maximum channel.write() time (ms)</maxWriteTime>" + 
-           "\n  <totalWaitForWriteLockTime   value='" + totalWaitForWriteLockTime         + "'>Total time (ms) spent waiting for forceManagerLock to issue a write</totalWaitForWriteLockTime>" +
-           "\n  <avgWaitForWriteLockTime   value='" + avgWaitForWriteLockTime         + "'>Average time (ms) spent waiting for forceManagerLock to issue a write</avgWaitForWriteLockTime>" +
+           "\n  <bufferSize value='" + config.getBufferSize() + "'>Buffer Size (in bytes)</bufferSize>" +
+           "\n  <poolsize    value='" + freeBuffer.length + "'>Number of buffers in the pool</poolsize>" + 
+           "\n  <initialPoolSize value='" + config.getMinBuffers() + "'>Initial number of buffers in the pool</initialPoolSize>" +
+           "\n  <growPoolCounter value='" + growPoolCounter + "'>Number of times buffer pool was grown</growPoolCounter>" +
+           "\n  <bufferwait  value='" + getWaitForBuffer()     + "'>Wait for available buffer</bufferwait>" +
            "\n  <bufferfull  value='" + noRoomInBuffer    + "'>Buffer full</bufferfull>" + 
            "\n  <nextfillbsn value='" + nextFillBSN       + "'></nextfillbsn>" +
-           "\n  <forceOnTimeout value='" + forceOnTimeout + "'></forceOnTimeout>" +
-           "\n  <forceNoWaitingThreads value='" + forceNoWaitingThreads + "'>force because no other threads waiting on force</forceNoWaitingThreads>" +
-           "\n  <forceHalfOfBuffers value='" + forceHalfOfBuffers + "'>force due to 1/2 of buffers waiting</forceHalfOfBuffers>" +
-           "\n  <forceMaxWaitingThreads value='" + forceMaxWaitingThreads + "'>force due to max waiting threads</forceMaxWaitingThreads>" +
-           "\n  <forceOnFileSwitch value='" + forceOnFileSwitch + "'>force last block prior to switching to next file</forceOnFileSwitch>" +
-           "\n  <maxThreadsWaitingForce value='" + maxThreadsWaitingForce + "'>maximum threads waiting</maxThreadsWaitingForce>" +
-           "\n  <avgThreadsWaitingForce value='" + avgThreadsWaitingForce + "'>Avg threads waiting force</avgThreadsWaitingForce>" +
+           "\n  <writeStats>" +
+           "\n    <writeCount  value='" + writeCount        + "'>Number of channel.write() calls</writeCount>" +
+           "\n    <totalWriteTime   value='" + totalWriteTime         + "'>Total time (ms) spent in channel.write</totalWriteTime>" +
+           "\n    <avgWriteTime value='" + avgWriteTime + "'>Average channel.write() time (ms)</avgWriteTime>" + 
+           "\n    <maxWriteTime value='" + maxWriteTime + "'>Maximum channel.write() time (ms)</maxWriteTime>" + 
+           "\n    <totalWaitForWriteLockTime   value='" + totalWaitForWriteLockTime         + "'>Total time (ms) spent waiting for forceManagerLock to issue a write</totalWaitForWriteLockTime>" +
+           "\n    <avgWaitForWriteLockTime   value='" + avgWaitForWriteLockTime         + "'>Average time (ms) spent waiting for forceManagerLock to issue a write</avgWaitForWriteLockTime>" +
+           "\n  </writeStats>" +
+           "\n  <forceStats>" +
+           "\n    <forceCount  value='" + forceCount        + "'>Number of channel.force() calls</forceCount>" +
+           "\n    <totalForceTime   value='" + totalForceTime         + "'>Total time (ms) spent in channel.force</totalForceTime>" +
+           "\n    <avgForceTime value='" + avgForceTime + "'>Average channel.force() time (ms)</avgForceTime>" +
+           "\n    <totalTimeBetweenForce value='" + totalTimeBetweenForce + "'>Total time (ms) between calls to channel.force()</totalTimeBetweenForce>" + 
+           "\n    <minTimeBetweenForce value='" + minTimeBetweenForce + "'>Minimum time (ms) between calls to channel.force()</minTimeBetweenForce>" + 
+           "\n    <maxTimeBetweenForce value='" + maxTimeBetweenForce + "'>Maximum time (ms) between calls to channel.force()</maxTimeBetweenForce>" + 
+           "\n    <avgTimeBetweenForce value='" + avgTimeBetweenForce + "'>Average time (ms) between calls to channel.force()</avgTimeBetweenForce>" + 
+           "\n    <avgBuffersPerForce value='" + avgBuffersPerForce + "'>Average number of buffers per force</avgBuffersPerForce>" +
+           "\n    <minBuffersForced value='" + minBuffersForced + "'>Minimum number of buffers forced</minBuffersForced>" +
+           "\n    <maxBuffersForced value='" + maxBuffersForced + "'>Maximum number of buffers forced</maxBuffersForced>" +
+           "\n    <maxThreadsWaitingForce value='" + maxThreadsWaitingForce + "'>maximum threads waiting</maxThreadsWaitingForce>" +
+           "\n    <avgThreadsWaitingForce value='" + avgThreadsWaitingForce + "'>Avg threads waiting force</avgThreadsWaitingForce>" +
+           "\n  </forceStats>" +
+           "\n  <forceReasons>" +
+           "\n    <forceOnTimeout value='" + forceOnTimeout + "'></forceOnTimeout>" +
+           "\n    <forceNoWaitingThreads value='" + forceNoWaitingThreads + "'>force because no other threads waiting on force</forceNoWaitingThreads>" +
+           "\n    <forceHalfOfBuffers value='" + forceHalfOfBuffers + "'>force due to 1/2 of buffers waiting</forceHalfOfBuffers>" +
+           "\n    <forceMaxWaitingThreads value='" + forceMaxWaitingThreads + "'>force due to max waiting threads</forceMaxWaitingThreads>" +
+           "\n    <forceOnFileSwitch value='" + forceOnFileSwitch + "'>force last block prior to switching to next file</forceOnFileSwitch>" +
+           "\n  </forceReasons>" +
            "\n  <LogBufferPool>" +
            "\n"
          );
