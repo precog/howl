@@ -59,11 +59,6 @@ class LogFile
   String fileMode = "rw";
   
   /**
-   * Will be set false for fileMode "rwd".
-   */
-  boolean forceRequired = true;
-  
-  /**
    * FileChannel associated with this LogFile.
    * 
    * <p>The FileChannel is private to guarantee that all calls to the
@@ -149,7 +144,6 @@ class LogFile
   LogFile open(String fileMode) throws FileNotFoundException
   {
     this.fileMode = fileMode;
-    forceRequired = fileMode.equals("rw");
 
     // remember whether the file existed or not
     newFile = !file.exists();
@@ -195,15 +189,27 @@ class LogFile
   /**
    * Helper provides access to the FileChannel.force() method for
    * the FileChannel associated with this LogFile.
+   * 
    * <p>Hides actual FileChannel and allows capture of statistics.
+   * 
+   * <p>In theory the force could be eliminated if the
+   * file is open with mode "rwd" or "rws" because the
+   * access method is supposed to guarantee that the
+   * writes do not return until the data is on the media.
+   * Unfortunately, testing with Windows XP platforms
+   * suggests that system write cache may confuse the
+   * Java runtime and the program will actually return
+   * before data is on media.  Consequently, this 
+   * method *always* does a force() regardless of
+   * the file open mode.
+   * 
    * @param forceMetadata as defined by FileChannel.force()
    * @throws IOException
    * @see FileChannel#force(boolean)
    */
   void force(boolean forceMetadata) throws IOException
   {
-    if (forceRequired)
-      channel.force(forceMetadata);
+    channel.force(forceMetadata);
   }
   
   /**
