@@ -60,6 +60,14 @@ import org.objectweb.howl.log.ReplayListener;
  * to allow enforcement of policies that are in place for an XA TM log.
  * 
  * @author Michael Giroux
+ * 
+ * @history
+ * <pre>
+ * 2004-09-01 FEATURE 300768
+ *            open(ReplayListener) accepts null
+ *            OpenReplayListener constructor accepts null
+ *            replayActiveTx(ReplayListener) method added
+ * </pre> 
  */
 public class XALogger extends Logger
   implements LogEventListener
@@ -775,11 +783,29 @@ public class XALogger extends Logger
   /**
    * calls super.open() to perform standard open functionality then
    * replays the log to rebuild the activeTx table.
+   * 
    * <p>Sets replayNeeded flag to block calls to put() methods
    * until the replay is complete. (This may be unnecessary because
    * the replay blocks until it is complete, but we do this to
    * prevent the TM from trying to make log entries on another
    * thread before the log is fully open.) 
+   * 
+   * <p>During the replay, the XALogger calls the TM's
+   * listener.onRecord() with an XALogRecord object.
+   * The TM is expected to call getTx() to obtain
+   * a reference to the XACommittingTx that will be
+   * used to complete the transaction usin putDone()
+   * later.
+   * 
+   * <p>Note that XALogger does not call the TM's
+   * listener.getLogRecord().  
+   * 
+   * @param listener
+   * The TM can receive replay events by
+   * providing a ReplayListener.
+   * TMs that do not wish to see all records during 
+   * the open replay should pass a null ReplayListener.
+   * @see #replayActiveTx(ReplayListener) 
    */
   public void open(ReplayListener listener)
   throws InvalidFileSetException, LogConfigurationException,
@@ -807,6 +833,7 @@ public class XALogger extends Logger
       throw lce;
     }
   }
+  
   
   /**
    * Used by TM and test cases to obtain the
@@ -876,6 +903,65 @@ public class XALogger extends Logger
   }
   
   /**
+   * Called by the TM to receive copies of the
+   * active transaction entries.
+   * 
+   * <p>TMs can use this method as an alternative
+   * to passing a ReplayListener to open.  The
+   * advantage is that only active transaction
+   * entries are returned to the ReplayListener.onRecord()
+   * method.
+   * 
+   * @param listener The activeTx entries are passed
+   * to the TM through this ReplayListener.
+   */
+  public void replayActiveTx(ReplayListener listener)
+  {
+    XACommittingTx tx = null;
+    XALogRecord lr = null;
+    
+    // scan activeTx[] for non-null entries
+    for (int i=0; i < activeTx.length; ++i)
+    {
+      tx = activeTx[i];
+      if (tx == null) continue;
+      
+      // found an active entry -- rebuild the XALogRecord entries
+      byte[][] record = tx.getRecord();
+      short recordSize = 0;
+      for(int j=0; j < record.length; ++j)
+      {
+        // calculate size of byte[] needed for current entry
+        recordSize += (2 + record[j].length);
+      }
+
+      lr = new XALogRecord(recordSize);
+      
+      // populate the LogRecord
+      lr.length = recordSize;
+      lr.dataBuffer.clear();
+      for (int j=0; j < record.length; ++j)
+      {
+        lr.dataBuffer.putShort((short)record[j].length);
+        lr.dataBuffer.put(record[j]);
+      }
+      
+      lr.key = tx.getLogKey();
+      lr.tod = 0L;
+      lr.setTx(tx);
+      lr.type = LogRecordType.XACOMMIT;
+      
+      // give the LogRecord to TM for processing
+      listener.onRecord(lr);
+    }
+
+    // signal end of table
+    lr = new XALogRecord(0);
+    lr.type = LogRecordType.END_OF_LOG;
+    listener.onRecord(lr);
+  }
+  
+  /**
    * private class used by XALogger to replay the log during
    * log open processing.
    * 
@@ -918,7 +1004,7 @@ public class XALogger extends Logger
     
     OpenReplayListener(ReplayListener tmListener)
     {
-      assert tmListener != null: "ReplayListener must be non-null";
+      // FEATURE 300768 - allow null ReplayListener during open()
       
       this.tmListener = tmListener;
       activeTxHashMap = new HashMap(256);
@@ -936,7 +1022,7 @@ public class XALogger extends Logger
       // pass all non-CTRL records onto TM
       if (! lr.isCTRL())
       {
-        tmListener.onRecord(lr);
+        if (tmListener != null) tmListener.onRecord(lr);
         return;
       }
       
@@ -953,7 +1039,7 @@ public class XALogger extends Logger
           }
         
           // let TM look at this LogRecord
-          tmListener.onRecord(lr);
+          if (tmListener != null) tmListener.onRecord(lr);
           break;
           
         case LogRecordType.XACOMMITMOVED:
@@ -998,7 +1084,7 @@ public class XALogger extends Logger
           ((XALogRecord)lr).setTx(tx);
           
           // pass commit record on to calling TM
-          tmListener.onRecord(lr);
+          if (tmListener != null) tmListener.onRecord(lr);
           break;
           
         /*
@@ -1050,7 +1136,7 @@ public class XALogger extends Logger
       // QUESTION - mark log unusable?
       
       // pass the error onto the TM
-      tmListener.onError(e);
+      if (tmListener != null) tmListener.onError(e);
     }
 
     public LogRecord getLogRecord()
