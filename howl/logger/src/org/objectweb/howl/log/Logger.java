@@ -65,9 +65,9 @@ public class Logger
   }
   
   /**
-   * add a USER record to log.
+   * add a USER record consisting of byte[][] to log. 
    * 
-   * <p>if <i> force </i> parameter is true, then the method will
+   * <p>if <i> sync </i> parameter is true, then the method will
    * block (in bmgr.put()) until the <i> data </i> buffer is forced to disk.
    * Otherwise, the method returns immediately.
    * 
@@ -89,8 +89,9 @@ public class Logger
    * @throws IOException
    * 
    * @see #mark(long)
+   * @see #setAutoMark(boolean)
    */
-  public long put(byte[] data, boolean sync)
+  public long put(byte[][] data, boolean sync)
     throws LogClosedException, LogRecordSizeException, LogFileOverflowException,
                 InterruptedException, IOException
   {
@@ -102,6 +103,29 @@ public class Logger
     lfmgr.setCurrentKey(key);
 
     return key;
+  }
+  
+  /**
+   * add a USER record consisting of byte[] to the log.
+   * 
+   * <p>wrap byte[] <i> data </i> in a new byte[][]
+   * and delegates call to put(byte[][], boolean)
+   *  
+   * @param data byte[] to be written to log
+   * @param sync true if caller wishes to block waiting for the
+   * record to force to disk.
+   * @return log key for the record
+   * @throws LogClosedException
+   * @throws LogRecordSizeException
+   * @throws LogFileOverflowException
+   * @throws InterruptedException
+   * @throws IOException
+   */
+  public long put(byte[] data, boolean sync)
+    throws LogClosedException, LogRecordSizeException, LogFileOverflowException,
+      InterruptedException, IOException
+  {
+    return put(new byte[][]{data}, sync);
   }
 
   /**
@@ -115,7 +139,7 @@ public class Logger
    * 
    * @param key is a log key returned by a previous call to put().
    * @throws InvalidLogKeyException if <i> key </i> parameter is out of range.
-   * key must be greater than current activeMark and less than the most recent
+   * <i> key </i> must be greater than current activeMark and less than the most recent
    * key returned by put().
    */
   public void mark(long key)
