@@ -136,8 +136,22 @@ public class LogTest extends TestDriver
   
   public void testFileNotFoundException() throws Exception
   {
+    // create an invalid "dir" 
+    String invalidDirName = prop.getProperty( "test.invalid.dir", "invalid");
+    if (!invalidDirName.endsWith("/"))
+      invalidDirName += "/";
+    
+    File invalidDir = new File(invalidDirName);
+    invalidDir.mkdirs();
+    
+    // now create a file that will be used as LogFileDir for test
+    invalidDir = new File(invalidDir, "invalid");
+    if (!invalidDir.exists() && !invalidDir.createNewFile())
+        fail("unable to create 'invalid' directory");
+    
+    String invalid = invalidDirName + "invalid/";
+    
     // set log dir to some invalid value
-    String invalid = prop.getProperty("test.invalid.dir", "$:/logs");
     cfg.setLogFileDir(invalid);
     try {
       log.open();
@@ -210,19 +224,4 @@ public class LogTest extends TestDriver
     runWorkers(LogTestWorker.class);
   }
   
-  /**
-   * Verify that file mode "rw" works as expected.
-   * 
-   * <p>We cannot use the worker infrastructure because
-   * we need to write to two logs so we can validate the
-   * results.
-   * <p>The test requires that we cause an IOException
-   * then run a separate test to verify file content. 
-   * 
-   * @throws Exception
-   */
-  public void testVerifyMode_rw() throws Exception
-  {
-  }
-
 }
