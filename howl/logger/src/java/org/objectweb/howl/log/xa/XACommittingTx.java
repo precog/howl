@@ -66,7 +66,7 @@ public class XACommittingTx {
    * 
    * @return the byte[][] containing the COMMIT record data. 
    */
-  final byte[][] getRecord() { return record; }
+  public final byte[][] getRecord() { return record; }
   
   /**
    * saves a reference to the byte[][] containing the COMMIT
@@ -107,7 +107,7 @@ public class XACommittingTx {
    * @return the log key associated with the COMMIT record
    * for this transaction. 
    */
-  final long getLogKey() { return logKey; }
+  public final long getLogKey() { return logKey; }
   
   /**
    * sets the log key associated with the COMMIT record
@@ -151,7 +151,7 @@ public class XACommittingTx {
    * @return boolean indicating whether the two-phase-commit processing
    * is complete.
    */
-  final boolean isDone() { return this.done; };
+  public final boolean isDone() { return this.done; };
   
   /**
    * Flag indicating that the log overflow notification routine
@@ -181,7 +181,7 @@ public class XACommittingTx {
    * 
    * <p>The XALogger.putDone() method waits until moving is false.
    */
-  final boolean isMoving() { return this.moving; }
+  public final boolean isMoving() { return this.moving; }
   
   /**
    * constructs a new XACommittingTx instance.
