@@ -400,7 +400,9 @@ class BlockLogBuffer extends LogBuffer
     // fill our ByteBuffer with a block of data from the file
     // NOTE: file position is not changed by following call
     buffer.clear();
-    int bytesRead = lf.channel.read(buffer, position);
+    int bytesRead = -1;
+    if (lf.channel.size() > position) // BUG 300986 JRockit throws IOException
+      bytesRead = lf.channel.read(buffer, position);
     if (bytesRead == -1)
     {
       // end of file
