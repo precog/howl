@@ -465,10 +465,9 @@ public class XALogger extends Logger
   }
   
   /**
-   * return an XML node containing statistics for the Logger, the LogFile pool and the LogBuffer pool.
-   * 
-   * <p>The getStats method for the LogBufferManager and LogFileManager are called to include
-   * statistics for these contained objects.
+   * return an XML document containing statistics for
+   * this object along with the base Logger,
+   * the LogFile pool and the LogBuffer pool.
    * 
    * @return String contiining XML document.
    */
@@ -500,7 +499,7 @@ public class XALogger extends Logger
         "</overflowNotificationCount>"
         );
     
-    stats.append(super.getLoggerStats());
+    stats.append(super.getStats());
     
     stats.append("\n</XALogger>" +
         "\n");
