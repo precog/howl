@@ -104,7 +104,7 @@ public interface LogRecordType
    * is moved to allow replay to remove the original
    * XACOMMIT record from the activeTx table. 
    */
-  static final short XACOMMITMOVED = CTRL | XACOMMIT | XADONE;
+  static final short XACOMMITMOVED = XACOMMIT | XADONE;
   
   /**
    * Type returned by get() methods to signal end of buffer.
