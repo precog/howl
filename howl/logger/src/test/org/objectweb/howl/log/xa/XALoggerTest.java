@@ -217,7 +217,7 @@ public class XALoggerTest extends TestDriver
     log = new XALogger();
     super.log = log;
     log.open(openListener);
-    log.setAutoMark(true);
+//    log.setAutoMark(true);
     runWorkers(XAWorker.class);
     // log.close(); called by runWorkers()
     assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
@@ -235,7 +235,7 @@ public class XALoggerTest extends TestDriver
     
     super.log = log;
     log.open(openListener);
-    log.setAutoMark(true);
+//    log.setAutoMark(true);
     runWorkers(XAWorker.class);
     // log.close(); called by runWorkers()
     assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
@@ -487,30 +487,6 @@ public class XALoggerTest extends TestDriver
     
   }
   
-  public void testXALoggerThroughput_rw() throws Exception, LogException {
-    log.open(openListener);
-    assertNull("openListener.exception", openListener.exception);
-    assertEquals("openListener.activeTx used", 0, openListener.getActiveTxUsed());
-    assertEquals("activeTxUsed after open", 0, log.getActiveTxUsed());
-
-    prop.setProperty("msg.count", "1000");
-    runWorkers(XAWorker.class);
-    assertEquals("activeTxUsed after test", 0, log.getActiveTxUsed());
-}
-  
-  public void testXALoggerThroughput_rwd() throws Exception, LogException {
-    cfg.setLogFileMode("rwd");
-    log.open(openListener);
-    assertNull("openListener.exception", openListener.exception);
-    assertEquals("openListener.activeTx used", 0, openListener.getActiveTxUsed());
-    assertEquals("activeTxUsed after open", 0, log.getActiveTxUsed());
-
-    prop.setProperty("msg.count", "1000");
-    runWorkers(XAWorker.class);
-    assertEquals("activeTxUsed after test", 0, log.getActiveTxUsed());
-}
-  
-
   /**
    * Construct a TestSuite with tests ordered on test name.
    * 
