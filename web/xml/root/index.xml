@@ -28,6 +28,11 @@
         <img src="images/latest.gif" alt="Latest news" border="0" 
         height="50" width="150"/><br/>
       </p>
+      <p>
+        <strong>Friday, September 10, 2004</strong>
+        New TAG HOWL_0_1_7<br/>
+        Bugs fixed: 300791, 300803
+      </p>
         <p>
           <strong>Friday, August 27, 2004</strong>
           WEB committed to CVS.
