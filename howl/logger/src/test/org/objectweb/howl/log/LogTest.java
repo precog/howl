@@ -37,6 +37,9 @@ import java.io.FileNotFoundException;
 
 public class LogTest extends TestDriver
 {
+
+  private File baseDir;
+  private File outDir;
   /**
    * Constructor for LogTest.
    * 
@@ -50,12 +53,18 @@ public class LogTest extends TestDriver
     super.setUp();
 
     log = new Logger(cfg);
+
+    String baseDirName = System.getProperty("basedir", ".");
+    baseDir = new File(baseDirName);
+    outDir = new File(baseDir, "target/test-resources");
+    outDir.mkdirs();
   }
   
 
   public static void main(String[] args) throws Exception {
     junit.textui.TestRunner.run(LogTest.class);
   }
+
 
   public void testLoggerSingleThread()
     throws LogException, Exception
@@ -154,31 +163,17 @@ public class LogTest extends TestDriver
    */
   public void testFileNotFoundException() throws Exception
   {
-    // create an invalid "dir" 
-    String invalidDirName = prop.getProperty( "test.invalid.dir", "invalid");
-    if (!invalidDirName.endsWith("/"))
-      invalidDirName += "/";
-    
-    File invalidDir = new File(invalidDirName);
-    invalidDir.mkdirs();
-    
-    // now create a file that will be used as LogFileDir for test
-    invalidDir = new File(invalidDir, "invalid");
+    // create a file (not directory) that will be used as LogFileDir for test
+    File invalidDir = new File(outDir, "invalid");
     if (!invalidDir.exists() && !invalidDir.createNewFile())
         fail("unable to create 'invalid' directory");
     
-    String invalid = invalidDirName + "invalid/";
+    String invalid = invalidDir.getPath();
     
     // set log dir to some invalid value
     cfg.setLogFileDir(invalid);
     try {
       log.open();
-      //we haven't found a name that can't be created on mac osx, so if file is created, that's ok...
-      File test = new File(invalid);
-      if (test.exists()) {
-        System.err.println(getName() + " succeeded in creating file that was supposed to have an invalid name: "  + invalid);
-        return;
-      }
       fail("expected FileNotFoundException");
     } catch (FileNotFoundException e) {
       // this is what we expected
