@@ -39,6 +39,10 @@ import org.objectweb.howl.log.LogRecordType;
  * Extends {@link org.objectweb.howl.log.LogRecord} with
  * members that are specific to XALogger.
  * 
+ * <p>Allows XALogger to provide a reference to
+ * an activeTx entry associated with the log record
+ * to the calling TM.
+ * 
  * @author Michael Giroux
  */
 public class XALogRecord extends LogRecord {
