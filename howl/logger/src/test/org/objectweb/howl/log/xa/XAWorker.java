@@ -106,6 +106,7 @@ public class XAWorker extends TestWorker {
       }
     } catch (Exception e) {
       exception = e;
+      System.err.println(e.toString());
     } finally {
       // notify driver that this thread has finishe its work
       driver.getStopBarrier().release();
