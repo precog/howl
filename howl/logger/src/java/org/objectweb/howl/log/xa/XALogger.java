@@ -69,6 +69,8 @@ import org.objectweb.howl.log.ReplayListener;
  * 
  * @author Michael Giroux
  * 
+ */
+/*
  * @history
  * <pre>
  * 2004-09-01 FEATURE 300768
