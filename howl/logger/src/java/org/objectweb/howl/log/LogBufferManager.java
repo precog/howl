@@ -62,6 +62,20 @@ class LogBufferManager extends LogObject
   }
   
   /**
+   * boolean is set <b> true </b> when an IOException is returned
+   * by a write or force to a log file.
+   * <p>Any attempt to write or force after <i> haveIOException </i>
+   * becomes true should result in an IOException being returned
+   * to the caller.
+   */
+  private boolean haveIOException = false;  // BUG 300803
+  
+  /**
+   * The last IOException returned to the logger
+   */
+  private IOException ioexception = null;   // BUG 300803
+  
+  /**
    * mutex for synchronizing access to buffers list.
    * <p>also synchronizes access to fqPut in routines
    * that put LogBuffers into the forceQueue[].
@@ -300,19 +314,25 @@ class LogBufferManager extends LogObject
       forceQueue[fqGet] = null;      // so someone using debug doesn't think it is in the queue 
       fqGet = (fqGet + 1) % forceQueue.length;
       
-      // write the logBuffer to disk (hopefully non-blocking)
-      try {
-        assert logBuffer.bsn == nextWriteBSN : "BSN error expecting " + nextWriteBSN + " found " + logBuffer.bsn;
-        long startWrite = System.currentTimeMillis();
-        logBuffer.write();
-        long writeTime = elapsedTime(startWrite);
-        totalWriteTime += writeTime;
-        if (writeTime > maxWriteTime) maxWriteTime = writeTime;
-        ++writeCount;
-        nextWriteBSN = logBuffer.bsn + 1;
-      }
-      catch (IOException ioe) {
-        // ignore for now. buffer.iostatus is checked later for errors.
+      // BUG 300803 - do not try the write if we already have an error
+      if (!haveIOException)
+      {
+        // write the logBuffer to disk (hopefully non-blocking)
+        try {
+          assert logBuffer.bsn == nextWriteBSN : "BSN error expecting " + nextWriteBSN + " found " + logBuffer.bsn;
+          long startWrite = System.currentTimeMillis();
+          logBuffer.write();
+          long writeTime = elapsedTime(startWrite);
+          totalWriteTime += writeTime;
+          if (writeTime > maxWriteTime) maxWriteTime = writeTime;
+          ++writeCount;
+          nextWriteBSN = logBuffer.bsn + 1;
+        }
+        catch (IOException ioe) {
+          // BUG 300803 - remember that we had an error
+          ioexception = ioe;
+          haveIOException = true;
+        }
       }
       
       threadsWaitingForce += logBuffer.getWaitingThreads();
@@ -339,9 +359,16 @@ class LogBufferManager extends LogObject
        *   Remove test for logBuffer.bsn < forcebsn.  This cannot
        *   happen now that we stay in the forceManagerLock.
        * 
-       *   Rearranged tests to improve the accuracy of the counters. 
+       *   Rearranged tests to improve the accuracy of the counters.
+       * 
+       * 2004-09-09 Michael Giroux
+       *   BUG 300803 - Add test for IOException 
        */
-      if (timeout)
+      if (haveIOException)
+      {
+        doforce = false;
+      }
+      else if (timeout)
       {
         ++forceOnTimeout;
       }
@@ -375,7 +402,13 @@ class LogBufferManager extends LogObject
         ++forceCount;
 
         long startForce = System.currentTimeMillis();
-        logBuffer.lf.force(false);
+        try {
+          logBuffer.lf.force(false);
+        } catch (IOException ioe) {
+          ioexception = ioe;
+          haveIOException = true;
+          logBuffer.ioexception = ioe;
+        }
         totalForceTime += elapsedTime(startForce);
         
         if (lastForceTOD > 0)
@@ -400,15 +433,18 @@ class LogBufferManager extends LogObject
         threadsWaitingForce = 0;
         
         lastForceBSN = forcebsn;
-        forceManagerLock.notifyAll();
       }
+      
+      // notify everyone who is waiting for the force
+      if (doforce || haveIOException)
+        forceManagerLock.notifyAll();
 
       // wait for thisLogBuffer's write to be forced
-      while (lastForceBSN < logBuffer.bsn)
+      while (!haveIOException && lastForceBSN < logBuffer.bsn)
       {
         forceManagerLock.wait();
       }
-     }
+     } // synchronized(forceManagerLock)
     
     // notify threads waiting for this buffer to force
     synchronized(logBuffer)
@@ -416,11 +452,21 @@ class LogBufferManager extends LogObject
       // BUG: 300613 must synchronize the update of iostatus
       if (logBuffer.iostatus == LogBufferStatus.WRITING)
         logBuffer.iostatus = LogBufferStatus.COMPLETE;
+      
+      // BUG: 300803 report error to threads that are waiting
+      if (haveIOException)
+      {
+        logBuffer.iostatus = LogBufferStatus.ERROR;
+        logBuffer.ioexception = ioexception;
+      }
 
       logBuffer.notifyAll(); 
     }
 
     releaseBuffer(logBuffer);
+    
+    // BUG 300803 report error to our caller
+    if (haveIOException) throw ioexception;
   }
 
   /**
@@ -560,8 +606,6 @@ class LogBufferManager extends LogObject
         // force current buffer if there was no room for data
         ++noRoomInBuffer;
         force(false);
-        if (currentBuffer.iostatus == LogBufferStatus.ERROR)
-          throw currentBuffer.ioexception;
       }
       else if (sync)  // otherwise sync as requested by caller
       {
@@ -1054,6 +1098,7 @@ class LogBufferManager extends LogObject
         catch (IOException e)
         {
           // TODO: report IOException to error log
+          System.err.println("FlushManager: IOException in force(true)");
         }
       }
     }
