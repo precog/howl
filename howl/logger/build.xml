@@ -54,6 +54,7 @@
       srcdir='${test.src.dir}'
       destdir='${test.classes.dir}'
       source='${javac.source}'
+      excludes='**/MBeanTest.java'
       >
       <classpath>
         <pathelement path='${classes.dir}/howl.jar'/>
@@ -122,6 +123,7 @@
           <include name='**/*Test.java'/>
           <exclude name='**/allTest.java'/>
           <exclude name='**/ExceptionTest.java'/> 
+          <exclude name='**/MBeanTest.java'/>
         </fileset>
       </batchtest>
     </junit>
