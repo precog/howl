@@ -47,6 +47,13 @@ import java.nio.ByteBuffer;
 public class LogRecord
 {
   /**
+   * used by Logger.get() and Logger.getNext() to retrieve
+   * records from the journal.
+   * FEATURE: 300792
+   */
+  LogBuffer buffer = null;
+  
+  /**
    * type of data record.
    * <p>USER data records have a type == 0.
    * <p>Logger control record types are defined by LogRecordType.
@@ -123,6 +130,22 @@ public class LogRecord
   {
     return (type & LogRecordType.CTRL) != 0;
   }
+  
+  /**
+   * Set to <code> true </true> to prevent get() from returning
+   * control records.
+   * <p>Default is <code> false </code> causing all records including
+   * control records to be returned by get()
+   */
+  private boolean filterCtrlRecords = false;
+  
+  /**
+   * Set the filterCtrlRecords member
+   * @param filterCtrlRecords 
+   */
+  public void setFilterCtrlRecords(boolean filterCtrlRecords) {
+    this.filterCtrlRecords = filterCtrlRecords;
+  }
 
   /**
    * @return length of the byte[] that backs the ByteBuffer.
@@ -152,6 +175,23 @@ public class LogRecord
    * @see LogRecordType
    */
   protected LogRecord get(LogBuffer lb) throws InvalidLogBufferException
+  {
+    do {
+      getNext(lb); // get the next record
+      if (isEOB() || !isCTRL())
+        break;
+    } while (filterCtrlRecords == true);
+    return this;
+  }
+  
+  /**
+   * helper for get().
+   * <p>returns the next record in the LogBuffer.
+   * @param lb
+   * @return
+   * @throws InvalidLogBufferException
+   */
+  private LogRecord getNext(LogBuffer lb) throws InvalidLogBufferException
   {
     short type = 0;
     short length = 0;
