@@ -75,6 +75,8 @@ public class LogTest extends TestDriver
     prop.setProperty("msg.count", "10");
     workers = 1;
     runWorkers(LogTestWorker.class);
+    // log.close(); called by runWorkers()
+
   }
   
   public void testLoggerAutomarkTrue()
@@ -84,31 +86,16 @@ public class LogTest extends TestDriver
     log.setAutoMark(true);
 
     runWorkers(LogTestWorker.class);
+    // log.close(); called by runWorkers()
   }
   
   public void testLoggerReplay() throws Exception, LogException {
     log.open();
     TestLogReader reader = new TestLogReader();
-    reader.run(cfg);
+    reader.run(log);
     System.err.println("End Journal Validation; total records processed: " + reader.recordCount);
-  }
-  
-  public void testLoggerThroughput_rw() throws Exception, LogException {
-    log.open();
-    log.setAutoMark(true);
-    prop.setProperty("msg.force.interval", "0");
-    prop.setProperty("msg.count", "1000");
-    runWorkers(LogTestWorker.class);
-  }
-  
-  public void testLoggerThroughput_rwd() throws Exception, LogException {
-    cfg.setLogFileMode("rwd");
-    log.open();
-    
-    log.setAutoMark(true);
-    prop.setProperty("msg.force.interval", "0");
-    prop.setProperty("msg.count", "1000");
-    runWorkers(LogTestWorker.class);
+    // log.close(); called by reader.run()
+
   }
   
   public void testLogClosedException() throws Exception, LogException {
@@ -122,13 +109,60 @@ public class LogTest extends TestDriver
     }
   }
   
-  public void testLoggerThroughput_checksumEnabled() throws Exception
+  /**
+   * FEATURE 300922
+   * Verify that LogConfigurationException is thrown if multiple
+   * openings on the log are attempted.
+   * 
+   * @throws Exception
+   */
+  public void testLogConfigurationException_Lock() throws Exception
   {
-    cfg.setChecksumEnabled(true);
     log.open();
-    runWorkers(LogTestWorker.class);
+    Logger log2 = new Logger(cfg);
+
+    try {
+      log2.open();
+    } catch (LogConfigurationException e) {
+      // this is what we expected so ignore it
+      log2.close();
+    }
+    
+    log.close();
+    
+  }
+  /**
+   * Verify that an invalid buffer class name throws LogConfigurationException.
+   * <p>The LogConfigurationException occurs after the log files have been
+   * opened and locked.  As a result, it is necessary to call close to 
+   * unlock the files.
+   * @throws Exception
+   */
+  public void testLogConfigurationException_ClassNotFound() throws Exception
+  {
+    cfg.setBufferClassName("org.objectweb.howl.log.noSuchBufferClass");
+    
+    try {
+      log.open();
+      log.close();
+      fail("expected LogConfigurationException");
+    } catch (LogConfigurationException e) {
+      if (!(e.getCause() instanceof ClassNotFoundException))
+        throw e;
+      // otherwise this is what we expected so ignore it
+    }
+    
+    // close and unlock the log files
+    log.close();
   }
   
+  /**
+   * Verify that log.open() will throw an exception if the configuration
+   * is changed after a set of log files is created.
+   * <p>In this test, we change the number of log files.
+   * <p>PRECONDITION: log files exist from prior test.
+   * @throws Exception
+   */
   public void testLogConfigurationException_maxLogFiles() throws Exception
   {
     // increase number of log files for current set
@@ -137,10 +171,12 @@ public class LogTest extends TestDriver
     // try to open the log -- we should get an error
     try {
       log.open();
+      log.close();
       fail("expected LogConfigurationException");
     } catch (LogConfigurationException e) {
       // this is what we expected so ignore it
     }
+    log.close();
   }
   
   /**
@@ -174,22 +210,24 @@ public class LogTest extends TestDriver
     cfg.setLogFileDir(invalid);
     try {
       log.open();
+      log.close();
       fail("expected FileNotFoundException");
     } catch (FileNotFoundException e) {
       // this is what we expected
     }
   }
 
-  public void testInvalidFileSetException_1() throws Exception
+  public void testLogConfigurationException_1File() throws Exception
   {
     // a single log file is not allowed
     cfg.setMaxLogFiles(1);
-    
-    // open should catch this and get an error
+
     try {
+      // open should catch this and get an error
       log.open();
-      fail("expected InvalidFileSetException");
-    } catch (InvalidFileSetException e) {
+      log.close();
+      fail("expected LogConfigurationException");
+    } catch (LogConfigurationException e) {
       // this is what we expected so ignore it
     }
   }
@@ -205,7 +243,7 @@ public class LogTest extends TestDriver
     } catch (LogRecordSizeException e) {
       // this is what we expected so ignore it
     }
- 
+    log.close();
   }
   
   public void testInvalidLogKeyException() throws Exception {
@@ -215,7 +253,8 @@ public class LogTest extends TestDriver
     // try log key == -1
     try {
       log.replay(tlr, -1L);
-      fail("expected InvalidLogKeyException");
+      log.close();
+      fail("expected InvalidLogKeyException (-1)");
     } catch (InvalidLogKeyException e) {
       // this is what we expected
     }
@@ -223,11 +262,13 @@ public class LogTest extends TestDriver
     // try a key that is invalid
     try {
       log.replay(tlr, (log.getActiveMark() + 1L));
+      log.close();
       fail("expected InvalidLogKeyException");
     } catch (InvalidLogKeyException e) {
       // this is what we expected
     }
-
+    
+    log.close();
   }
 
   public void testBlockLogBufferSink() throws Exception {
@@ -235,6 +276,83 @@ public class LogTest extends TestDriver
     log.open();
     log.setAutoMark(true);
     runWorkers(LogTestWorker.class);
+    // log.close(); called by runWorkers()
+  }
+  
+  /**
+   * Verify that Logger.get() method returns requested records.
+   * <p>We write three records to the journal than go through
+   * a series of Logger.get() requests to verify that Logger.get()
+   * works as expected.
+   * @throws Exception
+   */
+  public void testGetMethods() throws Exception {
+    String[] sVal = { "Record_1", "Record_2", "Record_3", "Record_4", "Record_5"};
+    byte[][] r1 = new byte[sVal.length][];
+    
+    // initialize test records
+    for (int i=0; i< sVal.length; ++i)
+      r1[i] = sVal[i].getBytes();
+    
+    long[] key = new long[sVal.length];
+    
+    log.open();
+    
+    // populate journal with test records
+    for (int i=0; i< sVal.length; ++i)
+      key[i] = log.put(r1[i],false);
+    
+    // force the data to disk
+    log.put("EOB".getBytes(),true);
+    
+    LogRecord lr = new LogRecord(sVal[0].length()+6);
+    lr.setFilterCtrlRecords(true);
+    for (int i=0; i < sVal.length; ++i)
+    {
+      lr = log.get(lr,key[i]);
+      verifyLogRecord(lr, sVal[i], key[i]);
+    }
+    
+    // read backwards
+    for (int i = sVal.length-1; i >= 0; --i)
+    {
+      lr = log.get(lr, key[i]);
+      verifyLogRecord(lr, sVal[i], key[i]);
+    }
+    
+    // check the Logger.getNext method
+    lr = log.get(lr, key[0]);
+    verifyLogRecord(lr, sVal[0], key[0]);
+    
+    for (int i=1; i < sVal.length; ++i) {
+      do {
+        lr = log.getNext(lr);
+      } while (lr.isCTRL()); // skip control records
+      verifyLogRecord(lr, sVal[i], key[i]);
+    }
+    
+    // now read to end of journal
+    int recordCount = 0;
+    while (true) {
+      lr = log.getNext(lr);
+      if (lr.type == LogRecordType.END_OF_LOG) break;
+      ++recordCount;
+    }
+    
+  }
+  
+  /**
+   * Verifies the content of the LogRecord is correct.
+   * @param lr LogRecord to be verified
+   * @param eVal expected value
+   * @param eKey expected record key
+   */
+  void verifyLogRecord(LogRecord lr, String eVal, long eKey) {
+    byte[][] r2 = lr.getFields();
+    String rVal = new String(r2[0]);
+    assertEquals("Field Count != 1", 1, r2.length);
+    assertEquals("Record Data", eVal, rVal);
+    assertEquals("Record Key", eKey, lr.key);
   }
   
 }
