@@ -38,6 +38,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.util.Enumeration;
 import java.util.Properties;
 
 /**
@@ -376,6 +377,43 @@ public class ConfigurationTest extends TestCase
       fail(getName() + ": expected LogConfigurationException");
     } catch (LogConfigurationException e) {
       // ignore error
+    }
+  }
+  
+  public void testStore() throws Exception
+  {
+    cfg = new Configuration();
+
+    File file = new File("target/conf/" + getName() + ".properties");
+    cfg.store(new FileOutputStream(file));
+  }
+  
+  public void testCallerPropertiesNotChanged() throws Exception
+  {
+    
+    cfg = new Configuration(); // so we can extract a valid property
+    prop.setProperty("bufferClassName", cfg.getBufferClassName());
+    
+    // Make a duplicate set of properties for compare later
+    Properties original = new Properties();
+    original.setProperty("bufferClassName", cfg.getBufferClassName());
+    
+    // construct new Configuration using test Properties
+    cfg = new Configuration(prop);
+    // make sure we still have exactly one property
+    assertEquals(1, prop.size());
+    
+    // modify Configuration object with some new properties 
+    cfg.setBufferSize((cfg.getBufferSize() / 1024) + 1);
+    cfg.setBufferClassName(cfg.getBufferClassName() + "Sink");
+    
+    // now compare the current and original properties
+    assertEquals(original.size(), prop.size());
+    for (Enumeration e = original.keys(); e.hasMoreElements(); )
+    {
+      String key = (String) e.nextElement();
+      assertTrue(prop.containsKey(key));
+      assertEquals(prop.getProperty(key), original.getProperty(key));
     }
   }
   
