@@ -158,7 +158,7 @@ public class LogTest extends TestDriver
       //we haven't found a name that can't be created on mac osx, so if file is created, that's ok...
       File test = new File(invalid);
       if (test.exists()) {
-        System.err.println("testFileNotFoundException succeeded in creating file that was supposed to have an invalid name: "  + invalid);
+        System.err.println(getName() + " succeeded in creating file that was supposed to have an invalid name: "  + invalid);
         return;
       }
       fail("expected FileNotFoundException");
