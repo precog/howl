@@ -481,9 +481,14 @@ public class XALogger extends Logger
    * <p>Remove XACommittingTx object from the list of
    * active transactions.
    * 
-   * @param record byte[][] containing data to be logged
+   * @param record byte[][] containing data to be logged.
+   * <p>If <code>record</code> is <code>null</code> then
+   * no user data is written to the journal.
    * @param tx the XACommittingTx that was returned
    * by the putCommit() routine for this transaction.
+   * 
+   * @return long log key for the <code>record</code> byte[][].
+   * <p>If <code>record</record> is null, then return is 0L.
    * 
    * @throws IOException
    * @throws InterruptedException
@@ -526,13 +531,16 @@ public class XALogger extends Logger
     
     // write the DONE record
     long doneKey = 0L;
-    do {
-      try {
-        doneKey = put(LogRecordType.USER, record, false);
-      } catch (LogFileOverflowException e) {
-        Thread.sleep(10);  
-      }
-    } while (doneKey == 0L);
+    if (record != null)
+    {
+      do {
+        try {
+          doneKey = put(LogRecordType.USER, record, false);
+        } catch (LogFileOverflowException e) {
+          Thread.sleep(10);  
+        }
+      } while (doneKey == 0L);
+    }
     
     // record the XADONE record with logKey from XACOMMIT record
     long xadoneKey = 0L;
@@ -847,16 +855,14 @@ public class XALogger extends Logger
     try {
       super.replay(xaListener, getActiveMark(), true); // replay CTRL records also
     } catch (InvalidLogKeyException e) {
-      LogClosedException lce = new LogClosedException();
-      lce.initCause(e);
+      LogClosedException lce = new LogClosedException(e);
       throw lce;
     }
     
     // something very wrong if we come back from replay and we have not cleared the flag.
     if (replayNeeded)
     {
-      LogClosedException lce = new LogClosedException();
-      lce.initCause(xaListener.replayException);
+      LogClosedException lce = new LogClosedException(xaListener.replayException);
       throw lce;
     }
   }
