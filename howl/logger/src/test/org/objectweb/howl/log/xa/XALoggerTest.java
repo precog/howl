@@ -189,6 +189,16 @@ public class XALoggerTest extends TestDriver
     runWorkers(XAWorker.class);
   }
   
+  /**
+   * Simulate a failed RM.
+   * <p>write a commit record to log, but do not write the corresponding done.
+   * This simulates an RM that never responds to the commit.
+   * The XACOMMIT record will (should) be in the log and discovered
+   * in the next test case.
+   * 
+   * @throws LogException
+   * @throws Exception
+   */
   public void testRMFailure()
   throws LogException, Exception
   {
