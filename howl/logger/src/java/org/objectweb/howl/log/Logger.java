@@ -333,8 +333,6 @@ public class Logger extends LogObject
    * most likely because the configured LogBuffer class cannot be found.
    * @throws InvalidLogKeyException
    * if <i> mark </i> is not a valid log key.
-   * 
-   * @see LogBufferManager#replay(ReplayListener, long, boolean)
    */
   public void replay(ReplayListener listener, long mark)
     throws InvalidLogKeyException, LogConfigurationException

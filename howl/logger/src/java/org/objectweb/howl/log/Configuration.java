@@ -411,7 +411,7 @@ public class Configuration {
     return logFileDir;
   }
   /**
-   * @param logDir The logDir to set.
+   * @param logFileDir The logFileDir to set.
    */
   public void setLogFileDir(String logFileDir) {
     this.logFileDir = logFileDir;
