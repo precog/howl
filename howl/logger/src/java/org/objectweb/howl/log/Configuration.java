@@ -107,7 +107,7 @@ public class Configuration {
    * sizes may help with slower disks, but large buffers
    * may be mostly empty in lightly loaded systems.
    */
-  private final int MAX_BUFFERS_SIZE = 32;
+  private static final int MAX_BUFFER_SIZE = 32;
   
   /**
    * The Properties used to construct this object.
@@ -142,7 +142,8 @@ public class Configuration {
    */
   private int getInteger(String key, int val, String text)
   {
-    val = Integer.parseInt(prop.getProperty(key, Integer.toString(val)));
+    // BUG: 300738 - trim property value
+    val = Integer.parseInt(prop.getProperty(key, Integer.toString(val)).trim());
     showConfig(key, val, text);
     return val;
   }
@@ -177,7 +178,8 @@ public class Configuration {
   private boolean getBoolean(String key, boolean val)
   throws LogConfigurationException
   {
-    String pval = prop.getProperty(key, Boolean.toString(val)).toLowerCase();
+    // BUG: 300738 - trim property value
+    String pval = prop.getProperty(key, Boolean.toString(val)).toLowerCase().trim();
     if (!pval.equals("true") && !pval.equals("false"))
       throw new LogConfigurationException(key + "[" + pval +
           "] must be true of false");
@@ -218,9 +220,9 @@ public class Configuration {
     bufferClassName = getString("bufferClassName", bufferClassName);
     
     bufferSize = getInteger("bufferSize", (bufferSize / 1024), "Kb");
-    if (bufferSize < 1 || bufferSize > this.MAX_BUFFERS_SIZE)
+    if (bufferSize < 1 || bufferSize > MAX_BUFFER_SIZE)
       throw new LogConfigurationException("bufferSize [" + bufferSize + "] must be" +
-          " between 1 and "+ this.MAX_BUFFERS_SIZE);
+          " between 1 and "+ MAX_BUFFER_SIZE);
     bufferSize *= 1024;
     showConfig("bufferSize", bufferSize, "bytes");
     
