@@ -97,9 +97,11 @@ public class ThroughputTest extends TestDriver {
   }
   
   public void testThroughput_1() throws Exception, LogException {
+    cfg.setLogFileName("log_1k");
+    cfg.setBufferSize(1);
     log.open();
     log.setAutoMark(true);
-    prop.setProperty("msg.count", "25");
+    prop.setProperty("msg.count", "250");
     workers = 1;
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
