@@ -199,7 +199,7 @@ public class Configuration {
    */
   private String getString(String key, String val)
   {
-    val = prop.getProperty(key, val);
+    val = prop.getProperty(key, val).trim();
     if (listConfig) System.err.println(key + ": " + val);;
     return val;
   }
@@ -219,11 +219,8 @@ public class Configuration {
 
     bufferClassName = getString("bufferClassName", bufferClassName);
     
-    bufferSize = getInteger("bufferSize", (bufferSize / 1024), "Kb");
-    if (bufferSize < 1 || bufferSize > MAX_BUFFER_SIZE)
-      throw new LogConfigurationException("bufferSize [" + bufferSize + "] must be" +
-          " between 1 and "+ MAX_BUFFER_SIZE);
-    bufferSize *= 1024;
+    setBufferSize(getInteger("bufferSize", (bufferSize / 1024), "Kb")); // BUG 300791
+
     showConfig("bufferSize", bufferSize, "bytes");
     
     checksumEnabled = getBoolean("checksumEnabled", checksumEnabled);
@@ -238,21 +235,15 @@ public class Configuration {
 
     maxBlocksPerFile = getInteger("maxBlocksPerFile", maxBlocksPerFile);
     
-    minBuffers = getInteger("minBuffers", minBuffers);
+    setMinBuffers(getInteger("minBuffers", minBuffers)); // BUG 300791
 
-    maxBuffers = getInteger("maxBuffers", maxBuffers);
+    setMaxBuffers(getInteger("maxBuffers", maxBuffers)); // BUG 300791
     
     maxLogFiles = getInteger("maxLogFiles", maxLogFiles);
     
     threadsWaitingForceThreshold = getInteger("threadsWaitingForceThreshold", threadsWaitingForceThreshold);
 
-    if (maxBuffers > 0 && maxBuffers < minBuffers)
-      throw new LogConfigurationException("minBuffers [" + minBuffers +
-          "] must be <= than maxBuffers[" + maxBuffers +  "]");
-    
-    if (minBuffers <= 0)
-      throw new LogConfigurationException("minBuffers[" + minBuffers + 
-          "] must be > 0");
+    setLogFileMode(getString("logFileMode", logFileMode)); // BUG 300791
   }
   
   /* ---------------------------------------------------
@@ -385,6 +376,15 @@ public class Configuration {
   String logFileName = "logger";
   
   /**
+   * IO mode used to open the file.
+   * <p>Default is "rw"
+   * <p>Must be "rw" or "rwd"
+   * 
+   * @see java.io.RandomAccessFile#RandomAccessFile(java.io.File, java.lang.String)
+   */
+  String logFileMode = "rw";
+  
+  /**
    * @return Returns the logDir.
    */
   public String getLogFileDir() {
@@ -448,7 +448,13 @@ public class Configuration {
    * multiplied by 1024 to establish the actual
    * buffer size used by the logger.
    */
-  public void setBufferSize(int bufferSize) {
+  public void setBufferSize(int bufferSize)
+  throws LogConfigurationException
+  {
+    if (bufferSize < 1 || bufferSize > MAX_BUFFER_SIZE)
+      throw new LogConfigurationException("bufferSize [" + bufferSize + "] must be" +
+          " between 1 and "+ MAX_BUFFER_SIZE);
+    
     this.bufferSize = bufferSize * 1024;
   }
   
@@ -474,7 +480,13 @@ public class Configuration {
   /**
    * @param maxBuffers The maxBuffers to set.
    */
-  public void setMaxBuffers(int maxBuffers) {
+  public void setMaxBuffers(int maxBuffers)
+  throws LogConfigurationException
+  {
+    if (maxBuffers > 0 && maxBuffers < minBuffers)
+      throw new LogConfigurationException("minBuffers [" + minBuffers +
+          "] must be <= than maxBuffers[" + maxBuffers +  "]");
+    
     this.maxBuffers = maxBuffers;
   }
   
@@ -487,7 +499,13 @@ public class Configuration {
   /**
    * @param minBuffers The minBuffers to set.
    */
-  public void setMinBuffers(int minBuffers) {
+  public void setMinBuffers(int minBuffers)
+  throws LogConfigurationException
+  {
+    if (minBuffers <= 0)
+      throw new LogConfigurationException("minBuffers[" + minBuffers + 
+          "] must be > 0");
+
     this.minBuffers = minBuffers;
   }
   
@@ -541,5 +559,23 @@ public class Configuration {
    */
   public void setMaxLogFiles(int maxLogFiles) {
     this.maxLogFiles = maxLogFiles;
+  }
+  /**
+   * @return Returns the logFileMode.
+   */
+  public String getLogFileMode() {
+    return logFileMode;
+  }
+  /**
+   * @param logFileMode The logFileMode to set.
+   */
+  public void setLogFileMode(String logFileMode)
+  throws LogConfigurationException 
+  {
+    if (!logFileMode.equals("rw") && !logFileMode.equals("rwd"))
+      throw new LogConfigurationException("logFileMode[" + logFileMode +
+          "] must be \"rw\" or \"rwd\"");
+      
+    this.logFileMode = logFileMode;
   }
 }
