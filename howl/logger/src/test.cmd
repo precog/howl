@@ -21,9 +21,9 @@ set java_opts=%java_opts% -Dxa.workers=200
 set java_opts=%java_opts% -Dhowl.log.test.setautomark=true
 set java_opts=%java_opts% -Dhowl.log.test.timeStamp=false
 
-:: set class=org.objectweb.howl.log.LogTest
-:: set class=org.objectweb.howl.log.xa.XALoggerTest
-set class=org.objectweb.howl.log.ConfigurationTest
+:: set class=org.objectweb.howl.test.LogTest
+:: set class=org.objectweb.howl.test.XALoggerTest
+set class=org.objectweb.howl.test.ConfigurationTest
 
 setlocal
 set JAVA_HOME=C:\java\j2sdk1.4.2_05
@@ -58,7 +58,5 @@ set emma=emmarun -r html -sp ./src/java -cp bin;%junit_home%/bin
 
 pushd ..
 echo on
-for %%a in (ConfigurationTest XALoggerTest) do (
-%java_home%\bin\java %java_opts% %emma% junit.textui.TestRunner org.objectweb.howl.test.%%a
-)
+%java_home%\bin\java %java_opts% %emma%  org.objectweb.howl.test.allTest
 popd
