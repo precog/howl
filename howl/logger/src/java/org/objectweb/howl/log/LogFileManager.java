@@ -73,9 +73,9 @@ class LogFileManager extends LogObject
    * is updated after every put() operation.
    * When automark is disabled (as should be the case with JOTM)
    * the <i> activeMark </i> is updated manually by a call
-   * to mark().
+   * to Logger.mark().
    * 
-   * @see #mark(long)
+   * @see org.objectweb.howl.log.Logger#mark(long)
    */
   long activeMark = 0;
   
@@ -223,6 +223,46 @@ class LogFileManager extends LogObject
    * the application is not notified of log events.
    */
   private LogEventListener eventListener = null;
+
+  /**
+   * Monitor used by EventManager thread to wait
+   * for events that need to be notified.
+   */
+  final Object eventManagerLock = new Object();
+  
+  /**
+   * Thread used by LogFileManager to send events
+   * to the registered LogEventListener.
+   */
+  Thread eventManagerThread = null;
+  
+  /**
+   * event to be processed by the eventManagerThread.
+   * <p>When a condition is encountered that requires
+   * the LogEventListener to be notified, the value
+   * is set to one of the event types.
+   */
+  int event = 0;
+  
+  /**
+   * Event types for event manager thread.
+   * <p>assign this value to the <i> event </i> 
+   * member when invoking the event manager thread
+   * to handle a log overflow notification. 
+   */
+  final static int LOG_OVERFLOW_EVENT = 0x1;
+
+  /**
+   * The logKey to be used by LogEventListener.logOverflowNotification
+   * when moving records forward into the current log file. 
+   */
+  private long lowestSafeLogKey = 0L;
+
+  /**
+   * Number of times log overflow event was notified.
+   * @see org.objectweb.howl.log.LogEventListener#logOverflowNotification(long) 
+   */
+  private int overflowNotificationCount = 0;
   
   /**
    * construct LogFileManager with Configuration supplied by caller.
@@ -232,7 +272,12 @@ class LogFileManager extends LogObject
   {
     super(config);
     
-    maxBlocksPerFile = config.getMaxBlocksPerFile(); 
+    maxBlocksPerFile = config.getMaxBlocksPerFile();
+    
+    // light up the event managemer thread
+    eventManagerThread = new EventManager("LogFileManager.EventManager");
+    eventManagerThread.setDaemon(true);  // so we can shut down while eventManagerThread is running
+    eventManagerThread.start();
     
   }
   
@@ -385,15 +430,54 @@ class LogFileManager extends LogObject
           // BUG: 300505 issue force for last block of file
           lb.forceNow = ((lb.bsn  % maxBlocksPerFile) == 0);
           
-          // TODO: detech 50% full and notify event listener
+          // check for log overflow
+          detectLogOverflow(lb.bsn);
         }
-      }
+      } // synchronized(fileManagerLock)
     } catch (LogRecordSizeException e) {
       // will never happen but use assert to catch during development
       assert e == null : "Unhandled LogRecordSizeException" + e;
     }
     
     return currentLogFile;
+  }
+  
+  /**
+   * Detect pending Log Overflow and notify event listener.
+   * <p>if current file is 50% full then we check to
+   * see if the next file contains the active mark. 
+   * We notify the event listener to move records
+   * forward to prevent log overflow.
+   * <p><b>Called by:</b> getLogFileForWrite(Logbuffer lb)
+   * 
+   * @param lb the LogBuffer taht was passed to getLogFileForWrite()
+   * 
+   * @see #getLogFileForWrite(LogBuffer)
+   */
+  private void detectLogOverflow(int bsn)
+  {
+    if ((bsn % maxBlocksPerFile) > (maxBlocksPerFile / 2))
+    {
+      // current file is 50% full
+      LogFile nextLogFile = fileSet[lfIndex % fileSet.length];
+      assert nextLogFile != null: "nextLogFile == null";
+      if (activeMark < nextLogFile.highMark)
+      {
+        // active mark is somewhere in next file
+        synchronized(eventManagerLock)
+        {
+          // do not notify this event if it is already being processed
+          if ((event & LOG_OVERFLOW_EVENT) == 0)
+          {
+            lowestSafeLogKey = nextLogFile.highMark;
+
+            // kick the event manager thread
+            event |= LOG_OVERFLOW_EVENT;
+            eventManagerLock.notify();
+          }
+        } // synchronized(eventManagerLock)
+      }
+    }
   }
 
   /**
@@ -423,6 +507,8 @@ class LogFileManager extends LogObject
    * 
    * @param key is an opaque log key returned by a previous call
    * to put().
+   * @param force when set <i> true </i> causes the caller to
+   * be blocked until the new force record is forced to disk.
    * 
    * @return log key for the MARK record
    * 
@@ -430,7 +516,7 @@ class LogFileManager extends LogObject
    * key must be greater than current activeMark and less than the most recent
    * key returned by put().
    */
-  long mark(long key)
+  long mark(long key, boolean force)
     throws InvalidLogKeyException, IOException, InterruptedException
   {
     if (key < activeMark || key > currentKey)
@@ -440,8 +526,6 @@ class LogFileManager extends LogObject
           " currentKey: " + Long.toHexString(currentKey)
           );
 
-    activeMark = key;
-
     byte[][] markData = new byte[1][markRecord[0].length];
     ByteBuffer markDataBuffer = ByteBuffer.wrap(markData[0]);
 
@@ -450,7 +534,8 @@ class LogFileManager extends LogObject
     
     long markKey = 0L;
     try {
-      markKey = bmgr.put(type, markData, false);
+      markKey = bmgr.put(type, markData, force);
+      activeMark = key;
     }
     catch (LogRecordSizeException e) {
       // will never happen but use assert to catch during development
@@ -463,7 +548,22 @@ class LogFileManager extends LogObject
     
     return markKey;
   }
-  
+
+  /**
+   * calls <i> mark(key, false) </i>
+   * @param key a log key as described by {@link #mark(long,boolean)}
+   * @return log key of the new mark record.
+   * @throws InvalidLogKeyException
+   * @throws IOException
+   * @throws InterruptedException
+   * @see #mark(long, boolean)
+   */
+  long mark(long key)
+    throws InvalidLogKeyException, IOException, InterruptedException
+  {
+    return mark(key, false);
+  }
+
   /**
    * reads a block of data into LogBuffer <i> lb </i>.
    * <p>Amount of data read is determined by lb.capacity().
@@ -518,7 +618,7 @@ class LogFileManager extends LogObject
   {
     this.automark = automark;
     
-    return mark(automark ? currentKey : activeMark);
+    return mark((automark ? currentKey : activeMark), false);
     
   }
 
@@ -915,7 +1015,9 @@ class LogFileManager extends LogObject
         "\n<restartAutoMark value='" + restartAutoMark + "'>" +
           "automark value restored from prior log file" +
         "</restartAutoMark>" +
-        ""
+        "\n<overflowNotificationCount value='" + overflowNotificationCount + "'>" +
+          "number of times LogEventListener.logOverflowNotification was called" +
+        "</overflowNotificationCount>"
         );
 
     stats.append("\n<LogFiles>");
@@ -926,5 +1028,79 @@ class LogFileManager extends LogObject
     stats.append("\n</LogFileManager>");
     
     return stats.toString();
+  }
+  
+  /**
+   * helper thread used invoke LogEventListener when
+   * log overflow (or other event) is about to occur.
+   * 
+   * TODO Currently this thread is never shut down.
+   */
+  class EventManager extends Thread
+  {
+    EventManager(String name)
+    {
+      super(name);
+    }
+
+    /**
+     * Wait on eventManagerLock until
+     * LogFileManager needs an event to be
+     * sent to the registered LogEventListener.
+     */
+    public void run()
+    {
+      LogFileManager parent = LogFileManager.this;
+      int event; 
+      
+      while(true)
+      {
+        if (interrupted()) return;
+        
+        synchronized(eventManagerLock)
+        {
+          try {
+            while ((event = parent.event) == 0)
+            {
+              eventManagerLock.wait(); 
+            }
+          } catch (InterruptedException e) {
+            // we've been shut down.
+            return;
+          }
+        }
+        
+        if ((event & LOG_OVERFLOW_EVENT) != 0)
+        {
+          if (eventListener != null)
+          {
+            eventListener.logOverflowNotification(lowestSafeLogKey);
+            
+            // update count of notifications
+            parent.overflowNotificationCount += 1;
+          }
+
+          // get ready to wait for the next event
+          lowestSafeLogKey = 0;
+          
+          // turn of the event request
+          event ^= LOG_OVERFLOW_EVENT;
+        }
+
+        else
+        {
+          assert false :
+            "unexpected event type [" +
+            event +
+            "] in LogFileManager eventManagetThread"; 
+        }
+        
+        // remember any events we did not process during the current pass.
+        synchronized(eventManagerLock)
+        {
+          parent.event |= event;
+        }
+      }
+    }
   }
 }
