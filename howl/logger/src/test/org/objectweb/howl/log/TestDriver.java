@@ -184,11 +184,25 @@ public class TestDriver extends TestCase {
     }
   }
   
+  private String propertyAsXml(String key)
+  {
+    return ("<" + key + ">" + System.getProperty(key) + "</" + key + ">");
+  }
+  
   protected void saveStats()
   {
     StringBuffer stats = new StringBuffer(
         "<?xml version='1.0' ?>" +
         "\n<TestResults>"
+        );
+    // append vm info
+    stats.append(
+        "\n<VMInfo>" +
+        "\n  " + propertyAsXml("java.vm.info") +
+        "\n  " + propertyAsXml("java.vm.name") +
+        "\n  " + propertyAsXml("java.vm.vendor") +
+        "\n  " + propertyAsXml("java.vm.version") +
+        "</VMInfo>"
         );
     
     // append test metrics
