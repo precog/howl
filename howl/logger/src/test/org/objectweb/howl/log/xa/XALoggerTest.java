@@ -149,11 +149,13 @@ public class XALoggerTest extends TestDriver
           break;
         case LogRecordType.XACOMMIT:
           assertTrue("lr.type", lr.isCTRL());
+          assertTrue("lr.type", ((XALogRecord)lr).isCommit());
           ++commitCount;
           activeTxPut((XALogRecord)lr);
           break;
         case LogRecordType.XACOMMITMOVED:
           assertTrue("lr.type", lr.isCTRL());
+          assertTrue("lr.type", ((XALogRecord)lr).isCommit());
           ++movedCount;
           activeTxPut((XALogRecord)lr);
           break;
