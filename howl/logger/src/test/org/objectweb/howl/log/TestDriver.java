@@ -77,6 +77,11 @@ public class TestDriver extends TestCase {
   
   protected boolean autoMarkMode = true;
   
+  protected int totalTransactions = 0;
+  protected long elapsedTime = 0L;
+  protected float avgLatency = 0.0f;
+  protected float txPerSecond = 0.0f;
+
   public final Properties getProperties() { return prop; }
   
   public final Barrier getStartBarrier() { return startBarrier; }
@@ -118,6 +123,7 @@ public class TestDriver extends TestCase {
     val = prop.getProperty( key = "test.delayBeforeDone", "500");
     delayBeforeDone = Long.parseLong(val);
     if (delayBeforeDone < 0) throw new IllegalArgumentException(key);
+
 }
   
   /*
@@ -147,12 +153,49 @@ public class TestDriver extends TestCase {
     File outFile = new File(reportDir + testName + ".xml");
     out = new PrintStream(new FileOutputStream(outFile));
   }
+  
+  protected void saveStats()
+  {
+    StringBuffer stats = new StringBuffer(
+        "<?xml version='1.0' ?>" +
+        "\n<TestResults>"
+        );
+    
+    // append test metrics
+    stats.append(
+        "\n<TestMetrics name='" + getName() + "'>" +
+        "\n  <elapsedTime value='" + elapsedTime +
+        "'>Elapsed time (ms) for run</elapsedTime>" +
+        "\n  <totalTransactions value='" + totalTransactions +
+        "'>Total number of transactions</totalTransactions>" +
+        "\n  <txPerSecond value='" + txPerSecond +
+        "'>Number of transactions per second</txPerSecond>" +
+        "\n  <avgLatency value='" + avgLatency +
+        "'>Average Latency</avgLatency>" +
+        "\n  <workers value='" + workers +
+        "'>Number of worker threads</workers>" +
+        "\n  <delayedWorkers value='" + delayedWorkers + 
+        "'>Number of worker threads using delay between COMMIT and DONE" +
+        "</delayedWorkers>" +
+        "\n</TestMetrics>"
+        );
+    
+    stats.append(log.getStats());
+    
+    stats.append(
+        "\n</TestResults>"
+        );
+    
+    out.println(stats.toString());
+    
+  }
 
   /*
    * @see TestCase#tearDown()
    */
   protected void tearDown() throws Exception {
     super.tearDown();
+    
   }
 
   public TestDriver(String name) {
@@ -242,7 +285,7 @@ public class TestDriver extends TestCase {
     // Collect stats from workers
     long totalBytesLogged = 0L;
     int totalLatency = 0;
-    int totalTransactions = 0;
+    totalTransactions = 0;
     for (int i = 0; i < workers; ++i)
     {
       TestWorker w = worker[i];
@@ -255,43 +298,13 @@ public class TestDriver extends TestCase {
       }
     }
     
-    long elapsedTime = stopTime - startTime;
-    float avgLatency = (float)totalLatency / (float)totalTransactions;
-    float txPerSecond = (float)(totalTransactions / (elapsedTime / 1000.0));
+    elapsedTime = stopTime - startTime;
+    avgLatency = (float)totalLatency / (float)totalTransactions;
+    txPerSecond = (float)(totalTransactions / (elapsedTime / 1000.0));
     
-    StringBuffer stats = new StringBuffer(
-        "<?xml version='1.0' ?>" +
-        "\n<TestResults>"
-        );
-    
-    // append test metrics
-    stats.append(
-        "\n<TestMetrics name='" + getName() + "'>" +
-        "\n  <elapsedTime value='" + elapsedTime +
-        "'>Elapsed time (ms) for run</elapsedTime>" +
-        "\n  <totalTransactions value='" + totalTransactions +
-        "'>Total number of transactions</totalTransactions>" +
-        "\n  <txPerSecond value='" + txPerSecond +
-        "'>Number of transactions per second</txPerSecond>" +
-        "\n  <avgLatency value='" + avgLatency +
-        "'>Average Latency</avgLatency>" +
-        "\n  <workers value='" + workers +
-        "'>Number of worker threads</workers>" +
-        "\n  <delayedWorkers value='" + delayedWorkers + 
-        "'>Number of worker threads using delay between COMMIT and DONE" +
-        "</delayedWorkers>" +
-        "\n</TestMetrics>"
-        );
-    
-    stats.append(log.getStats());
-    
-    stats.append(
-        "\n</TestResults>"
-        );
-    
-    out.println(stats.toString());
-    
+    saveStats();
+
     if (exception != null) throw exception;
   }
-  
+
 }

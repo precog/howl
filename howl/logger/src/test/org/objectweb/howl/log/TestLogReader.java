@@ -61,7 +61,6 @@ class TestLogReader implements ReplayListener
   }
   public void onError(LogException e)
   {
-    System.err.println(e);
     e.printStackTrace();
   }
   

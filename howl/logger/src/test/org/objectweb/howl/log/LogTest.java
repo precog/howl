@@ -34,12 +34,19 @@ package org.objectweb.howl.log;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Vector;
+
+import junit.extensions.RepeatedTest;
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
 public class LogTest extends TestDriver
 {
 
   private File baseDir;
   private File outDir;
+  
   /**
    * Constructor for LogTest.
    * 
@@ -60,12 +67,15 @@ public class LogTest extends TestDriver
     outDir.mkdirs();
   }
   
-
   public static void main(String[] args) throws Exception {
-    junit.textui.TestRunner.run(LogTest.class);
+    junit.textui.TestRunner.run(suite());
   }
-
-
+  
+  public static Test suite() {
+    TestSuite suite = new TestSuite(LogTest.class);
+    return new RepeatedTest(suite, Integer.getInteger("LogTest.repeatcount", 1).intValue());
+  }
+  
   public void testLoggerSingleThread()
     throws LogException, Exception
   {
@@ -93,7 +103,7 @@ public class LogTest extends TestDriver
     log.open();
     TestLogReader reader = new TestLogReader();
     reader.run(log);
-    System.err.println("End Journal Validation; total records processed: " + reader.recordCount);
+    System.err.println(getName() + "; total records processed: " + reader.recordCount);
     // log.close(); called by reader.run()
 
   }
@@ -246,7 +256,7 @@ public class LogTest extends TestDriver
     log.close();
   }
   
-  public void testInvalidLogKeyException() throws Exception {
+  public void testInvalidLogKeyException_NegativeKey() throws Exception {
     TestLogReader tlr = new TestLogReader();
     log.open();
     
@@ -258,6 +268,13 @@ public class LogTest extends TestDriver
     } catch (InvalidLogKeyException e) {
       // this is what we expected
     }
+
+    log.close();
+  }
+
+  public void testInvalidLogKeyException_InvalidKey() throws Exception {
+    TestLogReader tlr = new TestLogReader();
+    log.open();
     
     // try a key that is invalid
     try {
@@ -266,8 +283,10 @@ public class LogTest extends TestDriver
       fail("expected InvalidLogKeyException");
     } catch (InvalidLogKeyException e) {
       // this is what we expected
+    } finally {
+      saveStats();
     }
-    
+
     log.close();
   }
 
@@ -338,6 +357,8 @@ public class LogTest extends TestDriver
       if (lr.type == LogRecordType.END_OF_LOG) break;
       ++recordCount;
     }
+    
+    log.close();
     
   }
   
