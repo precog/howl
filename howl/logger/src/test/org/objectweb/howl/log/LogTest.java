@@ -194,4 +194,21 @@ public class LogTest extends TestDriver
 
   }
 
+  public void testBlockLogBufferSink() throws Exception {
+    cfg.setBufferClassName("org.objectweb.howl.log.BlockLogBufferSink");
+    log.open();
+    log.setAutoMark(true);
+    runWorkers(LogTestWorker.class);
+  }
+
+  public void testIOException() throws Exception {
+    cfg.setLogFileDir("f:/logs");
+    log.open();
+    log.setAutoMark(true);
+    prop.setProperty("msg.force.interval", "0");
+    prop.setProperty("msg.count", "1000");
+    System.err.println("Starting IOException test");
+    runWorkers(LogTestWorker.class);
+  }
+
 }
