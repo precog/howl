@@ -86,6 +86,13 @@ public abstract class TestWorker extends Thread {
   protected int count = 50;
   
   /**
+   * a unique value assigned to each worker within a test.
+   * probalby a simple index or counter of the number
+   * of workers that have been created.
+   */
+  protected int index = 0;
+  
+  /**
    * number of messages between calls to put() with force.
    * 
    * <p>default is 1 for simulation of XA protocol.
@@ -192,7 +199,7 @@ public abstract class TestWorker extends Thread {
     commitData[msgSize - 2] = '\r';
     commitData[msgSize - 1] = '\n';
 
-    String threadName = "[xxxx]COMMIT:" + Thread.currentThread().getName() + " " ;
+    String threadName = "[xxxx.xxxx]COMMIT:" + Thread.currentThread().getName() + " " ;
     tnl = threadName.length();
 
     if (tnl < commitData.length)
@@ -210,9 +217,22 @@ public abstract class TestWorker extends Thread {
   */
   protected void updateRecordData(int id)
   {
+
+    // put worker index into data buffer on first call
+    if (id == 1)
+    {
+      int val = this.index; 
+      for (int j = 4; j > 0; --j)
+      {
+        commitData[j] = (byte)('0' + (val % 10));
+        val /= 10;
+      }
+      val = id;
+    }
+
     // put message number into data buffer
     int msg = id;
-    for(int j = 4; j > 0; --j)
+    for(int j = 9; j > 5; --j)
     {
       commitData[j] = (byte)('0' + (msg % 10));
       msg /= 10;
@@ -225,8 +245,11 @@ public abstract class TestWorker extends Thread {
         System.arraycopy(now, 0, commitData, tnl, now.length);
     }
 
-    // and into the done record as well
-    System.arraycopy(commitData,1,doneData,1,4);
+    // update the done record
+    System.arraycopy(commitData,1,doneData,1,9);
+    
+    // and the info record as well
+    System.arraycopy(commitData,1,infoData,1,9);
   }
   
   /**
@@ -237,7 +260,7 @@ public abstract class TestWorker extends Thread {
    */
   byte[] initInfoData()
   {
-    byte[] infoData = ("[xxxx]INFO :" +
+    byte[] infoData = ("[xxxx.xxxx]INFO :" +
         Thread.currentThread().getName() +
         "\n").getBytes();
     return infoData;
@@ -248,7 +271,7 @@ public abstract class TestWorker extends Thread {
    */
   byte[] initDoneData()
   {
-    byte [] doneData = ("[xxxx]DONE  :" + 
+    byte [] doneData = ("[xxxx.xxxx]DONE  :" + 
         Thread.currentThread().getName() + 
         "\n").getBytes();
 
@@ -278,6 +301,15 @@ public abstract class TestWorker extends Thread {
     doneData = initDoneData();
     doneDataRecord[0] = doneData;
     
+  }
+  
+  /**
+   * Set worker index used as prefix of log messages.
+   * @param index int to be set. 
+   */
+  public void setWorkerIndex(int index)
+  {
+    this.index = index;
   }
   
   /**

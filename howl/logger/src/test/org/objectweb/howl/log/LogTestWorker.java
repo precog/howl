@@ -88,7 +88,7 @@ public class LogTestWorker extends TestWorker {
       driver.getStartBarrier().barrier();
       
       // generate the log records
-      for (int i = 0; i < count; ++i)
+      for (int i = 1; i <= count; ++i)
       {
         long startTime = System.currentTimeMillis();
         long logkey = logCommit(i);

@@ -201,6 +201,7 @@ public class TestDriver extends TestCase {
         --delayedWorkers;
         w.setDelayBeforeDone(delayBeforeDone);
       }
+      w.setWorkerIndex(i);   
       w.start();
     }
 

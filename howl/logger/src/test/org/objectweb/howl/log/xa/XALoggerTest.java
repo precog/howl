@@ -188,4 +188,14 @@ public class XALoggerTest extends TestDriver
     runWorkers(XAWorker.class);
   }
   
+  /**
+   * Display the activeTx table following open.
+   */
+  public void testActiveTxDisplay()
+  throws LogException, Exception
+  {
+    log.open(new XLTReplayListener());
+    log.activeTxDisplay();
+  }
+  
 }
