@@ -248,7 +248,7 @@ public class TestDriver extends TestCase {
   /**
    * creates worker objects and runs the test as defined by
    * the calling testXxx() routine.
-   * @param workers number of XAWorker objects to create
+   * @param workerClass class of worker objects to create
    * @throws LogException
    * @throws Exception
    */
