@@ -33,6 +33,8 @@
 package org.objectweb.howl.log.xa;
 
 import org.objectweb.howl.log.LogException;
+import org.objectweb.howl.log.LogRecord;
+import org.objectweb.howl.log.ReplayListener;
 import org.objectweb.howl.log.TestDriver;
 
 /**
@@ -41,10 +43,38 @@ import org.objectweb.howl.log.TestDriver;
  */
 public class XALoggerTest extends TestDriver
 {
+  XALogger log = null;
+  
   public static void main(String[] args) {
     junit.textui.TestRunner.run(XALoggerTest.class);
   }
   
+  private class XLTReplayListener implements ReplayListener
+  {
+    /* (non-Javadoc)
+     * @see org.objectweb.howl.log.ReplayListener#onRecord(org.objectweb.howl.log.LogRecord)
+     */
+    public void onRecord(LogRecord lr) {
+      // TODO Auto-generated method stub
+      assertTrue("Expecting XALogRecord, found " + lr.getClass().getName(), (lr instanceof XALogRecord));
+    }
+
+    /* (non-Javadoc)
+     * @see org.objectweb.howl.log.ReplayListener#onError(org.objectweb.howl.log.LogException)
+     */
+    public void onError(LogException exception) {
+      // TODO Auto-generated method stub
+    }
+
+    /* (non-Javadoc)
+     * @see org.objectweb.howl.log.ReplayListener#getLogRecord()
+     */
+    public LogRecord getLogRecord() {
+      return new XALogRecord(120);
+    }
+    
+  }
+
   /**
    * Constructor for XALoggerTest.
    * @param name
@@ -57,9 +87,28 @@ public class XALoggerTest extends TestDriver
     super.setUp();
 
     log = new XALogger(cfg);
-    log.open();
+    super.log = log;
   }
   
+  /**
+   * Verify that XALogger.open() throwss
+   * an UnsupportedOperationException.
+   * 
+   * @throws LogException
+   * @throws Exception
+   */
+  public void testUnsupportedOpen()
+  throws LogException, Exception
+  {
+    log = new XALogger(cfg);
+    try {
+      log.open();
+      fail("Expected UnsupportedOperationException");
+    } catch (UnsupportedOperationException e) {
+      ; // test passed
+    }
+  }
+
   /**
    * Test a single thread.
    * <p>This test verifies that a single thread is able to log
@@ -74,6 +123,7 @@ public class XALoggerTest extends TestDriver
   public void testSingleThread()
   throws LogException, Exception
   {
+    log.open(new XLTReplayListener());
     log.setAutoMark(true);
     
     prop.setProperty("msg.count", "10");
@@ -93,6 +143,7 @@ public class XALoggerTest extends TestDriver
   public void testAutoMarkTrue()
   throws LogException, Exception
   {
+    log.open(new XLTReplayListener());
     log.setAutoMark(true);
 
     runWorkers(XAWorker.class);
@@ -109,6 +160,7 @@ public class XALoggerTest extends TestDriver
   public void testAutoMarkFalseOneDelayedWorker()
   throws LogException, Exception
   {
+    log.open(new XLTReplayListener());
     log.setAutoMark(false);
     
     delayedWorkers = 1;
@@ -129,10 +181,11 @@ public class XALoggerTest extends TestDriver
   public void testAutoMarkFalseFourDelayedWorker()
   throws LogException, Exception
   {
+    log.open(new XLTReplayListener());
     log.setAutoMark(false);
     
     delayedWorkers = 4;
     runWorkers(XAWorker.class);
   }
-
+  
 }
