@@ -45,12 +45,11 @@ public class InvalidLogKeyException extends LogException {
   }
 
   public InvalidLogKeyException(Throwable cause) {
-    initCause(cause);
+    super(cause);
   }
 
   public InvalidLogKeyException(String s, Throwable cause) {
-    super(s);
-    initCause(cause);
+    super(s, cause);
   }
 
 }

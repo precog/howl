@@ -48,12 +48,11 @@ public class LogClosedException extends LogException {
   }
 
   public LogClosedException(Throwable cause) {
-    initCause(cause);
+    super(cause);
   }
 
   public LogClosedException(String s, Throwable cause) {
-    super(s);
-    initCause(cause);
+    super(s, cause);
   }
 
 }

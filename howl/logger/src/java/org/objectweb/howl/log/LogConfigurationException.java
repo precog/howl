@@ -43,12 +43,11 @@ public class LogConfigurationException extends LogException {
   }
 
   public LogConfigurationException(Throwable cause) {
-    initCause(cause);
+    super(cause);
   }
   
   public LogConfigurationException(String s, Throwable cause) {
-    super(s);
-    initCause(cause);
+    super(s, cause);
   }
 
 }
