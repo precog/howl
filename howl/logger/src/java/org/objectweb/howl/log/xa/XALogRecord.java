@@ -80,6 +80,7 @@ public class XALogRecord extends LogRecord {
    */
   public boolean isCommit()
   {
-    return (this.type == LogRecordType.XACOMMIT);
+    return (this.type == LogRecordType.XACOMMIT ||
+            this.type == LogRecordType.XACOMMITMOVED);
   }
 }
