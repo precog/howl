@@ -408,11 +408,15 @@ class LogBufferManager extends LogObject
       }
      }
     
-    if (logBuffer.iostatus == LogBufferStatus.WRITING)
-      logBuffer.iostatus = LogBufferStatus.COMPLETE;
-    
     // notify threads waiting for this buffer to force
-    synchronized(logBuffer) { logBuffer.notifyAll(); }
+    synchronized(logBuffer)
+    {
+      // BUG: 300613 must synchronize the update of iostatus
+      if (logBuffer.iostatus == LogBufferStatus.WRITING)
+        logBuffer.iostatus = LogBufferStatus.COMPLETE;
+
+      logBuffer.notifyAll(); 
+    }
 
     releaseBuffer(logBuffer);
   }
