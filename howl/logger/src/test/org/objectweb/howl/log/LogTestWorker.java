@@ -103,7 +103,7 @@ public class LogTestWorker extends TestWorker {
         latency += System.currentTimeMillis() - startTime;
       }
     } catch (Exception e) {
-      System.err.println(e.toString());
+      e.printStackTrace();
       exception = e;
     } finally {
       // notify driver that this thread has finishe its work
