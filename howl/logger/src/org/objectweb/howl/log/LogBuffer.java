@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
  * 
  * <p>This abstract class implements methods common to all LogBuffer sub-classes.
  */
-abstract class LogBuffer
+abstract class LogBuffer extends LogObject
 {
   /**
    * 
@@ -26,7 +26,7 @@ abstract class LogBuffer
    * 
    * <p>Actual use of <i> index </i> is determined by the buffer manager implementation.
    */
-  short index = -1;
+  int index = -1;
 
   /**
    * currentTimeMillis that buffer was initialized.
@@ -120,15 +120,18 @@ abstract class LogBuffer
    * from the buffer get().
    */
   int bytesUsed = 0;
-
+  
   /**
    * default constructor.
    * <p>after creating a new instance of LogBuffer the caller must
    * invoke config().
    */
-  LogBuffer()
+  LogBuffer(Configuration config)
   {
+    super(config);  // LogObject 
     name = this.getClass().getName();
+    doChecksum = config.isChecksumEnabled();
+    buffer = ByteBuffer.allocateDirect(config.getBufferSize());
   }
 
   /**
@@ -142,33 +145,6 @@ abstract class LogBuffer
     {
       return --waitingThreads;
     }
-  }
-  
-  /**
-   * sets index and ByteBuffer variables.
-   * 
-   * <p>The LogBufferManager creates a pool of LogBuffer objects.  The
-   * class name for the LogBuffer implementation is specified via configuration.
-   * The LogBufferManager instantiates LogBuffer objects using
-   * Class.newInstance() for the configured class name.  After the instance
-   * is created, each LogBuffer instance is configured using the config()
-   * method.
-   * 
-   * QUESTION: should LogBufferManager provide a Properties object for
-   * additional configuration information?
-   * 
-   * @param bmgr reference to the LogBufferManager that owns this LogBuffer.
-   * <p>configuration information is obtained from the buffer manager.
-   * @param index into an array of buffers maintained by LogBufferManager.
-   */
-  final void configure(LogBufferManager bmgr, short index)
-  {
-    this.index = index;
-    buffer = ByteBuffer.allocateDirect(bmgr.getBufferSize());
-    
-    this.doChecksum = bmgr.doChecksum;
-
-    // TODO: consider using Properties obtained from LogBufferManager for additional configuration
   }
   
   /**

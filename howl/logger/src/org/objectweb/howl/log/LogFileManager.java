@@ -16,8 +16,8 @@ import java.nio.ByteBuffer;
  * Manage a set of log files.
  * 
  * This class implements methods that can be called by LogBufferManager to obtain a LogFile for
- * logger IO and to signal the LogFileManager when new buffers are being initialized.  LogFileManager
- * manages log files according to implementation specific policies.
+ * logger IO and to signal the LogFileManager when new buffers are being initialized.
+ * LogFileManager manages log files according to implementation specific policies.
  * Some LogFileManagers may use a circular file policy while others may use a set of files.
  * The most simple implementations will use a single file and allow it to grow as needed.
  * 
@@ -27,7 +27,7 @@ import java.nio.ByteBuffer;
  * @author Michael Giroux
  *
  */
-class LogFileManager
+class LogFileManager extends LogObject
 {
   
   /**
@@ -113,33 +113,9 @@ class LogFileManager
   /**
    * index to current entry in fileSet[]
    */
-  short lfIndex = 0;
+  int lfIndex = 0;
 
   LogFile currentLogFile = null;
-  
-  /**
-   * number of log files to configure
-   */
-  int maxLogFiles = 2;
-  
-  /**
-   * directory used to create log files
-   */
-  String logDir = ".";
-  
-  /**
-   * file name extension for log files
-   */
-  String logFileExt = "log";
-  
-  /**
-   * filename used to create log files.
-   * <p>file names are generated using the following pattern:
-   * <pre>
-   *   <value of logFileName> + "_" + <file number> + "." + <value of logFileExt>
-   * </pre>
-   */
-  String logFileName = "def";
   
   /**
    * LogFile header record.
@@ -221,6 +197,18 @@ class LogFileManager
    * the application is not notified of log events.
    */
   private LogEventListener eventListener = null;
+  
+  /**
+   * construct LogFileManager with Configuration supplied by caller.
+   * @param config Configuration object.
+   */
+  LogFileManager(Configuration config)
+  {
+    super(config);
+    
+    maxBlocksPerFile = config.getMaxBlocksPerFile(); 
+    
+  }
   
   /**
    * Returns the LogFile that contains the requested <i> mark </i>.
@@ -541,13 +529,17 @@ class LogFileManager
   void open()
     throws FileNotFoundException, InvalidFileSetException
   {
-    // retrieve configuration information
-    configure();
     
     // make sure we have at least two log files
+    int maxLogFiles = config.getMaxLogFiles();
     if (maxLogFiles < 2)
       throw new InvalidFileSetException("Must configure two or more files");
     
+    // get configuration information for log file names.
+    String logDir = config.getLogFileDir();
+    String logFileName = config.getLogFileName();
+    String logFileExt = config.getLogFileExt();
+
     // make sure the directory exists
     File dir = new File(logDir);
     dir.mkdirs();
@@ -609,14 +601,12 @@ class LogFileManager
     
     LogBuffer lb = null;
     try { 
-      lb = bmgr.getLogBuffer();
+      lb = bmgr.getLogBuffer(-1);
     } catch (ClassNotFoundException e) {
       lb = null;
     }
     if (lb == null)
       throw new LogConfigurationException("LogBuffer.class not found");
-    
-    lb.configure(bmgr, (short)-1);
     
     for (short i = 0; i < fileSet.length; ++i)
     {
@@ -688,7 +678,7 @@ class LogFileManager
     }
 
     // set this.lfIndex to next file to be used
-    this.lfIndex = (short) (lf.newFile ? 0 : (lfIndex + 1));
+    this.lfIndex = (lf.newFile ? 0 : (lfIndex + 1));
 
     // tell LogBufferManager the last BSN that was written
     bmgr.init(this, bsn);
@@ -711,10 +701,11 @@ class LogFileManager
       lb.read(lf, fpos-blockSize);
       LogRecord record = new LogRecord(lb.buffer.capacity());
       ByteBuffer dataBuffer = record.dataBuffer;
-      short marktype = LogRecordType.MARKKEY;
+
       while (!record.get(lb).isEOB()) {
-        if (record.type == marktype) {
+        if (record.type == LogRecordType.MARKKEY) {
           dataBuffer.clear();
+          dataBuffer.getShort(); // not using field size
           automark = dataBuffer.get() == 1 ? true : false;
           activeMark = dataBuffer.getLong();
         }
@@ -768,15 +759,20 @@ class LogFileManager
     assert fh != null : "LogRecord reference [fh] is null";
 
     fh.get(lb);
-    if (fh.type != LogRecordType.FILE_HEADER ||
-        fh.length != fileHeader[0].length)
+    if (fh.type != LogRecordType.FILE_HEADER)
     {
       throw new InvalidLogBufferException("HEADER_TYPE: " + Integer.toHexString(fh.type));
+    }
+    if (fh.length != fileHeader[0].length + 2)
+    {
+      throw new InvalidLogBufferException("HEADER_SIZE: expected length(" +
+          (fileHeader[0].length + 2) + ") found (" + fh.length + ")");   
     }
     
     // we have a file header -- validate the data
     ByteBuffer dataBuffer = fh.dataBuffer;
     dataBuffer.clear();
+    dataBuffer.getShort(); // field length not used
     automark = dataBuffer.get() == 1 ? true : false;
     activeMark = dataBuffer.getLong();
     long highMark = dataBuffer.getLong();
@@ -862,20 +858,6 @@ class LogFileManager
     
     if (interrupted) throw exception;
     
-  }
-  
-  
-  /**
-   * Configure the LogFile pool
-   */
-  void configure()
-  {
-    // TODO: configuration code here
-    maxBlocksPerFile = Integer.getInteger("howl.log.maxBlocksPerFile",maxBlocksPerFile).intValue();
-    maxLogFiles = Integer.getInteger("howl.log.LogFile.maxLogFiles", maxLogFiles).intValue();
-    logDir = System.getProperty("howl.log.LogFile.dir", logDir);
-    logFileName = System.getProperty("howl.log.LogFile.filename", logFileName);
-    logFileExt = System.getProperty("howl.log.LogFile.ext", logFileExt);
   }
   
   /**

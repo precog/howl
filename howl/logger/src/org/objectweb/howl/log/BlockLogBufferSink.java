@@ -16,8 +16,8 @@ package org.objectweb.howl.log;
  */
 class BlockLogBufferSink extends BlockLogBuffer
 {
-    BlockLogBufferSink()
+    BlockLogBufferSink(Configuration config)
     {
-      super(false); // set doWrite false
+      super(config, false); // set doWrite false
     }
 }

@@ -107,16 +107,19 @@ class BlockLogBuffer extends LogBuffer
   boolean doWrite = true;
 
   /**
-   * maximum size of user data record
+   * maximum size of user data record.
+   * 
+   * <p>Although this member is local to a LogBuffer instance,
+   * it is assumed to have the same value in all instances.
    */
   private int maxRecordSize;
   
   /**
    * default constructor calls super class constructor.
    */
-  BlockLogBuffer()
+  BlockLogBuffer(Configuration config)
   {
-    super();
+    super(config);
   }
   
   /**
@@ -131,14 +134,17 @@ class BlockLogBuffer extends LogBuffer
    * zero and allows performance of the log logic (sans IO) to be
    * measured. 
    */
-  BlockLogBuffer(boolean doWrite)
+  BlockLogBuffer(Configuration config, boolean doWrite)
   {
-    super();
+    super(config);
     this.doWrite = doWrite;
   }
 
   /**
-   * puts a data record into the buffer and returns a token for record. 
+   * puts a data record into the buffer and returns a token for record.
+   * <p>Each record consists of zero or more byte[] fields.
+   * Each field is preceded by a short (2 bytes) containing the
+   * length of the field to allow for subsequent unpacking.
    */
   long put(short type, byte[][] data, boolean sync) throws LogRecordSizeException
   {
@@ -147,7 +153,7 @@ class BlockLogBuffer extends LogBuffer
     int recordSize = recordHeaderSize;
 
     for (int i=0; i < data.length; ++i)
-      dataSize += data[i].length;
+      dataSize += data[i].length + 2;  // field size + short length 
     
     recordSize += dataSize;
     
@@ -155,6 +161,7 @@ class BlockLogBuffer extends LogBuffer
     {
       if (recordSize > maxRecordSize)
         throw new LogRecordSizeException(maxRecordSize);
+      // TODO: improve exception message w/ text: configured max xxx, size yyy
       
       if (recordSize <= buffer.remaining()) 
       {
@@ -164,7 +171,10 @@ class BlockLogBuffer extends LogBuffer
         // put a new record into the buffer
         buffer.putShort(type).putShort((short)dataSize);
         for (int i=0; i < data.length; ++i)
+        {
+          buffer.putShort((short)data[i].length);
           buffer.put(data[i]);
+        }
         todPut = System.currentTimeMillis();
         
         // update LogFile.highMark just in case someone tries to replay the log while it is active.

@@ -10,6 +10,8 @@ package org.objectweb.howl.log;
 import java.io.IOException;
 
 import java.lang.InterruptedException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * Provides a generalized buffer manager for journals and loggers.
@@ -18,8 +20,16 @@ import java.lang.InterruptedException;
  * of data.  Block size is a multiple of 512 data
  * to assure optimum disk performance.
  */
-class LogBufferManager
+class LogBufferManager extends LogObject
 {
+  /**
+   * @param config Configuration object
+   */
+  LogBufferManager(Configuration config)
+  {
+    super(config);
+    threadsWaitingForceThreshold = config.getThreadsWaitingForceThreshold();
+  }
   /**
    * mutex for synchronizing access to buffers list
    */
@@ -53,21 +63,6 @@ class LogBufferManager
    */
   short nextIndex = 0;
   
-  /**
-   * buffer size specified by log -- default 4kb
-   */
-  private int bufferSize = 4;
-
-  /**
-   * number of buffers in pool
-   */
-  short bufferPoolSize = 2;
-
-  /**
-   * time interval between log force()
-   */
-  private int flushSleepTime = 50;
-
   /**
    * number of log Write forces
    */
@@ -110,11 +105,6 @@ class LogBufferManager
   volatile int lastForceBSN = 0;
   
   /**
-   * number of active threads waiting for BSN increment
-   */
-  volatile short waitingForBSN = 0;
-  
-  /**
    * number of times force() called
    */
   private long forceCount = 0;
@@ -125,8 +115,9 @@ class LogBufferManager
   private int threadsWaitingForce = 0;
   private int maxThreadsWaitingForce = 0;
   private long totalThreadsWaitingForce = 0;
-  int threadsWaitingForceThreshold = Integer.MAX_VALUE;
   
+  private int threadsWaitingForceThreshold = 0;
+
   // reasons for doing force
   long forceOnTimeout = 0;
   long forceNoWaitingThreads = 0;
@@ -145,17 +136,6 @@ class LogBufferManager
    */
   private String flushManagerName = "FlushManager";
   
-  /**
-   * name of LogBuffer implementation used by this LogBufferManager instance.
-   */
-  String bufferClassName = null;
-  
-  /**
-   * switch indicating whether or not to compute buffer checksums.
-   * <p>configured by -Dhowl.LogBuffer.checksum
-   */
-  boolean doChecksum = true;
-
   /**
    * queue of buffers waiting to be written.  The queue guarantees that 
    * buffers are written to disk in BSN order.
@@ -208,10 +188,6 @@ class LogBufferManager
       maxThreadsWaitingForce = threadsWaitingForce;
 
     /*
-     * if there are buffers waitingForBSN then we
-     * wait for them to complete their writes
-     * before we force.
-     * 
      * The lastForceBSN member is updated by the thread
      * that actually does a force().  All threads
      * waiting for the force will detect the change
@@ -226,7 +202,7 @@ class LogBufferManager
       }
       else if (fqGet == fqPut)
       {
-        // no other threads waiting so force now
+        // no other buffers waiting in forceQueue
         ++forceNoWaitingThreads;
       }
       else if ((buffer.bsn - lastForceBSN) > (freeBuffer.length/2))
@@ -351,16 +327,27 @@ class LogBufferManager
    * 
    * @return a new instance of LogBuffer
    */
-  LogBuffer getLogBuffer() throws ClassNotFoundException
+  LogBuffer getLogBuffer(int index) throws ClassNotFoundException
   {
     LogBuffer lb = null;
-    Class lbcls = this.getClass().getClassLoader().loadClass(bufferClassName);
+    Class lbcls = this.getClass().getClassLoader().loadClass(config.getBufferClassName());
+    
+    String thisPackage = this.getClass().getPackage().getName();
+    Class cfgcls = this.getClass().getClassLoader().loadClass(thisPackage + ".Configuration");
 
     try {
-      lb = (LogBuffer)lbcls.newInstance();
+      Constructor lbCtor = lbcls.getDeclaredConstructor(new Class[] { cfgcls } );
+      lb = (LogBuffer)lbCtor.newInstance(new Object[] {config});
+      lb.index = index;
     } catch (InstantiationException e) {
       throw new ClassNotFoundException(e.toString());
     } catch (IllegalAccessException e) {
+      throw new ClassNotFoundException(e.toString());
+    } catch (NoSuchMethodException e) {
+      throw new ClassNotFoundException(e.toString());
+    } catch (IllegalArgumentException e) {
+      throw new ClassNotFoundException(e.toString());
+    } catch (InvocationTargetException e) {
       throw new ClassNotFoundException(e.toString());
     }
     
@@ -443,8 +430,7 @@ class LogBufferManager
     
     // get a LogBuffer for reading
     try {
-      buffer = getLogBuffer();
-      buffer.configure(this, (short)-1);
+      buffer = getLogBuffer(-1);
     } catch (ClassNotFoundException e) {
       throw new LogConfigurationException(e.toString());
     }
@@ -559,22 +545,17 @@ class LogBufferManager
    * 
    * @throws ClassNotFoundException
    * if the configured LogBuffer class cannot be found.
-   * 
-   * @see #configure()
    */
   void open()
     throws ClassNotFoundException
   {
-    configure();
-    
+    int bufferPoolSize = config.getMinBuffers();
     freeBuffer = new LogBuffer[bufferPoolSize];
     for (short i=0; i< bufferPoolSize; ++i)
     {
-      freeBuffer[i] = getLogBuffer();
-      freeBuffer[i].configure(this, i); // TODO: should 'this' be Properties?
+      freeBuffer[i] = getLogBuffer(i);
     }
     
-    // TODO: test forceQueue
     forceQueue = new LogBuffer[bufferPoolSize + 1]; // guarantee we never overrun this queue
 
     // start a thread to flush buffers that have been waiting more than 50 ms.
@@ -644,13 +625,13 @@ class LogBufferManager
     String name = this.getClass().getName();
     StringBuffer stats = new StringBuffer(
            "\n<LogBufferManager  class='" + name + "'>" +
-           "\n  <bufferSize value='" + this.bufferSize + "'>" +
+           "\n  <bufferSize value='" + config.getBufferSize() + "'>" +
                 "Buffer Size (in bytes)" +
                  "</bufferSize>" +
            "\n  <poolsize    value='" + freeBuffer.length + "'>" +
                 "Number of buffers in the pool" +
                 "</poolsize>" + 
-           "\n  <initialPoolSize value='" + bufferPoolSize + "'>" +
+           "\n  <initialPoolSize value='" + config.getMinBuffers() + "'>" +
                 "Initial number of buffers in the pool" +
                 "</initialPoolSize>" +
            "\n  <bufferwait  value='" + waitForBuffer     + "'>" +
@@ -694,23 +675,6 @@ class LogBufferManager
   }
 
   /**
-   * configures the log
-   */
-  void configure()
-  {
-    // TODO: place code to read configuration file here
-
-    // override default values with commandline -Dx=y values
-    flushSleepTime = Integer.getInteger("howl.log.flushSleepTime",flushSleepTime).intValue();
-    bufferSize = Integer.getInteger("howl.log.bufferSize",bufferSize).intValue() * 1024;
-    bufferPoolSize = Integer.getInteger("howl.log.bufferPoolSize",bufferPoolSize).shortValue();
-    threadsWaitingForceThreshold = Integer.getInteger("howl.log.maxWaitingThreads",threadsWaitingForceThreshold).intValue();
-    bufferClassName = System.getProperty("howl.LogBuffer.class", "org.objectweb.howl.log.LogException");
-    doChecksum = Boolean.getBoolean("howl.LogBuffer.checksum");
-    
-  }
-
-  /**
    * returns the BSN value portion of a log key <i> mark </i>.
    * 
    * @param mark log key or log mark to extract BSN from.
@@ -735,14 +699,6 @@ class LogBufferManager
   }
 
   /**
-   * @return current value of bufferSize instance variable.
-   */
-  int getBufferSize()
-  {
-    return bufferSize;
-  }
-
-  /**
    * helper thread to flush buffers that have threads waiting
    * longer than configured maximum.
    */
@@ -757,6 +713,8 @@ class LogBufferManager
     {
       LogBuffer buffer = null;
       LogBufferManager parent = LogBufferManager.this;
+      
+      int flushSleepTime = config.getFlushSleepTime();
       
       long waitForBuffer = parent.waitForBuffer;
 
@@ -773,8 +731,16 @@ class LogBufferManager
            * for a buffer is less than 1/2 the pool size.
            */
           long bufferWaits = parent.waitForBuffer - waitForBuffer;
+          int maxBuffers = config.getMaxBuffers();
           int increment = freeBuffer.length / 2;
-          if (bufferWaits > increment)
+          if (maxBuffers > 0)
+          {
+            // make sure max is larger than current (min)
+            maxBuffers = Math.max(maxBuffers, freeBuffer.length);
+            increment = Math.min(increment, maxBuffers - freeBuffer.length);
+          }
+
+          if ((increment > 0) && (bufferWaits > increment))
           {
             // increase size of buffer pool if number of waits > 1/2 buffer pool size
             LogBuffer[] fb = new LogBuffer[freeBuffer.length + increment];
@@ -786,8 +752,7 @@ class LogBufferManager
             for(int i=freeBuffer.length; i < fb.length; ++i)
             {
               try {
-                fb[i] = getLogBuffer();
-                fb[i].configure(parent, (short)i);
+                fb[i] = getLogBuffer(i);
               } catch (ClassNotFoundException e) {
                 haveNewArray = false;
                 break;

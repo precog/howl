@@ -17,6 +17,7 @@ import org.objectweb.howl.log.LogRecord;
 import org.objectweb.howl.log.LogRecordType;
 import org.objectweb.howl.log.ReplayListener;
 
+import org.objectweb.howl.log.Configuration;
 import org.objectweb.howl.log.Logger;
 
 public class LogTest
@@ -79,7 +80,8 @@ public class LogTest
   public void testXAJournalThroughput()
     throws Exception, LogException
   {
-      log = new Logger();
+      Configuration cfg = new Configuration(new File("test.properties"));
+      log = new Logger(cfg);
       log.open();
       log.setAutoMark(Boolean.getBoolean("howl.log.test.setautomark"));
 

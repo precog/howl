@@ -41,7 +41,7 @@ import java.io.IOException;
  * @author Michael Giroux
  *
  */
-public class Logger
+public class Logger extends LogObject
 {
   /**
    * indicates whether the LogFile is open.
@@ -59,9 +59,26 @@ public class Logger
    */
   private LogFileManager lfmgr = null;
   
+  /**
+   * Construct a Logger using default Configuration object.
+   * @throws IOException
+   */
   public Logger()
     throws IOException
   {
+    super(new Configuration());
+  }
+  
+  /**
+   * Construct a Logger using a Configuration supplied
+   * by the caller.
+   * @param config Configuration object
+   * @throws IOException
+   */
+  public Logger(Configuration config)
+    throws IOException
+  {
+    super(config);
   }
   
   /**
@@ -187,12 +204,10 @@ public class Logger
     throws InvalidFileSetException, ClassNotFoundException,
            IOException, LogConfigurationException, InvalidLogBufferException, InterruptedException
   {
-    configure();
-
-    lfmgr = new LogFileManager();
+    lfmgr = new LogFileManager(config);
     lfmgr.open();
     
-    bmgr = new LogBufferManager();
+    bmgr = new LogBufferManager(config);
     bmgr.open(); 
     
     // read header information from each file
@@ -265,14 +280,6 @@ public class Logger
   }
   
   /**
-   * Reads configuration parameters from conf directory.
-   */
-  public void configure()
-  {
-    // TODO: configuration code here
-  }
-  
-  /**
    * return an XML node containing statistics for the Logger, the LogFile pool and the LogBuffer pool.
    * 
    * <p>The getStats method for the LogBufferManager and LogFileManager are called to include
@@ -300,4 +307,5 @@ public class Logger
     
     return stats.toString();
   }
+  
 }
