@@ -478,9 +478,6 @@ public class Logger extends LogObject
    * by a previous call to Logger.get(LogRecord, long). 
    * <p>Effectively, the record identified by lr is located, and the record
    * immediately following it is returned.
-   * @param getCtrlRecords boolean indicating whether
-   * CTRL records should be returned.  Set to 'false' 
-   * to see only application data records.
    * @return LogRecord containing the requested record.
    * @throws IllegalArgumentException
    * if lr parameter is null or if the lr.buffer member is null.
