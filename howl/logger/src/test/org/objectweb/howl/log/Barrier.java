@@ -43,12 +43,10 @@ public class Barrier {
    * number of threads that need to enter barrier() before
    * releasing all of them.
    */
-  protected int count; // number of parties still waiting
+  private int count; // number of parties still waiting
   
-  public Barrier(int count)
+  public Barrier()
   {
-    if (count <= 0) throw new IllegalArgumentException();
-    this.count = count;
   }
   
   /**
@@ -83,6 +81,16 @@ public class Barrier {
     return count;
   }
   
+  /**
+   * called at start of each test to set the count
+   * of active workers for the test case.
+   * 
+   * @param count value to se into this.count.
+   */
+  public synchronized void setCount(int count)
+  {
+    this.count = count;
+  }
   /**
    * decrement count and notify other threads.
    * <p>Used by worker threads to signal the
