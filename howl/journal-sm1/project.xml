@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- $Id: project.xml,v 1.1 2004-01-26 20:59:30 chirino Exp $ -->  
+<project>
+  <pomVersion>3</pomVersion>
+  <name>HOWL :: Journal</name>
+  <id>howl-journal</id>
+  <currentVersion>DEV</currentVersion>
+  <organization>
+    <name>HOWL Development Team</name>
+    <url>http://objectweb.org/</url>
+  </organization>
+  
+  <inceptionYear>2003</inceptionYear>
+  <package>org.objectweb.howl.journal</package>
+  
+  <shortDescription></shortDescription>
+  <description></description>
+
+  <url>http://www.objectweb.org/</url>
+  <issueTrackingUrl>http://www.objectweb.org</issueTrackingUrl>
+  <siteAddress>www.objectweb.org</siteAddress>
+  <siteDirectory>/www/</siteDirectory>
+  <distributionDirectory>/www/releases/SNAPSHOT/</distributionDirectory>
+
+  <repository>
+    <connection></connection>
+    <url>http://www.objectweb.org</url>
+  </repository>
+
+  <mailingLists>
+    <mailingList>
+      <name></name>
+      <subscribe></subscribe>
+      <unsubscribe></unsubscribe>
+      <archive></archive>
+    </mailingList>
+  </mailingLists>
+
+  <developers>
+    <developer>
+      <name></name>
+      <id></id>
+      <email/>
+      <organization/>
+    </developer>
+  </developers>
+
+  <!-- Need to mark these as compile-time/run-time (but how?) -->
+  <dependencies>
+    <dependency>
+      <id>commons-logging</id>
+      <version>1.0.3</version>
+      <url>http://jakarta.apache.org/commons/logging</url>
+    </dependency>
+    <dependency>
+      <id>concurrent</id>
+      <version>1.3.2</version>
+      <properties>
+          <runtime>true</runtime>
+      </properties>
+    </dependency>    
+  </dependencies>
+
+  <build>
+
+    <nagEmailAddress>na</nagEmailAddress>
+    <sourceDirectory>src/java</sourceDirectory>
+    <unitTestSourceDirectory>src/test</unitTestSourceDirectory>
+    <unitTest>
+      <includes>
+              <include>**/*TestCase.java</include>
+      </includes>
+    </unitTest>
+    <resources>
+      <includes>
+        <include>**/*.properties</include>
+      </includes>
+    </resources>
+    <jarResources>
+      <jarResource>**/*.properties</jarResource>
+    </jarResources>
+
+  </build>
+
+</project>
