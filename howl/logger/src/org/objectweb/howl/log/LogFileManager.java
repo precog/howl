@@ -216,6 +216,13 @@ class LogFileManager
   LogBufferManager bmgr;
   
   /**
+   * The LogEventListener registered by the application that
+   * owns the logger.  If <i> eventListener </i> is null then
+   * the application is not notified of log events.
+   */
+  private LogEventListener eventListener = null;
+  
+  /**
    * Called by LogBuffer.init() to obtain the LogFile that is to be used
    * to write a specific log block.
    * 
@@ -301,6 +308,8 @@ class LogFileManager
           : "byte[] markRecord size error";
         
         lb.put(type, markRecord, false);
+        
+        // TODO: detech 50% full and notify event listener
       }
     }
     
@@ -407,6 +416,19 @@ class LogFileManager
       if (automark) activeMark = currentKey;
   }
   
+  /**
+   * Registers a LogEventListener for log event notifications.
+   * 
+   * @param eventListener object to be notified of logger events.
+   */
+  void setLogEventListener(LogEventListener eventListener)
+  {
+    // QUESTION: does this need to be a list of listeners?
+    this.eventListener = eventListener;
+    
+    // TODO: if current log file position is > 50% then notify NOW
+  }
+
   /**
    * open pool of LogFile(s)
    * 
