@@ -814,7 +814,7 @@ class LogBufferManager extends LogObject
    */
   void init(LogFileManager lfm, int bsn)
   {
-    assert lfm != null : "constructor requires non-null LogFileManager parameter";
+    assert lfm != null : "LogFileManager parameter is null";
     this.lfm = lfm;
 
     nextFillBSN = bsn + 1;
@@ -870,7 +870,6 @@ class LogBufferManager extends LogObject
     }
     return s;
   }
-
   /**
    * Returns an XML node containing statistics for the LogBufferManager.
    * <p>The nested <LogBufferPool> element contains entries for each
@@ -951,6 +950,80 @@ class LogBufferManager extends LogObject
      return stats.toString();
   }
 
+  /* ------------------------------------------------------------------
+   * MBean interfaces and  methods
+   * ------------------------------------------------------------------
+   */
+  public interface BufferPoolStatsMBean {
+    public abstract int getBufferPoolCurrentSize();
+    public abstract int getBufferPoolInitialSize();
+    public abstract int getBufferPoolGrowCount();
+  }
+
+  public class BufferPoolStats implements BufferPoolStatsMBean {
+    public final int getBufferPoolCurrentSize() { return freeBuffer.length; }
+    public final int getBufferPoolInitialSize() { return config.getMinBuffers(); }
+    public final int getBufferPoolGrowCount() { return growPoolCounter; }
+  }
+  
+  public interface ForceStatsMBean {
+    public abstract double getAverageThreadsWaitingForce();
+    public abstract long getForceCount();
+    public abstract double getAverageForceTime();
+    public abstract int getMinTimeBetweenForce();
+    public abstract int getMaxTimeBetweenForce();
+    public abstract double getAverageTimeBetweenForce();
+    public abstract double getAverageBuffersPerForce();
+    public abstract int getMinBuffersForced();
+    public abstract int getMaxBuffersForced();
+    public abstract int getMaxThreadsWaitingForce();
+  }
+  
+  public class ForceStats implements ForceStatsMBean {
+    public final double getAverageThreadsWaitingForce() {
+      return totalThreadsWaitingForce / (double)forceCount;
+    }
+    public final long getForceCount() {  return forceCount;  }
+    public final double getAverageForceTime() {
+      return totalForceTime / (double)forceCount;
+    }
+    public final int getMinTimeBetweenForce() { return (int)minTimeBetweenForce; }
+    public final int getMaxTimeBetweenForce() { return (int)maxTimeBetweenForce; }
+    public final double getAverageTimeBetweenForce() {
+      return totalTimeBetweenForce / (double)forceCount;
+    }
+    public final double getAverageBuffersPerForce() {
+      return writeCount / (double) forceCount;
+    }
+    public final int getMinBuffersForced() { return minBuffersForced; }
+    public final int getMaxBuffersForced() { return maxBuffersForced; } 
+    public final int getMaxThreadsWaitingForce() { return maxThreadsWaitingForce; }
+  }
+  
+  public interface WriteStatsMBean {
+    public abstract long getWriteCount();
+    public abstract double getAverageWriteTime();
+    public abstract double getMaximumWriteTime();
+    public abstract double getAverageWaitForWriteLockTime();
+    public abstract long getWaitForBuffer();
+  }
+  
+  public class WriteStats implements WriteStatsMBean
+  {
+    public final long getWriteCount() { return writeCount; }
+    public final double getAverageWriteTime() {
+      return totalWriteTime / (double)writeCount;
+    }
+    public final double getMaximumWriteTime() { return maxWriteTime / 1000.0; }
+    public final double getAverageWaitForWriteLockTime() {
+      return totalWaitForWriteLockTime / (double)writeCount;
+    }
+    public final long getWaitForBuffer() {
+      LogBufferManager parent = LogBufferManager.this;
+      return parent.getWaitForBuffer();
+    }
+  }
+  
   /**
    * returns the BSN value portion of a log key <i> mark </i>.
    * 
@@ -979,7 +1052,7 @@ class LogBufferManager extends LogObject
    * provides synchronized access to waitForBuffer
    * @return the current value of waitForBuffer
    */
-  final long getWaitForBuffer()
+  public final long getWaitForBuffer()
   {
     synchronized(bufferManagerLock)
     {
