@@ -34,7 +34,7 @@ set PATH=%java_home%\jre\bin;%path%
 
 set emma=
 if "%1"=="emma" (
-set emma=emmarun -r html -sp ./src/java;./src/test -ix -org.objectweb.howl.log.*Test* -ix -org.objectweb.howl.log.xa.*Test* -ix -junit.* -cp bin;%junit_home%/bin
+set emma=emmarun -r html -sp ./src/java;./src/test -ix -org.objectweb.howl.log.*Test* -ix -org.objectweb.howl.log.xa.*Worker* -ix -org.objectweb.howl.log.xa.*Test* -ix -junit.* -cp bin;%junit_home%/bin
 )
 
 pushd ..
