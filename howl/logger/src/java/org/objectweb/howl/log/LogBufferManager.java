@@ -68,8 +68,8 @@ class LogBufferManager extends LogObject
   private final Object bufferManagerLock = new Object();
 
   /**
-   * mutex for synchronizing threads through the portion
-   * of force() method that actually forces the channel.
+   * mutex for synchronizing threads through the
+   * portion of force() that forces the channel.
    */
   private final Object forceManagerLock = new Object();
   
@@ -127,18 +127,67 @@ class LogBufferManager extends LogObject
 
   /**
    * next BSN to be written to log
+   * <p>synchronized by forceManagerLock
    */
-  volatile int nextWriteBSN = 1;
+  int nextWriteBSN = 1;
   
   /**
    * last BSN forced to log
+   * <p>synchronized by forceManagerLock
    */
-  volatile int lastForceBSN = 0;
+  int lastForceBSN = 0;
   
   /**
-   * number of times force() called
+   * number of times channel.force() called
    */
   private long forceCount = 0;
+  
+  /**
+   * number of times channel.write() called
+   */
+  private long writeCount = 0;
+  
+  /**
+   * minimum number of buffers forced by channel.force()
+   */
+  private int minBuffersForced = Integer.MAX_VALUE;
+  
+  /**
+   * maximum number of buffers forced by channel.force()
+   */
+  private int maxBuffersForced = Integer.MIN_VALUE;
+  
+  /**
+   * total amount of time spent in channel.force();
+   */
+  private long totalForceTime = 0;
+  
+  /**
+   * total amount of time spent in channel.write();
+   */
+  private long totalWriteTime = 0;
+  
+  /**
+   * maximum time (ms) for any single write
+   */
+  private long maxWriteTime = 0;
+  
+  /**
+   * total amount of time (ms) spent waiting for the forceMangerLock
+   */
+  private long totalWaitForWriteLockTime = 0;
+  
+  /**
+   * total time between channel.force() calls
+   */
+  private long totalTimeBetweenForce = 0;
+  private long minTimeBetweenForce = Long.MAX_VALUE;
+  private long maxTimeBetweenForce = Long.MIN_VALUE;
+  
+  /**
+   * time of last force used to compute totalTimeBetweenForce
+   */
+  private long lastForceTOD = 0;
   
   /**
    * number of threads waiting for a force
@@ -148,12 +197,14 @@ class LogBufferManager extends LogObject
   private long totalThreadsWaitingForce = 0;
   
   private int threadsWaitingForceThreshold = 0;
+  
 
   // reasons for doing force
   long forceOnTimeout = 0;
   long forceNoWaitingThreads = 0;
   long forceHalfOfBuffers = 0;
   long forceMaxWaitingThreads = 0;
+  
 
 
 
@@ -205,10 +256,35 @@ class LogBufferManager extends LogObject
   private int fqGet = 0;
   
   /**
+   * compute elapsed time for an event
+   * @param startTime time event began
+   * @return elapsed time (System.currentTimeMillis() - startTime)
+   */
+  final long elapsedTime(long startTime)
+  {
+    return System.currentTimeMillis() - startTime;
+  }
+  
+  /**
    * forces buffer to disk.
    *
    * <p>batches multiple buffers into a single force
    * when possible.
+   * 
+   * <p>Design Note:<br/>
+   * It was suggested that using forceManagerLock to
+   * control writes from the forceQueue[] and forces
+   * would reduce overlap due to the amount of time
+   * that forceManagerLock is shut while channel.force()
+   * is active. 
+   * <p>Experimented with using two separate locks to
+   * manage the channel.write() and the channel.force() calls,
+   * but it appears that thread calling channel.force()
+   * will block another thread trying to call channel.write()
+   * so both locks end up being shut anyway.
+   * Since two locks did not provide any measurable benefit,
+   * it seems best to use a single forceManagerLock 
+   * to keep the code simple.
    */
   private void force(boolean timeout)
     throws IOException, InterruptedException
@@ -216,15 +292,23 @@ class LogBufferManager extends LogObject
     LogBuffer logBuffer = null;
 
     // make sure buffers are written in ascending BSN sequence
+    long startWait = System.currentTimeMillis();
     synchronized(forceManagerLock)
     {
+      totalWaitForWriteLockTime += elapsedTime(startWait);
+      
       logBuffer = forceQueue[fqGet]; // logBuffer stuffed into forceQ
       fqGet = (fqGet + 1) % forceQueue.length;
       
       // write the logBuffer to disk (hopefully non-blocking)
       try {
         assert logBuffer.bsn == nextWriteBSN : "BSN error expecting " + nextWriteBSN + " found " + logBuffer.bsn;
+        long startWrite = System.currentTimeMillis();
         logBuffer.write();
+        long writeTime = elapsedTime(startWrite);
+        totalWriteTime += writeTime;
+        if (writeTime > maxWriteTime) maxWriteTime = writeTime;
+        ++writeCount;
         nextWriteBSN = logBuffer.bsn + 1;
       }
       catch (IOException ioe) {
@@ -242,13 +326,22 @@ class LogBufferManager extends LogObject
      * The lastForceBSN member is updated by the thread
      * that actually does a force().  All threads
      * waiting for the force will detect the change
-     * in lastForceBsn and notify any waiting threads.
+     * in lastForceBSN and notify any waiting threads.
      */
+    boolean doforce = true;
+    startWait = System.currentTimeMillis();
     synchronized(forceManagerLock)
     {
-      boolean doforce = true;
-      if (logBuffer.bsn < lastForceBSN)
+      totalWaitForWriteLockTime += elapsedTime(startWait);
+
+      // force() is guaranteed to have forced everything that
+      // has been written prior to the force, so get the
+      // bsn for the last known write prior to the force.
+      int forcebsn = nextWriteBSN - 1;
+      
+      if (logBuffer.bsn <= lastForceBSN)
       {
+        // this logBuffer has already been forced by another thread
         doforce = false;
       }
       else if (fqGet == fqPut)
@@ -256,7 +349,11 @@ class LogBufferManager extends LogObject
         // no other logBuffers waiting in forceQueue
         ++forceNoWaitingThreads;
       }
-      else if ((logBuffer.bsn - lastForceBSN) > (freeBuffer.length/2))
+      else if (timeout)
+      {
+        ++forceOnTimeout;
+      }
+      else if ((forcebsn - lastForceBSN) > (freeBuffer.length/2))
       {
         // one half of the buffers are waiting on the force
         ++forceHalfOfBuffers;
@@ -266,10 +363,6 @@ class LogBufferManager extends LogObject
         // number of waiting threads exceeds configured limit
         ++forceMaxWaitingThreads;
       }
-      else if (timeout)
-      {
-        ++forceOnTimeout;
-      }
       else
       {
         doforce = false;
@@ -277,28 +370,44 @@ class LogBufferManager extends LogObject
 
       if (doforce)
       {
-        // force() is guaranteed to have forced everything that
-        // has been written prior to the force, so get the
-        // bsn for the last known write prior to the force
-        int forcebsn = 0;
-        forcebsn = nextWriteBSN - 1;
-        
         ++forceCount;
+
+        long startForce = System.currentTimeMillis();
         logBuffer.lf.force(false);
+        totalForceTime += elapsedTime(startForce);
         
-        lastForceBSN = forcebsn;
+        if (lastForceTOD > 0)
+        {
+          long timeBetweenForce = startForce - lastForceTOD; 
+          totalTimeBetweenForce += timeBetweenForce;
+          minTimeBetweenForce = Math.min(minTimeBetweenForce, timeBetweenForce);
+          if (!timeout)
+          {
+            maxTimeBetweenForce = Math.max(maxTimeBetweenForce, timeBetweenForce);
+          }
+        }
+        lastForceTOD = System.currentTimeMillis();
+        
+        if (lastForceBSN > 0)
+        {
+          int buffersForced = forcebsn - lastForceBSN;
+          maxBuffersForced = Math.max(maxBuffersForced, buffersForced);
+          minBuffersForced = Math.min(minBuffersForced, buffersForced);
+        }
         totalThreadsWaitingForce += threadsWaitingForce;
         threadsWaitingForce = 0;
+        
+        lastForceBSN = forcebsn;
         forceManagerLock.notifyAll();
       }
 
-      // wait for write to be forced
+      // wait for thisLogBuffer's write to be forced
       while (lastForceBSN < logBuffer.bsn)
       {
         forceManagerLock.wait();
       }
      }
-      
+    
     if (logBuffer.iostatus == LogBufferStatus.WRITING)
       logBuffer.iostatus = LogBufferStatus.COMPLETE;
     
@@ -630,7 +739,10 @@ class LogBufferManager extends LogObject
     this.lfm = lfm;
 
     nextFillBSN = bsn + 1;
-    nextWriteBSN = nextFillBSN;
+    synchronized(forceManagerLock)
+    {
+      nextWriteBSN = nextFillBSN;
+    }
   }
   
   /**
@@ -662,6 +774,19 @@ class LogBufferManager extends LogObject
     }
 
   }
+  
+  /**
+   * convert a double to String with fixed number of decimal places
+   * @param val double to be converted
+   * @param decimalPlaces number of decimal places in output
+   * @return String result of conversion
+   */
+  private String doubleToString(double val, int decimalPlaces)
+  {
+    String s = "" + val;
+    int dp = s.indexOf('.') + 1; // include the decimal point
+    return s.substring(0, dp + decimalPlaces);
+  }
 
   /**
    * Returns an XML node containing statistics for the LogBufferManager.
@@ -672,8 +797,14 @@ class LogBufferManager extends LogObject
    */
   String getStats()
   {
-    double avgThreadsWaitingForce = (totalThreadsWaitingForce / (double)forceCount);
+    String avgThreadsWaitingForce = doubleToString((totalThreadsWaitingForce / (double)forceCount), 2);
+    String avgForceTime = doubleToString((totalForceTime / (double)forceCount), 2);
+    String avgTimeBetweenForce = doubleToString((totalTimeBetweenForce / (double)forceCount), 2);
+    String avgBuffersPerForce = doubleToString((writeCount / (double) forceCount), 2);
+    String avgWriteTime = doubleToString((totalWriteTime / (double)writeCount), 2);
+    String avgWaitForWriteLockTime = doubleToString((totalWaitForWriteLockTime / (double)(writeCount * 2)), 2);
     String name = this.getClass().getName();
+    
     StringBuffer stats = new StringBuffer(
            "\n<LogBufferManager  class='" + name + "'>" +
            "\n  <bufferSize value='" + config.getBufferSize() + "'>" +
@@ -685,13 +816,28 @@ class LogBufferManager extends LogObject
            "\n  <initialPoolSize value='" + config.getMinBuffers() + "'>" +
                 "Initial number of buffers in the pool" +
                 "</initialPoolSize>" +
-           "\n  <bufferwait  value='" + getWaitForBuffer()     + "'>" +
-                "Wait for available buffer" +
-                "</bufferwait>" +
            "\n  <growPoolCounter value='" + growPoolCounter + "'>" +
                 "Number of times buffer pool was grown" +
                 "</growPoolCounter>" +
-           "\n  <forcecount  value='" + forceCount        + "'>Number of force() calls</forcecount>" +
+           "\n  <bufferwait  value='" + getWaitForBuffer()     + "'>" +
+                "Wait for available buffer" +
+                "</bufferwait>" +
+           "\n  <forceCount  value='" + forceCount        + "'>Number of channel.force() calls</forceCount>" +
+           "\n  <totalForceTime   value='" + totalForceTime         + "'>Total time (ms) spent in channel.force</totalForceTime>" +
+           "\n  <avgForceTime value='" + avgForceTime + "'>Average channel.force() time (ms)</avgForceTime>" + 
+           "\n  <totalTimeBetweenForce value='" + totalTimeBetweenForce + "'>Total time (ms) between calls to channel.force()</totalTimeBetweenForce>" + 
+           "\n  <minTimeBetweenForce value='" + minTimeBetweenForce + "'>Minimum time (ms) between calls to channel.force()</minTimeBetweenForce>" + 
+           "\n  <maxTimeBetweenForce value='" + maxTimeBetweenForce + "'>Maximum time (ms) between calls to channel.force()</maxTimeBetweenForce>" + 
+           "\n  <avgTimeBetweenForce value='" + avgTimeBetweenForce + "'>Average time (ms) between calls to channel.force()</avgTimeBetweenForce>" + 
+           "\n  <writeCount  value='" + writeCount        + "'>Number of channel.write() calls</writeCount>" +
+           "\n  <avgBuffersPerForce value='" + avgBuffersPerForce + "'>Average number of buffers per force</avgBuffersPerForce>" +
+           "\n  <minBuffersForced value='" + minBuffersForced + "'>Minimum number of buffers forced</minBuffersForced>" +
+           "\n  <maxBuffersForced value='" + maxBuffersForced + "'>Maximum number of buffers forced</maxBuffersForced>" +
+           "\n  <totalWriteTime   value='" + totalWriteTime         + "'>Total time (ms) spent in channel.write</totalWriteTime>" +
+           "\n  <avgWriteTime value='" + avgWriteTime + "'>Average channel.write() time (ms)</avgWriteTime>" + 
+           "\n  <maxWriteTime value='" + maxWriteTime + "'>Maximum channel.write() time (ms)</maxWriteTime>" + 
+           "\n  <totalWaitForWriteLockTime   value='" + totalWaitForWriteLockTime         + "'>Total time (ms) spent waiting for forceManagerLock to issue a write</totalWaitForWriteLockTime>" +
+           "\n  <avgWaitForWriteLockTime   value='" + avgWaitForWriteLockTime         + "'>Total time (ms) spent waiting for forceManagerLock to issue a write</avgWaitForWriteLockTime>" +
            "\n  <bufferfull  value='" + noRoomInBuffer    + "'>Buffer full</bufferfull>" + 
            "\n  <nextfillbsn value='" + nextFillBSN       + "'></nextfillbsn>" +
            "\n  <forceOnTimeout value='" + forceOnTimeout + "'></forceOnTimeout>" +
