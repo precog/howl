@@ -334,6 +334,7 @@ public class ConfigurationTest extends TestCase
     prop.setProperty("logFileName", cfg.getLogFileName());
     prop.setProperty("bufferSize", Integer.toString(cfg.getBufferSize())); // BUG 300957
     prop.setProperty("flushSleepTime", Integer.toString(cfg.getFlushSleepTime()));
+    prop.setProperty("flushPartialBuffers", Boolean.toString(cfg.isFlushPartialBuffers()));
     prop.setProperty("maxLogFiles", Integer.toString(cfg.getMaxLogFiles()));
     prop.setProperty("maxBlocksPerFile", Integer.toString(cfg.getMaxBlocksPerFile()));
     prop.setProperty("maxBuffers", Integer.toString(cfg.getMaxBuffers()));
@@ -362,6 +363,7 @@ public class ConfigurationTest extends TestCase
     cfg3.setChecksumEnabled(cfg.isChecksumEnabled());
     cfg3.setFlushSleepTime(cfg.getFlushSleepTime());
     cfg3.setThreadsWaitingForceThreshold(cfg.getThreadsWaitingForceThreshold());
+    cfg3.setFlushPartialBuffers(cfg.isFlushPartialBuffers());
 
     verifyConfiguration(cfg3);
   }
