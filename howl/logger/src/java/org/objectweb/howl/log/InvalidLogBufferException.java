@@ -48,8 +48,15 @@ package org.objectweb.howl.log;
 public class InvalidLogBufferException extends LogException
 {
 
-    public InvalidLogBufferException() { }
+  public InvalidLogBufferException() { }
 
-    public InvalidLogBufferException(String s) { super(s); }
-    
+  public InvalidLogBufferException(String s) { super(s); }
+  
+  public InvalidLogBufferException(Throwable cause) { initCause(cause); }
+
+  public InvalidLogBufferException(String s, Throwable cause) {
+    super(s);
+    initCause(cause);
+  }
+  
 }
