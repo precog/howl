@@ -44,7 +44,7 @@ import java.nio.ByteBuffer;
  * 
  * @author Michael Giroux
  */
-public final class LogRecord
+public class LogRecord
 {
   /**
    * type of data record.
@@ -63,6 +63,14 @@ public final class LogRecord
    * log key associated with this LogRecord.
    */
   public long key = 0;
+  
+  /**
+   * array of individual record fields as
+   * passed to Logger.put(byte[][])
+   * 
+   * @see #getFields();
+   */
+  private byte[][] fields = null;
   
   /**
    * byte[] containing record data.
@@ -143,12 +151,15 @@ public final class LogRecord
    * if the size of the data record exceeds the bytes used for the buffer.
    * @see LogRecordType
    */
-  final LogRecord get(LogBuffer lb) throws InvalidLogBufferException
+  protected LogRecord get(LogBuffer lb) throws InvalidLogBufferException
   {
     short type = 0;
     short length = 0;
     long key = 0;
     ByteBuffer buffer = lb.buffer;
+
+    // let getFields() know that the record needs to be parsed
+    fields = null;
     
     if (buffer.position() < lb.bytesUsed)
     {
@@ -177,7 +188,7 @@ public final class LogRecord
       
       if (length > 0)
         buffer.get(data, 0, length);
-      key = logKey;   
+      key = logKey;
     }
     else
     {
@@ -192,9 +203,50 @@ public final class LogRecord
     this.length = length;
     this.key = key;
     this.tod = lb.tod;
+
+    // reset the ByteBuffer for current record 
     dataBuffer.clear().limit(length);
     
     return this;
+  }
+  
+  /**
+   * Parse record data into a byte[][] that
+   * is equivalent to the one passed to
+   * Logger.put(byte[][]).
+   * 
+   * @return byte[][] containing data that
+   * was originally put into the log.
+   */
+  public byte[][] getFields()
+  {
+    if (fields != null) return fields;
+    
+    int count = 0;
+
+    dataBuffer.rewind();
+    while (dataBuffer.hasRemaining())
+    {
+      short len = dataBuffer.getShort();
+      dataBuffer.position(len + dataBuffer.position());
+      ++count;
+    }
+    fields = new byte[count][];
+    
+    if (count > 0)
+    {
+      dataBuffer.rewind();
+      for(int i=0; i < count; ++i)
+      {
+        short len = dataBuffer.getShort();
+        fields[i] = new byte[len];
+        dataBuffer.get(fields[i]);
+      }
+    }
+    
+    assert !dataBuffer.hasRemaining() : "Unexpected data remaining in buffer";
+    
+    return fields;
   }
 
 }
