@@ -308,17 +308,32 @@ abstract class LogBuffer extends LogObject
    * This strategy allows the waitingThreads counter to be
    * incremented while the current thread holds the bufferManager
    * monitor.
+   * 
    * <p>Implementations should return a token that can be used
    * later for replay, and for debugging purposes.
    * 
-   * @param type short containing implementation defined record
-   * type information.
-   * @param data byte[][] to be written to log.
+   * <p>The data record is passed as a byte[][] allowing
+   * callers to construct data records from individual bits
+   * of information. 
    * The arrays are concatenated into a single log record whose size
-   * is the sum of the individual array sizes. 
-   * During replay the entire record is returned as a single
+   * is the sum of the individual array sizes.
+   * Each array is preceded by the size of the individual array.
+   * The entire record is preceded by the size of all arrays
+   * including the individual array size fields.
+   * <p>The record format is as follows:
+   * <pre>
+   * +------+------------+----------------+---------+       +----------------+---------+
+   * | type | total size | data[0].length | data[0] | . . . | data[n].length | data[n] |
+   * +------+------------+----------------+---------+       +----------------+---------+
+   * </pre>
+   * <p>During replay the entire record is returned as a single
    * byte[].  The ReplayListener is responsible for
    * decomposing the record into the original array of byte[].
+
+   * @param type short containing implementation defined record
+   * type information.  The <var> type </var> is stored as the first
+   * field of the log record.
+   * @param data byte[][] to be written to log.
    * @param sync true if thread will call sync following the put.
    * Causes count of waitingThreads to be incremented.
    * 
