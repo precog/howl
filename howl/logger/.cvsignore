@@ -2,3 +2,5 @@ logs
 doc
 bin
 target
+coverage
+lprofile.txt
