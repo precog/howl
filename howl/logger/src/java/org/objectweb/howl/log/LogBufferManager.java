@@ -841,7 +841,7 @@ class LogBufferManager extends LogObject
            "\n  <avgWriteTime value='" + avgWriteTime + "'>Average channel.write() time (ms)</avgWriteTime>" + 
            "\n  <maxWriteTime value='" + maxWriteTime + "'>Maximum channel.write() time (ms)</maxWriteTime>" + 
            "\n  <totalWaitForWriteLockTime   value='" + totalWaitForWriteLockTime         + "'>Total time (ms) spent waiting for forceManagerLock to issue a write</totalWaitForWriteLockTime>" +
-           "\n  <avgWaitForWriteLockTime   value='" + avgWaitForWriteLockTime         + "'>Total time (ms) spent waiting for forceManagerLock to issue a write</avgWaitForWriteLockTime>" +
+           "\n  <avgWaitForWriteLockTime   value='" + avgWaitForWriteLockTime         + "'>Average time (ms) spent waiting for forceManagerLock to issue a write</avgWaitForWriteLockTime>" +
            "\n  <bufferfull  value='" + noRoomInBuffer    + "'>Buffer full</bufferfull>" + 
            "\n  <nextfillbsn value='" + nextFillBSN       + "'></nextfillbsn>" +
            "\n  <forceOnTimeout value='" + forceOnTimeout + "'></forceOnTimeout>" +
