@@ -240,7 +240,7 @@ public class Configuration implements ConfigurationMBean {
     bufferClassName = getString("bufferClassName", bufferClassName);
     
     setBufferSize(getInteger("bufferSize", (bufferSize / 1024), "Kb")); // BUG 300791
-    showConfig("bufferSize", bufferSize, "bytes");
+    showConfig("bufferSize", bufferSize / 1024, "Kb"); // BUG 300957
     
     checksumEnabled = getBoolean("checksumEnabled", checksumEnabled);
     
@@ -459,10 +459,13 @@ public class Configuration implements ConfigurationMBean {
   }
   
   /**
-   * @return Returns the bufferSize.
+   * Returns the size of buffers specified as a number of 1K blocks.
+   * <p>As an example, if buffers are 4096 bytes large, getBufferSize()
+   * returns 4.
+   * @return Returns the bufferSize as a number of 1K blocks.
    */
   public int getBufferSize() {
-    return bufferSize;
+    return bufferSize / 1024; // BUG 300957 return number of 1k blocks
   }
   /**
    * @param bufferSize The size of a log buffer

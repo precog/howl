@@ -225,9 +225,6 @@ class BlockLogBuffer extends LogBuffer
         }
         todPut = System.currentTimeMillis();
         
-        // update LogFile.highMark just in case someone tries to replay the log while it is active.
-        lf.highMark = logKey;
-        
         if (sync)
         {
           synchronized(waitingThreadsLock)

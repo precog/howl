@@ -629,6 +629,39 @@ class LogBufferManager extends LogObject
   }
   
   /**
+   * Force the current buffer to disk
+   * before starting a replay().
+   */
+  void forceCurrentBuffer() throws IOException
+  {
+    LogBuffer buffer = null;
+    
+    synchronized(bufferManagerLock)
+    {
+
+      buffer = fillBuffer;
+      if (buffer != null)
+      {
+        fillBuffer = null;
+        forceQueue[fqPut] = buffer;
+        fqPut = (fqPut + 1) % forceQueue.length;
+      }
+      else
+        buffer = null;
+    } // release bufferManagerLock before we issue a force.
+
+    if (buffer != null)
+    {
+      try {
+        force(true);
+      } catch (InterruptedException e) {
+        ; // ignore
+      }
+    }
+
+  }
+  
+  /**
    * Replays log from requested mark forward to end of log.
    * 
    * <p>Blocks caller until replay completes due to end of log, 
@@ -648,8 +681,9 @@ class LogBufferManager extends LogObject
   void replay(ReplayListener listener, long mark, boolean replayCtrlRecords)
   	throws LogConfigurationException, InvalidLogKeyException
   {
-    if (mark < 0)
-      throw new InvalidLogKeyException("log key [" + mark + "] must be >= zero");
+    int bsn = bsnFromMark(mark);
+    if (mark < 0 || (bsn == 0 && mark != 0))
+      throw new InvalidLogKeyException(Long.toHexString(mark));
     
     LogBuffer buffer = null;
     
@@ -666,7 +700,8 @@ class LogBufferManager extends LogObject
 
     // read block containing requested mark
     try {
-      lfm.read(buffer, bsnFromMark(mark));
+      forceCurrentBuffer();
+      lfm.read(buffer, bsn);
     } catch (IOException e) {
       String msg = "Error reading " + buffer.lf.file + " @ position [" + buffer.lf.position + "]";
       listener.onError(new LogException(msg + e.toString()));
@@ -677,10 +712,21 @@ class LogBufferManager extends LogObject
     }
 
     if (buffer.bsn == -1) {
-      // BUG 300733 following line changed to throw an exception
-      String msg = "The initial mark [" + Long.toHexString(mark) + 
-      "] requested for replay was not found in the log.";
-      throw new InvalidLogKeyException(msg);
+      // BUG 300733 if mark is 0L then we must have new
+      // files so return END_OF_LOG.
+      // otherwise throw an InvalidLogKeyException
+      if (mark == 0 || mark == lfm.getHighMark()) {
+        record.type = LogRecordType.END_OF_LOG;
+        listener.onRecord(record);
+        return;
+      }
+      else {
+        String msg = "The mark [" + Long.toHexString(mark) + 
+        "] requested for replay was not found in the log. " +
+        "activeMark is [" + Long.toHexString(lfm.activeMark) +
+        "]";
+        throw new InvalidLogKeyException(msg);
+      }
     }
     
     // verify we have the desired block
@@ -742,7 +788,7 @@ class LogBufferManager extends LogObject
         }
         
         // return end of log indicator
-        if (buffer.bsn == -1) {
+        if (buffer.bsn == -1 || buffer.bsn < nextBSN) {
           record.type = LogRecordType.END_OF_LOG;
           listener.onRecord(record);
           return;
@@ -890,7 +936,7 @@ class LogBufferManager extends LogObject
     
     StringBuffer stats = new StringBuffer(
            "\n<LogBufferManager  class='" + name + "'>" +
-           "\n  <bufferSize value='" + config.getBufferSize() + "'>Buffer Size (in bytes)</bufferSize>" +
+           "\n  <bufferSize value='" + (config.getBufferSize() * 1024) + "'>Buffer Size (in bytes)</bufferSize>" + /* BUG 300957 */
            "\n  <poolsize    value='" + freeBuffer.length + "'>Number of buffers in the pool</poolsize>" + 
            "\n  <initialPoolSize value='" + config.getMinBuffers() + "'>Initial number of buffers in the pool</initialPoolSize>" +
            "\n  <growPoolCounter value='" + growPoolCounter + "'>Number of times buffer pool was grown</growPoolCounter>" +

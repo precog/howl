@@ -73,7 +73,8 @@ class LogFileManager extends LogObject
    * is updated after every put() operation.
    * When automark is disabled (as should be the case with JOTM)
    * the <i> activeMark </i> is updated manually by a call
-   * to Logger.mark().
+   * to Logger.mark(), or during logOverflowNotification processing
+   * if a LogEventListener is registered.
    * 
    * @see org.objectweb.howl.log.Logger#mark(long)
    */
@@ -101,7 +102,7 @@ class LogFileManager extends LogObject
   /**
    * last key returned by  put().
    * 
-   * @see #setCurrentKey(long)
+   * <p>updated by setCurrentKey(long)
    */
   long currentKey = 0;
   
@@ -345,10 +346,11 @@ class LogFileManager extends LogObject
    * Called by LogBuffer.init() to obtain the LogFile that will be used
    * to write a specific log block.
    * 
-   * <p>The buffer sequence number of the LogBuffer parameter ( <i> lf.bsn</i> ) represents an
-   * implementation specific value that is used to manage log file space. 
-   * As buffers are written to disk the buffer
-   * sequence number is incremented.
+   * <p>The buffer sequence number of the LogBuffer parameter ( <i> lf.bsn</i> )
+   * represents an implementation specific value that is used to manage log
+   * file space.  As buffers are written to disk the buffer sequence number is
+   * incremented.
+   * 
    * The LogFileManager is able to compute the seek
    * address for a buffer as a function of <i>lf.bsn</i> and buffer size
    * when using LogBuffer implementations with fixed buffer sizes.
@@ -371,6 +373,7 @@ class LogFileManager extends LogObject
       {
         if (currentLogFile == null || ((lb.bsn - 1) % maxBlocksPerFile) == 0)
         {
+          // BSN is first block of a file.
           int fsl = fileSet.length;
           lfIndex %= fsl;
           
@@ -378,7 +381,7 @@ class LogFileManager extends LogObject
           LogFile nextLogFile = fileSet[lfIndex];
           assert nextLogFile != null: "nextLogFile == null";
           
-          if (activeMark < nextLogFile.highMark)
+          if (activeMark > 0 &&  activeMark < nextLogFile.highMark)
             throw new LogFileOverflowException(activeMark, nextLogFile.highMark, nextLogFile.file);
 
           ++lfIndex;
@@ -426,13 +429,15 @@ class LogFileManager extends LogObject
         }
         else
         {
-        	// initialize new block with a MARKKEY control record
+          // -------------------------------------------------------------------
+        	// initialize next block of current file with a MARKKEY control record
+          // -------------------------------------------------------------------
         	short type = LogRecordType.MARKKEY;
 
           setMarkData(markRecordBB);
           assert markRecord[0].length == markRecordBB.position()
             : "byte[] markRecord size error";
-
+          
           lb.lf = currentLogFile;
           lb.put(type, markRecord, false);
           
@@ -448,6 +453,10 @@ class LogFileManager extends LogObject
       assert false : "Unhandled LogRecordSizeException" + e;
     }
     
+    // update LogFile.highMark just in case someone tries to replay the log while it is active.
+    currentLogFile.highMark = bmgr.markFromBsn(lb.bsn + 1, 0);
+    currentLogFile.newFile = false;  // it's no longer a new file
+
     return currentLogFile;
   }
   
@@ -593,6 +602,9 @@ class LogFileManager extends LogObject
    */
   int read(LogBuffer lb, int bsn) throws IOException, InvalidLogBufferException
   {
+    if (bsn < 0)
+      throw new IllegalArgumentException("BSN must be >= zero");
+    
     long mark = bmgr.markFromBsn(bsn, 0);
     
     // locate the log file that contains the desired block
@@ -611,7 +623,8 @@ class LogFileManager extends LogObject
     }
     
     // read the block
-    return lb.read(lf, position).bsn;
+    lb.read(lf, position);                // BUG 300969
+    return (lb.bsn < bsn) ? -1 : lb.bsn;  // BUG 300969
   }
   
   /**
@@ -621,6 +634,8 @@ class LogFileManager extends LogObject
    * is open.
    * 
    * @param automark true to indicate automatic marking.
+   * 
+   * @return log key for the generated MARK control record.
    */
   long setAutoMark(boolean automark)
     throws InvalidLogKeyException, IOException, InterruptedException, LogFileOverflowException
@@ -637,14 +652,33 @@ class LogFileManager extends LogObject
    * <p>Method must be synchronized to guarantee that only
    * keys with larger values are assigned to currentKey.
    * 
+   * <p>If automark mode is enabled, then the activeMark
+   * is updated as well.
+   * 
    * @param key a log key returned by the buffer manager.
    * 
-   * @see org.objectweb.howl.log.Logger#put(byte[],boolean) 
    */
   synchronized void setCurrentKey(long key)
   {
-      if (key > currentKey) currentKey = key;
-      if (automark) activeMark = currentKey;
+      if (key > currentKey) {
+        currentKey = key;
+        if (automark) activeMark = currentKey;
+      }
+  }
+  
+  /**
+   * Returns the highMark from the LogFile that is
+   * currently being written.
+   * <p>Log keys greater than this value are beyond
+   * the logical end of the journal.
+   * 
+   * @return highMark from the current LogFile.
+   */
+  long getHighMark()
+  {
+    if (currentLogFile == null)
+      throw new UnsupportedOperationException("LogFileManager.init() required");
+    return currentLogFile.highMark;
   }
   
   /**
@@ -755,10 +789,8 @@ class LogFileManager extends LogObject
     try { 
       lb = bmgr.getLogBuffer(-1);
     } catch (ClassNotFoundException e) {
-      lb = null;
+      throw new LogConfigurationException("LogBuffer.class not found", e);
     }
-    if (lb == null)
-      throw new LogConfigurationException("LogBuffer.class not found");
     
     for (short i = 0; i < fileSet.length; ++i)
     {
@@ -838,12 +870,11 @@ class LogFileManager extends LogObject
     // remember the initial key for this execution
     initialKey = bmgr.markFromBsn(bsn + 1, 0);
     
+    // initialize high water mark for active LogFile
+    lf.highMark = initialKey;
+
     // initialize currentKey
     currentKey = initialKey;
-    
-    // update activeMark based on automark setting recovered from log
-    // @see validateFileHeader
-    if (automark) activeMark = currentKey;
     
     // process MARK control records in last block
     assert fpos > 0 : "Unexpected file postion: " + fpos;
@@ -862,12 +893,15 @@ class LogFileManager extends LogObject
           activeMark = dataBuffer.getLong();
         }
       }
-
-      lf.highMark = bmgr.markFromBsn(bsn+1, 0);
+      currentKey = record.key;
     }
     else {
       fpos = 0L;
     }
+    
+    // update activeMark based on automark setting recovered from log
+    // @see validateFileHeader
+    if (automark) activeMark = currentKey;
     
     // position current log file for writing
     lf.channel.position(fpos);
@@ -1019,9 +1053,13 @@ class LogFileManager extends LogObject
     boolean interrupted = false;
     InterruptedException exception = null;
     
+    // BUG 300953 don't close if fileSet[] is null 
+    if (fileSet == null) return;
+    
     try {
-      // BUG 300934 dont close Buffer Manager if initialization is not complete
+      // BUG 300934 don't close Buffer Manager if initialization is not complete
       if (initComplete) closeBufferManager(); // BUG 300934
+      initComplete = false; // don't close Buffer Manager more than once
     } catch (InterruptedException e) {
       interrupted = true;  // remember and throw it on the way out.
       exception = e;

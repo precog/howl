@@ -90,6 +90,19 @@ class LogFile
    * If the active mark is less than highMark, then a LogFileOverflowException
    * is thrown to prevent re-use of a log file that contains active data.
    * 
+   * <p>While this LogFile is the current LogFile of the set,
+   * (ie, the LogFile that is currently being written to) 
+   * the highMark will be set to first record of the subsequent
+   * block.  For example, while block 1 is being written,
+   * highMark will be set to the first record of block 2.
+   * 
+   * <p>During replay operations, the end of the active
+   * journal can be detected by comparing the BSN of a desired
+   * block with the current highMark.  If the requested BSN
+   * is less than highMark, then the requested block resides
+   * within active journal space.  If the requested BSN is
+   * >= the highMark, then the BSN is invalid. 
+   * 
    * <p>Any attempt to add records to the log will cause an exception
    * until Logger.mark() is called to clear prior records from the log.
    */
@@ -168,6 +181,8 @@ class LogFile
     if (lock == null)
       throw new LogConfigurationException("Unable to obtain lock on " + file.getAbsolutePath());
     // TODO: log lock acquired
+    // System.err.println(file.getName() + " open");
+    
     return this;
   }
   
@@ -179,14 +194,19 @@ class LogFile
    */
   LogFile close() throws IOException
   {
-    position = channel.position();     // remember postion at close
-    //  FEATURE 300922; unlock the file if we obtained a lock.
-    if (lock != null)
+    if (channel.isOpen())
     {
-      lock.release();
-      // TODO: log lock released
+      // prevent multiple close
+      position = channel.position();     // remember postion at close
+      //  FEATURE 300922; unlock the file if we obtained a lock.
+      if (lock != null)
+      {
+        lock.release();
+        // TODO: log lock released
+        // System.err.println(file.getName() + " closed");
+      }
+      channel.close();
     }
-    channel.close();
     return this;
   }
   

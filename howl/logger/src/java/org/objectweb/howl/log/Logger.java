@@ -74,7 +74,7 @@ public class Logger extends LogObject
    * indicates whether the LogFile is open.
    * <p>Logger methods return LogClosedException when log is closed.
    */
-  private volatile boolean isClosed = true;
+  protected volatile boolean isClosed = true;
   
   /**
    * Manages a pool of buffers used for log file IO.
@@ -268,7 +268,7 @@ public class Logger extends LogObject
   /**
    * close the Log files and perform necessary cleanup tasks.
    */
-  public void close() throws InvalidLogKeyException, LogClosedException, IOException, InterruptedException
+  public void close() throws IOException, InterruptedException
   {
     // prevent new threads from adding to the log
     isClosed = true;
@@ -405,10 +405,12 @@ public class Logger extends LogObject
     LogException, InvalidLogBufferException
   {
     /* this code is similar to LogBufferManager.replay() -- potential for refactor */
-    if (mark < 0L) throw new InvalidLogKeyException();
+    int bsn = bmgr.bsnFromMark(mark);
+    if (mark < 0 || (bsn == 0 && mark != 0))
+      throw new InvalidLogKeyException(Long.toHexString(mark));
     
     if (lr == null)
-      lr = new LogRecord(config.getBufferSize()/4); // default to 1/4 buffer size
+      lr = new LogRecord((config.getBufferSize() * 1024)/4); // default to 1/4 buffer size
     
     // allocate a LogBuffer that we can use to read the journal
     try {
@@ -422,7 +424,8 @@ public class Logger extends LogObject
     
     // read block containing requested mark
     try {
-      lfmgr.read(buffer, bmgr.bsnFromMark(mark));
+      bmgr.forceCurrentBuffer();
+      lfmgr.read(buffer, bsn);
     } catch (IOException e) {
       LogFile lf = buffer.lf;
       String msg = "Error reading " + lf.file + " @ position [" + lf.position + "]";

@@ -180,7 +180,7 @@ abstract class LogBuffer extends LogObject
     super(config);  // LogObject 
     name = this.getClass().getName();
     doChecksum = config.isChecksumEnabled();
-    buffer = ByteBuffer.allocateDirect(config.getBufferSize());
+    buffer = ByteBuffer.allocateDirect(config.getBufferSize() * 1024); // BUG 300957
   }
 
   /**
