@@ -100,6 +100,13 @@ public interface LogRecordType
   static final short XADONE = CTRL | 0x0040;
   
   /**
+   * recorded by XALogger *after* a XACOMMIT record
+   * is moved to allow replay to remove the original
+   * XACOMMIT record from the activeTx table. 
+   */
+  static final short XACOMMITMOVED = CTRL | XACOMMIT | XADONE;
+  
+  /**
    * Type returned by get() methods to signal end of buffer.
    * 
    * <p>This record type may or may not actually exist within
