@@ -45,7 +45,7 @@ import java.util.Properties;
  * instance.
  * @author girouxm
  */
-public class Configuration {
+public class Configuration implements ConfigurationMBean {
   
   /**
    * Construct a Configuration object with default values.
@@ -96,8 +96,7 @@ public class Configuration {
       parseProperties();
     } catch (FileNotFoundException e)
     {
-      LogConfigurationException lce = new LogConfigurationException(e.toString());
-      lce.initCause(e);
+      LogConfigurationException lce = new LogConfigurationException(e.toString(), e);
       throw lce;
     } catch (IOException e)
     {
