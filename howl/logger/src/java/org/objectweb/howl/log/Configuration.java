@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Properties;
 
 /**
@@ -52,6 +53,14 @@ public class Configuration {
    */
   public Configuration()
   {
+    this.prop = new Properties();
+    
+    // populate this.prop with default values
+    try {
+      parseProperties();
+    } catch (LogConfigurationException e) {
+      // will not happen
+    }
   }
   
   /**
@@ -61,10 +70,7 @@ public class Configuration {
    */
   public Configuration(Properties prop) throws LogConfigurationException
   {
-    // perform default construction
-    this();
-    
-    this.prop = prop;
+    this.prop = new Properties(prop); // so we do not modify callers prop object
     
     // apply settings from caller supplied Properties parameter
     parseProperties();
@@ -134,6 +140,9 @@ public class Configuration {
   /**
    * called by parseProperties to obtain an int configuration
    * property and optionally display the configured value.
+   * 
+   * <p>save result in prop member.
+   * 
    * @param key name of the parameter to return
    * @param val default value if the parameter is not configured
    * @param text additional text to pass to showConfig(String, int, String)
@@ -145,6 +154,8 @@ public class Configuration {
     // BUG: 300738 - trim property value
     val = Integer.parseInt(prop.getProperty(key, Integer.toString(val)).trim());
     showConfig(key, val, text);
+    
+    prop.setProperty(key, Integer.toString(val));
     return val;
   }
   
@@ -153,6 +164,8 @@ public class Configuration {
    * property and optionally display the configured value.
    * <p>This routine calls getInteger(String, ing, String) passing
    * a zero length string as the third parameter.
+   * 
+   * <p>save result in prop member.
    * 
    * @param key name of parameter to return
    * @param val default value if the parameter is not configured
@@ -167,6 +180,8 @@ public class Configuration {
   /**
    * called by parseProperties to obtain a boolean configuration
    * property and optionally display the configured value.
+   * 
+   * <p>save result in prop member.
    * 
    * @param key name of parameter to return
    * @param val default value if the parameter is not configured
@@ -185,13 +200,17 @@ public class Configuration {
           "] must be true of false");
     
     val = Boolean.valueOf(pval).booleanValue();
-    if (listConfig) System.err.println(key + ": " + val);;
+    if (listConfig) System.err.println(key + ": " + val);
+    
+    prop.setProperty(key, Boolean.toString(val));
     return val;
   }
   
   /**
    * called by parseProperties to obtain a String configuration
    * property and optionally display the configured value.
+   * 
+   * <p>save result in prop member.
    * 
    * @param key name of parameter to return
    * @param val default value if the parameter is not configured
@@ -200,27 +219,28 @@ public class Configuration {
   private String getString(String key, String val)
   {
     val = prop.getProperty(key, val).trim();
-    if (listConfig) System.err.println(key + ": " + val);;
+    if (listConfig) System.err.println(key + ": " + val);
+    
+    prop.setProperty(key,val);
     return val;
   }
   
   /**
    * initialize member variables from property file.
+   * 
+   * <p>entire property set is saved in prop member
+   * for use in store(OutputStream) method.
+   * 
    * @throws LogConfigurationException
    * with text explaining the reason for the exception.
    */
   private void parseProperties() throws LogConfigurationException
   {
-    String  val = null;
-    String  key = null; 
-    int     ival;
-    
     listConfig = getBoolean("listConfig", listConfig);
 
     bufferClassName = getString("bufferClassName", bufferClassName);
     
     setBufferSize(getInteger("bufferSize", (bufferSize / 1024), "Kb")); // BUG 300791
-
     showConfig("bufferSize", bufferSize, "bytes");
     
     checksumEnabled = getBoolean("checksumEnabled", checksumEnabled);
@@ -355,7 +375,7 @@ public class Configuration {
   
   /**
    * directory used to create log files.
-   * <p>Default is current directory.
+   * <p>Default is logs directory relative to parent of current working dir.
    */
   String logFileDir = "../logs";
   
@@ -393,8 +413,9 @@ public class Configuration {
   /**
    * @param logDir The logDir to set.
    */
-  public void setLogFileDir(String logDir) {
-    this.logFileDir = logDir;
+  public void setLogFileDir(String logFileDir) {
+    this.logFileDir = logFileDir;
+    prop.setProperty("logFiledir", logFileDir);
   }
   
   /**
@@ -408,6 +429,7 @@ public class Configuration {
    */
   public void setLogFileExt(String logFileExt) {
     this.logFileExt = logFileExt;
+    prop.setProperty("logFileExt", logFileExt);
   }
   /**
    * @return Returns the logFileName.
@@ -420,6 +442,7 @@ public class Configuration {
    */
   public void setLogFileName(String logFileName) {
     this.logFileName = logFileName;
+    prop.setProperty("logFileName", logFileName);
   }
   /**
    * @return Returns the checksumEnabled option.
@@ -433,6 +456,7 @@ public class Configuration {
    */
   public void setChecksumEnabled(boolean checksumOption) {
     this.checksumEnabled = checksumOption;
+    prop.setProperty("checksumEnabled", Boolean.toString(checksumEnabled));
   }
   
   /**
@@ -456,6 +480,7 @@ public class Configuration {
           " between 1 and "+ MAX_BUFFER_SIZE);
     
     this.bufferSize = bufferSize * 1024;
+    prop.setProperty("bufferSize", Integer.toString(bufferSize));
   }
   
   /**
@@ -469,6 +494,7 @@ public class Configuration {
    */
   public void setBufferClassName(String bufferClassName) {
     this.bufferClassName = bufferClassName;
+    prop.setProperty("bufferClassName", bufferClassName);
   }
   
   /**
@@ -488,6 +514,7 @@ public class Configuration {
           "] must be <= than maxBuffers[" + maxBuffers +  "]");
     
     this.maxBuffers = maxBuffers;
+    prop.setProperty("maxBuffers", Integer.toString(maxBuffers));
   }
   
   /**
@@ -507,6 +534,7 @@ public class Configuration {
           "] must be > 0");
 
     this.minBuffers = minBuffers;
+    prop.setProperty("minBuffers", Integer.toString(minBuffers));
   }
   
   /**
@@ -522,6 +550,7 @@ public class Configuration {
    */
   public void setFlushSleepTime(int flushSleepTime) {
     this.flushSleepTime = flushSleepTime;
+    prop.setProperty("flushSleepTime", Integer.toString(flushSleepTime));
   }
   /**
    * @return Returns the threadsWaitingForceThreshold.
@@ -534,6 +563,7 @@ public class Configuration {
    */
   public void setThreadsWaitingForceThreshold(int threadsWaitingForceThreshold) {
     this.threadsWaitingForceThreshold = threadsWaitingForceThreshold;
+    prop.setProperty("threadsWaitingForceThreshold", Integer.toString(threadsWaitingForceThreshold));
   }
   /**
    * @return Returns the maxBlocksPerFile.
@@ -546,6 +576,7 @@ public class Configuration {
    */
   public void setMaxBlocksPerFile(int maxBlocksPerFile) {
     this.maxBlocksPerFile = maxBlocksPerFile;
+    prop.setProperty("maxBlocksPerFile", Integer.toString(maxBlocksPerFile));
   }
 
   /**
@@ -559,6 +590,7 @@ public class Configuration {
    */
   public void setMaxLogFiles(int maxLogFiles) {
     this.maxLogFiles = maxLogFiles;
+    prop.setProperty("maxLogFiles", Integer.toString(maxLogFiles));
   }
   /**
    * @return Returns the logFileMode.
@@ -577,5 +609,20 @@ public class Configuration {
           "] must be \"rw\" or \"rwd\"");
       
     this.logFileMode = logFileMode;
+    prop.setProperty("logFileMode", logFileMode);
+  }
+  
+  /**
+   * Stores configuration properties to OutputStream.
+   *  
+   * @see java.util.Properties#store(java.io.OutputStream, java.lang.String)
+   */
+  public void store(OutputStream out)
+  throws IOException
+  {
+    String header = "HOWL Configuration properties\n" +
+      "#Generated by " + this.getClass().getName();
+    
+    prop.store(out, header);
   }
 }
