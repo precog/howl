@@ -156,6 +156,10 @@ public class Logger
    * open Log files and perform necessart initialization.
    * 
    * TODO: consider boolean restart parameter or replayListener parameter
+   * 
+   * TODO: consider open(String name) to allow named configurations.
+   *       this would allow utility to open two loggers and copy 
+   *       old records to new files.
    *
    */
   public void open()
@@ -170,15 +174,23 @@ public class Logger
     lfmgr.open();
     
     bmgr = new LogBufferManager();
-    bmgr.open();
+    bmgr.open(); // TODO: get logfile[0] 
     
     // read header information from each file
     lfmgr.init(bmgr);
     
-    // TODO: initialize nextFillBSN in buffer manager
-    
     // indicate that Log is ready for use.
     isClosed = false;
+  }
+  
+  /**
+   * Registers a LogEventListener for log event notifications.
+   * 
+   * @param eventListener object to be notified of logger events.
+   */
+  public void setLogEventListener(LogEventListener eventListener)
+  {
+    lfmgr.setLogEventListener(eventListener);
   }
   
   /**
