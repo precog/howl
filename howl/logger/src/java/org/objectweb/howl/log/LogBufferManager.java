@@ -105,7 +105,7 @@ class LogBufferManager extends LogObject
   private long waitForBuffer = 0;
   
   /**
-   * number of times buffer was forced because it is full
+   * number of times buffer was forced because it is full.
    */
   private long noRoomInBuffer = 0;
   
@@ -116,39 +116,39 @@ class LogBufferManager extends LogObject
   private int growPoolCounter = 0;
 
   /**
-   * number of fatal errors in buffer management logic
+   * number of fatal errors in buffer management logic.
    */
   private int bufferManagerError = 0;
 
   /**
-   * next block sequence number for fillBuffer
+   * next block sequence number for fillBuffer.
    */
   int nextFillBSN = 1;
 
   /**
-   * next BSN to be written to log
+   * next BSN to be written to log.
    * <p>synchronized by forceManagerLock
    */
   int nextWriteBSN = 1;
   
   /**
-   * last BSN forced to log
+   * last BSN forced to log.
    * <p>synchronized by forceManagerLock
    */
   int lastForceBSN = 0;
   
   /**
-   * number of times channel.force() called
+   * number of times channel.force() called.
    */
   private long forceCount = 0;
   
   /**
-   * number of times channel.write() called
+   * number of times channel.write() called.
    */
   private long writeCount = 0;
   
   /**
-   * minimum number of buffers forced by channel.force()
+   * minimum number of buffers forced by channel.force().
    */
   private int minBuffersForced = Integer.MAX_VALUE;
   
@@ -289,13 +289,13 @@ class LogBufferManager extends LogObject
   {
     LogBuffer logBuffer = null;
     
-    // make sure buffers are written in ascending BSN sequence
     long startWait = System.currentTimeMillis();
-    synchronized(forceManagerLock)
-    {
+    synchronized(forceManagerLock)  // write buffers in ascending BSN sequence
+    { 
       totalWaitForWriteLockTime += elapsedTime(startWait);
       
       logBuffer = forceQueue[fqGet]; // logBuffer stuffed into forceQ
+      forceQueue[fqGet] = null;      // so someone using debug doesn't think it is in the queue 
       fqGet = (fqGet + 1) % forceQueue.length;
       
       // write the logBuffer to disk (hopefully non-blocking)
@@ -731,6 +731,16 @@ class LogBufferManager extends LogObject
   }
   
   /**
+   * Shutdown any threads that are started by this LogBufferManager instance.
+   */
+  void close()
+  {
+    // shutdown the flush manager thread
+    if (flushManager != null)
+      flushManager.interrupt();
+  }
+  
+  /**
    * perform initialization following reposition of LogFileManager.
    *
    * @param lfm LogFileManager used by the buffer manager to obtain
@@ -920,7 +930,8 @@ class LogBufferManager extends LogObject
    * helper thread to flush buffers that have threads waiting
    * longer than configured maximum.
    * 
-   * TODO Currently this thread is never shut down.
+   * <p>This thread is shut down by #close().
+   * @see #close()
    */
   class FlushManager extends Thread
   {
@@ -1031,6 +1042,7 @@ class LogBufferManager extends LogObject
         }
         catch (InterruptedException e)
         {
+          // we have been shut down
           return;
         }
         catch (IOException e)
