@@ -41,7 +41,7 @@ import org.objectweb.howl.journal.ReplayListener;
  * The log files are always named <file-name>.<n> where n is a positive integer.
  * When the log file rolls over n is allways incremented. 
  *  
- * @version $Revision: 1.2 $ $Date: 2004-01-27 22:56:15 $
+ * @version $Revision: 1.3 $ $Date: 2004-01-28 22:17:47 $
  */
 public class RollingLogHardener implements Hardener {
 
@@ -84,6 +84,20 @@ public class RollingLogHardener implements Hardener {
     // Holds the id that should be used for the next checkpoint.
     private long nextCheckpointID;
     private long lastClearedCheckPointID;
+
+    /**
+     * @return Returns the deleteOldJournals.
+     */
+    public boolean isDeleteOldJournals() {
+        return deleteOldJournals;
+    }
+
+    /**
+     * @param deleteOldJournals The deleteOldJournals to set.
+     */
+    public void setDeleteOldJournals(boolean deleteOldJournals) {
+        this.deleteOldJournals = deleteOldJournals;
+    }
 
     public RollingLogHardener() {
         logNameSuffixFormat = NumberFormat.getNumberInstance();
@@ -456,7 +470,7 @@ public class RollingLogHardener implements Hardener {
                 if (event.eventType == JournalEvent.CLEAR_CHECKPOINT_EVENT_TYPE) {
                     lastClearedCheckPointID = event.checkpointID;
                     // can we clear out old journals now??
-                    if (deleteOldJournals && offlineJournals.size() > 1) {
+                    if (deleteOldJournals && offlineJournals.size() > 0) {
                         sync();
                         deleteOldJournalLogs();
                         continue;
@@ -499,14 +513,12 @@ public class RollingLogHardener implements Hardener {
      * when we clear a checkpoint.
      */
     private void deleteOldJournalLogs() {
-        File lastFile = (File) offlineJournals.remove(offlineJournals.size() - 1);
         Iterator i = offlineJournals.iterator();
         while (i.hasNext()) {
             File f = (File) i.next();
             f.delete();
             i.remove();
         }
-        offlineJournals.add(lastFile);
     }
 
     // Notify the events what were in the buffer that they

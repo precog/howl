@@ -1,20 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <classpath>
-  <classpathentry kind="src" path="src/java">
-  </classpathentry>
-  <classpathentry kind="src" path="src/test">
-  </classpathentry>
-  <classpathentry kind="var" path="MAVEN_REPO/junit/jars/junit-3.8.1.jar">
-  </classpathentry>
-  <classpathentry kind="var" rootpath="JRE_SRCROOT" path="JRE_LIB" sourcepath="JRE_SRC">
-  </classpathentry>
-  <classpathentry kind="var" path="MAVEN_REPO/commons-logging/jars/commons-logging-1.0.3.jar">
-  </classpathentry>
-  <classpathentry kind="var" path="MAVEN_REPO/concurrent/jars/concurrent-1.3.2.jar">
-  </classpathentry>
-  <classpathentry kind="lib" path="target/test-classes">
-  </classpathentry>
-  <classpathentry kind="output" path="target/classes">
-  </classpathentry>
+    <classpathentry kind="src" path="src/java"/>
+    <classpathentry kind="src" path="src/test"/>
+    <classpathentry kind="var" path="MAVEN_REPO/junit/jars/junit-3.8.1.jar"/>
+    <classpathentry kind="var" path="JRE_LIB" sourcepath="JRE_SRC"/>
+    <classpathentry kind="var" path="MAVEN_REPO/commons-logging/jars/commons-logging-1.0.3.jar"/>
+    <classpathentry kind="var" path="MAVEN_REPO/concurrent/jars/concurrent-1.3.2.jar"/>
+    <classpathentry kind="output" path="target/classes"/>
 </classpath>
