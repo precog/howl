@@ -359,4 +359,24 @@ public class ConfigurationTest extends TestCase
     verifyConfiguration(cfg3);
   }
   
+  public void testLogFileMode()
+  throws LogException, Exception
+  {
+    cfg = new Configuration();
+    cfg.setLogFileMode("rw");
+    cfg.setLogFileMode("rwd");
+    try {
+      cfg.setLogFileMode("r");
+      fail(getName() + ": expected LogConfigurationException");
+    } catch (LogConfigurationException e) {
+      // ignore error
+    }
+    try {
+      cfg.setLogFileMode("RW");
+      fail(getName() + ": expected LogConfigurationException");
+    } catch (LogConfigurationException e) {
+      // ignore error
+    }
+  }
+  
 }
