@@ -110,7 +110,9 @@
         <pathelement path='${classes.dir}/howl-test.jar'/>
         <pathelement path='${classes.dir}/howl.jar'/>
       </classpath>
-      
+
+      <sysproperty key="basedir" value="${basedir}"/>
+        
       <formatter type='xml'/>
 
       <batchtest fork='yes' todir='${report.dir}'>

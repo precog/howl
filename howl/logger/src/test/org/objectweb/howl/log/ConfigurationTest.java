@@ -278,7 +278,8 @@ public class ConfigurationTest extends TestCase
     prop.setProperty("minBuffers", Integer.toString(cfg.getMinBuffers() + 1));
     
     // save the Properties object to a file
-    File file = new File("target/conf/testConstructFromFileLog.properties");
+      File baseDir = getBaseDirFile();
+    File file = new File(baseDir, "target/conf/testConstructFromFileLog.properties");
     prop.store(new FileOutputStream(file),"testConstructFromFile test properties");
     
     // construct a new Configuration using the test properties
@@ -296,8 +297,13 @@ public class ConfigurationTest extends TestCase
     
     
   }
-  
-  /**
+
+    private File getBaseDirFile() {
+        String baseDir = System.getProperty("basedir", ".");
+        return new File(baseDir);
+    }
+
+    /**
    * compare a Configuration object with <var> this.cfg </var>.
    * @param cfg a Configuration to be compared.
    */
@@ -383,8 +389,8 @@ public class ConfigurationTest extends TestCase
   public void testStore() throws Exception
   {
     cfg = new Configuration();
-
-    File file = new File("target/conf/" + getName() + ".properties");
+    File baseDir = getBaseDirFile();
+    File file = new File(baseDir, "target/conf/" + getName() + ".properties");
     cfg.store(new FileOutputStream(file));
   }
   
