@@ -93,7 +93,7 @@ public class Logger extends LogObject
   public Logger()
     throws IOException
   {
-    super(new Configuration());
+    this(new Configuration());
   }
   
   /**
@@ -106,6 +106,10 @@ public class Logger extends LogObject
     throws IOException
   {
     super(config);
+
+    lfmgr = new LogFileManager(config);
+    
+    bmgr = new LogBufferManager(config);
   }
   
   /**
@@ -254,10 +258,8 @@ public class Logger extends LogObject
     throws InvalidFileSetException, ClassNotFoundException,
            IOException, LogConfigurationException, InvalidLogBufferException, InterruptedException
   {
-    lfmgr = new LogFileManager(config);
     lfmgr.open();
     
-    bmgr = new LogBufferManager(config);
     bmgr.open(); 
     
     // read header information from each file
@@ -342,7 +344,7 @@ public class Logger extends LogObject
   {
     String name = this.getClass().getName();
     StringBuffer stats = new StringBuffer(
-        "\n<Logger  class='" + name + "'>" 
+        "<Logger  class='" + name + "'>" 
     );
     
     // TODO: append Logger specific stats
