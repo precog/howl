@@ -460,7 +460,7 @@ class LogBufferManager
     try {
       lfm.read(buffer, bsnFromMark(mark));
     } catch (IOException e) {
-      String msg = "Error reading " + buffer.lf.name + " @ position [" + buffer.lf.position + "]";
+      String msg = "Error reading " + buffer.lf.file + " @ position [" + buffer.lf.position + "]";
       listener.onError(new LogException(msg + e.toString()));
       return;
     } catch (InvalidLogBufferException e) {
@@ -832,18 +832,15 @@ class LogBufferManager
             if (buffer != null && buffer.shouldForce())
             {
               fillBuffer = null;
-            }
-            else
-              buffer = null;
-          }
-
-          if (buffer != null)
-          {
-            synchronized(bufferManagerLock)
-            {
               forceQueue[fqPut] = buffer;
               fqPut = (fqPut + 1) % forceQueue.length;
             }
+            else
+              buffer = null;
+          } // release bufferManagerLock before we issue a force.
+
+          if (buffer != null)
+          {
               force();
           }
 
