@@ -134,6 +134,24 @@ public class LogTest extends TestDriver
     }
   }
   
+  /**
+   * Verify that FileNotFoundException is processed
+   * correctly.
+   * 
+   * <p>In order to test FileNotFoundException
+   * it is necessary to devise a pathname that will fail
+   * on all platforms.  The technique used here is to
+   * create a file, then use the file as a directory
+   * name in cfg.setLogFileDir.  So far, all file
+   * systems reject the attempt to create a file
+   * subordinate to another file, so this technique
+   * seems to be platform neutral.
+   * 
+   * <p>The test fails if FileNotFoundException is
+   * not thrown by the logger.
+   * 
+   * @throws Exception
+   */
   public void testFileNotFoundException() throws Exception
   {
     // create an invalid "dir" 
