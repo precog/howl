@@ -35,6 +35,7 @@ package org.objectweb.howl.log.xa;
 import junit.framework.TestCase;
 import org.objectweb.howl.log.Configuration;
 import org.objectweb.howl.log.LogException;
+import org.objectweb.howl.log.Barrier;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -53,8 +54,8 @@ public class XALoggerTest extends TestCase
   Configuration cfg = null;
   
   Properties prop = null;
-  org.objectweb.howl.log.Barrier startBarrier = null;
-  org.objectweb.howl.log.Barrier stopBarrier = null;
+  final Barrier startBarrier = new Barrier();
+  final Barrier stopBarrier = new Barrier();
   
   int workers = 0;
   
@@ -149,8 +150,8 @@ public class XALoggerTest extends TestCase
     
     XAWorker[] xaWorker = new XAWorker[workers];
     
-    startBarrier = new org.objectweb.howl.log.Barrier(workers + 1);
-    stopBarrier = new org.objectweb.howl.log.Barrier(workers + 1);
+    startBarrier.setCount(workers + 1);
+    stopBarrier.setCount(workers + 1);
 
     for (int i = 0; i < workers; ++i)
     {
@@ -295,7 +296,7 @@ public class XALoggerTest extends TestCase
   /**
    * Test with automark FALSE so we can checkout the
    * log overflow processing.
-   * <p>Test uses a single delayed worker.
+   * <p>Test uses four delayed workers.
    * 
    * @throws LogException
    * @throws Exception
