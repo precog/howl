@@ -33,8 +33,13 @@
 package org.objectweb.howl.log.xa;
 
 import java.io.PrintStream;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+
+import junit.framework.Test;
+import junit.framework.TestSuite;
 
 import org.objectweb.howl.log.LogException;
 import org.objectweb.howl.log.LogRecord;
@@ -47,6 +52,7 @@ import org.objectweb.howl.log.TestDriver;
  * @author Michael Giroux
  */
 public class XALoggerTest extends TestDriver
+  implements java.util.Comparator
 {
   XALogger log = null;
   
@@ -206,7 +212,7 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testUnsupportedOpen() throws Exception
+  public void test_001_UnsupportedOpen() throws Exception
   {
     log = new XALogger(cfg);
     try {
@@ -228,7 +234,7 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testSingleThread() throws Exception
+  public void test_002_SingleThread() throws Exception
   {
     log.open(openListener);
     log.setAutoMark(true);
@@ -248,7 +254,7 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testAutoMarkTrue() throws Exception
+  public void test_003_AutoMarkTrue() throws Exception
   {
     log.open(openListener);
     log.setAutoMark(true);
@@ -270,7 +276,7 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testRMFailure() throws Exception
+  public void test_010_RMFailure() throws Exception
   {
     log.open(openListener);
     log.setAutoMark(false);
@@ -289,7 +295,7 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testAutoMarkFalseOneDelayedWorker() throws Exception
+  public void test_020_AutoMarkFalseOneDelayedWorker() throws Exception
   {
     log.open(openListener);
     log.setAutoMark(false);
@@ -304,7 +310,7 @@ public class XALoggerTest extends TestDriver
   /**
    * Display the activeTx table following open.
    */
-  public void testActiveTxDisplay() throws Exception
+  public void test_030_ActiveTxDisplay() throws Exception
   {
     log.open(openListener);
     assertNull("openListener.exception", openListener.exception);
@@ -313,31 +319,13 @@ public class XALoggerTest extends TestDriver
     log.close();
   }
   
-  /**
-   * Verify that number of records in the activeTx table
-   * after log.open() 
-   * is the same as the number of records in the activeTx 
-   * table after log.replay().
-   */
-  public void testReplayFromAutoMark() throws Exception
-  {
-    log.open(openListener);
-    assertNull("openListener.exception", openListener.exception);
-    
-    XLTReplayListener replayListener = new XLTReplayListener();
-    log.replay(replayListener);
-    assertNull("replayListener.exception", replayListener.exception);
-
-    assertEquals("activeTxUsed", openListener.getActiveTxUsed(), replayListener.getActiveTxUsed());
-    log.close();
-  }
   
   /**
    * Verify that the XACommittingTx entry that is recovered during replay
    * can be used to complete any open transactions.
    * @throws Exception
    */
-  public void testFinishIncompleteTx() throws Exception
+  public void test_040_FinishIncompleteTx() throws Exception
   {
     log.open(openListener);
     assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
@@ -361,6 +349,7 @@ public class XALoggerTest extends TestDriver
     assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
     log.close();
   }
+
   
   /**
    * Verify that the previous test actually wrote the XADONE record.
@@ -369,7 +358,7 @@ public class XALoggerTest extends TestDriver
    * 
    * @throws Exception
    */
-  public void testVerifyFinishIncompleteTx() throws Exception
+  public void test_050_VerifyFinishIncompleteTx() throws Exception
   {
     log.open(openListener);
     assertNull("openListener.exception", openListener.exception);
@@ -378,6 +367,108 @@ public class XALoggerTest extends TestDriver
       log.activeTxDisplay(); // show any unresolved entries in the log
     assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
     log.close();
+  }
+  
+  /**
+   * Verify that number of records in the activeTx table
+   * after log.open() 
+   * is the same as the number of records in the activeTx 
+   * table after log.replay().
+   */
+  public void test_060_ReplayFromAutoMark() throws Exception
+  {
+    log.open(openListener);
+    assertNull("openListener.exception", openListener.exception);
+    
+    XLTReplayListener replayListener = new XLTReplayListener();
+    log.replay(replayListener);
+    assertNull("replayListener.exception", replayListener.exception);
+
+    assertEquals("activeTxUsed", openListener.getActiveTxUsed(), replayListener.getActiveTxUsed());
+    log.close();
+  }
+  
+  /**
+   * Verify we can open the log with a null ReplayListener
+   * @throws Exception
+   */
+  public void test_061_OpenWithNullReplayListener() throws Exception
+  {
+    log.open(null);
+    log.close();
+  }
+  
+  /**
+   * Simulate a failed RM.
+   * <p>write a commit record to log, but do not write the corresponding done.
+   * This simulates an RM that never responds to the commit.
+   * The XACOMMIT record will (should) be in the log and discovered
+   * in the next test case.
+   * <p>This record will be moved several times during the course
+   * of subsequent tests until we finally run a test case
+   * that issues a call to putDone() for this record.
+   * 
+   * @throws LogException
+   * @throws Exception
+   */
+  public void test_070_RMFailure() throws Exception
+  {
+    log.open(openListener);
+    log.setAutoMark(false);
+
+    XAWorker w = (XAWorker)getWorker(XAWorker.class);
+    w.setWorkerIndex(FAILEDRM);
+    w.logCommit(1);
+    log.close();
+  }
+  
+  /**
+   * Verify that replayActiveTx() returns the same set of active tx records
+   * as we get from the open.
+   * 
+   * @throws Exception
+   */
+  public void test_080_ReplayActiveTx() throws Exception
+  {
+    log.open(openListener);
+    assertNull("openListener.exception", openListener.exception);
+    
+    XLTReplayListener replayListener = new XLTReplayListener();
+    log.replayActiveTx(replayListener);
+    log.close();
+
+    assertNull("replayListener.exception", replayListener.exception);
+    assertEquals("activeTxUsed", openListener.getActiveTxUsed(), replayListener.getActiveTxUsed());
+    assertEquals("replayListener.count", replayListener.getActiveTxUsed(), replayListener.count);
+    
+  }
+  /**
+   * Construct a TestSuite with tests ordered on test name.
+   * 
+   * <p>Tests that must be executed in a specified order
+   * should use a name convention that guarantees desired
+   * sort order.<br/>
+   * ex. test_010_name, test_020_name
+   * 
+   * @return an ordered test suite
+   */
+  public static Test suite()
+  {
+    Method[] methods = XALoggerTest.class.getMethods();
+    Arrays.sort(methods, new XALoggerTest(""));
+    TestSuite suite = new TestSuite();
+    for (int i=0; i<methods.length; ++i)
+    {
+      String name = methods[i].getName();
+      if (name.startsWith("test"))
+        suite.addTest(new XALoggerTest(name));
+    }
+    return suite;
+  }
+  
+  public int compare(Object a, Object b)
+  {
+    return ((Method)a).getName().compareTo(((Method)b).getName());
   }
   
 }
