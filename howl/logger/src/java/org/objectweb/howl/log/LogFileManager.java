@@ -272,9 +272,6 @@ class LogFileManager extends LogObject
   {
     super(config);
     
-    // retrieve configuration properties for this object
-    maxBlocksPerFile = config.getMaxBlocksPerFile();
-    
     // light up the event managemer thread
     eventManagerThread = new EventManager("LogFileManager.EventManager");
     eventManagerThread.setDaemon(true);  // so we can shut down while eventManagerThread is running
@@ -661,6 +658,9 @@ class LogFileManager extends LogObject
     throws FileNotFoundException, InvalidFileSetException
   {
     
+    // retrieve configuration properties for this object
+    maxBlocksPerFile = config.getMaxBlocksPerFile();
+    
     // make sure we have at least two log files
     int maxLogFiles = config.getMaxLogFiles();
     if (maxLogFiles < 2)
@@ -684,7 +684,7 @@ class LogFileManager extends LogObject
       File name = new File(logDir + "/" + logFileName + "_" + (i+1) + "." + logFileExt);
       try
       {
-        fileSet[i] = new LogFile(name).open();
+        fileSet[i] = new LogFile(name).open(config.getLogFileMode());
         if (!fileSet[i].newFile)
         {
           // we have an existing file.  Mak sure all the files
