@@ -263,6 +263,14 @@ class LogFileManager extends LogObject
    * @see org.objectweb.howl.log.LogEventListener#logOverflowNotification(long) 
    */
   private int overflowNotificationCount = 0;
+
+  /**
+   * Indicates that LogFileManager initialization is complete.
+   * <p>Prior to being fully initialized, the LogFileManager
+   * should not attempt to put records to the journal because
+   * the buffer manager may not be initialized properly.
+   */
+  private boolean initComplete = false; // BUG 300934
   
   /**
    * construct LogFileManager with Configuration supplied by caller.
@@ -271,6 +279,9 @@ class LogFileManager extends LogObject
   LogFileManager(Configuration config)
   {
     super(config);
+    
+    // remember that initialization is not yet complete
+    initComplete = false; // BUG 300934
     
     // light up the event managemer thread
     eventManagerThread = new EventManager("LogFileManager.EventManager");
@@ -593,14 +604,14 @@ class LogFileManager extends LogObject
     }
     
     // compute position of requested block
-    lf.position = 0;
+    long position = 0;
     if (bsn > 0) {
       int blocksToSkip = bsn - lf.firstBSN;
-      lf.position = blocksToSkip * lb.buffer.capacity();
+      position = blocksToSkip * lb.buffer.capacity();
     }
     
     // read the block
-    return lb.read(lf, lf.position).bsn;
+    return lb.read(lf, position).bsn;
   }
   
   /**
@@ -650,12 +661,15 @@ class LogFileManager extends LogObject
   }
 
   /**
-   * open pool of LogFile(s)
+   * open pool of LogFile(s).
    * 
    * @throws FileNotFoundException
+   * @throws LogConfigurationException
+   * @throws IOException
+   * @throws InvalidFileSetException
    */
   void open()
-    throws FileNotFoundException, InvalidFileSetException
+    throws LogConfigurationException, IOException, FileNotFoundException, InvalidFileSetException
   {
     
     // retrieve configuration properties for this object
@@ -664,7 +678,7 @@ class LogFileManager extends LogObject
     // make sure we have at least two log files
     int maxLogFiles = config.getMaxLogFiles();
     if (maxLogFiles < 2)
-      throw new InvalidFileSetException("Must configure two or more files");
+      throw new LogConfigurationException("Must configure two or more files");
     
     // get configuration information for log file names.
     String logDir = config.getLogFileDir();
@@ -687,7 +701,7 @@ class LogFileManager extends LogObject
         fileSet[i] = new LogFile(name).open(config.getLogFileMode());
         if (!fileSet[i].newFile)
         {
-          // we have an existing file.  Mak sure all the files
+          // we have an existing file.  Make sure all the files
           // prior to this one also existed
           // NOTE: this exception is only necessary if recovery requires
           //       use of the missing file.
@@ -700,11 +714,18 @@ class LogFileManager extends LogObject
       }
       catch (FileNotFoundException e)
       {
+        // FEATURE 300922; unlock any files that we did manage to open
+        while (--i >= 0)
+        {
+          fileSet[i].close();
+          fileSet[i] = null;
+        }
+
         // TODO: output log message 
         System.err.println(this.getClass().getName() + ".open(); " + e);
         throw e;
       }
-      
+     
     }
     currentLogFile = null;
     
@@ -868,6 +889,10 @@ class LogFileManager extends LogObject
       }
 
     }
+    
+    // indicate that initialization is complete
+    initComplete = true;  // BUG 300934
+    
     // TODO: validate information against state file.
     //       a. define a state file and update during close
     //       b. validate current log information against state file
@@ -933,6 +958,46 @@ class LogFileManager extends LogObject
     assert dataBuffer.capacity() == dataBuffer.position()
       : "byte[] fileHeader size error";
   }
+
+  /**
+   * Write a CLOSE record and shut down the buffer manager
+   * if we have one.
+   * <p>This routine was originally inline in close().  It
+   * was refactored into a separate method to improve
+   * readability of close().
+   * 
+   * @throws InterruptedException
+   * @throws IOException
+   */
+  void closeBufferManager() throws InterruptedException, IOException
+  {
+    // Wait for all application data to be flushed to disk
+    bmgr.flushAll();
+    
+    // save current configuration details to the log
+    byte[][] closeData = new byte[1][2];
+    ByteBuffer closeDataBuffer = ByteBuffer.wrap(closeData[0]);
+    closeDataBuffer.clear();
+    // TODO: define content of closeData record 
+    closeDataBuffer.put(crlf);
+
+    try {
+      bmgr.put(LogRecordType.CLOSE, closeData, false);
+    } catch (LogRecordSizeException e) {
+      // will never happen but use assert to catch during development
+      assert false : "Unhandled LogRecordSizeException" + e;
+    } catch (LogFileOverflowException e) {
+      // ignore -- we will discover this the next time we open the logs
+      // TODO: write message to system log
+    }
+    
+    // Wait for logger information to flush to disk
+    bmgr.flushAll();
+    
+    // Allow buffer manager to shut down any helper threads
+    bmgr.close();
+    
+  }
   
   /**
    * Gracefully close the log files.
@@ -954,34 +1019,13 @@ class LogFileManager extends LogObject
     boolean interrupted = false;
     InterruptedException exception = null;
     
-    // Wait for all application data to be flushed to disk
-    bmgr.flushAll();
-    
-    // save current configuration details to the log
-    byte[][] closeData = new byte[1][2];
-    ByteBuffer closeDataBuffer = ByteBuffer.wrap(closeData[0]);
-    closeDataBuffer.clear();
-    // TODO: define content of closeData record 
-    closeDataBuffer.put(crlf);
-
     try {
-      bmgr.put(LogRecordType.CLOSE, closeData, false);
-    } catch (LogRecordSizeException e) {
-      // will never happen but use assert to catch during development
-      assert false : "Unhandled LogRecordSizeException" + e;
-    } catch (LogFileOverflowException e) {
-      // ignore -- we will discover this the next time we open the logs
-      // TODO: write message to system log
+      // BUG 300934 dont close Buffer Manager if initialization is not complete
+      if (initComplete) closeBufferManager(); // BUG 300934
     } catch (InterruptedException e) {
       interrupted = true;  // remember and throw it on the way out.
       exception = e;
     }
-    
-    // Wait for logger information to flush to disk
-    bmgr.flushAll();
-    
-    // Allow buffer manager to shut down any helper threads
-    bmgr.close();
     
     // shut down the event manager thread before we close the files
     if (eventManagerThread != null)
@@ -990,7 +1034,8 @@ class LogFileManager extends LogObject
     // close the log files
     for (int i=0; i < fileSet.length; ++i)
     {
-      fileSet[i].close();
+      if (fileSet[i] != null)
+        fileSet[i].close();
     }
     
     if (interrupted) throw exception;
