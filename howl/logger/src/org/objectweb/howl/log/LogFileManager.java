@@ -337,7 +337,7 @@ class LogFileManager
           // indicate that the new file must be rewound before this buffer is written
           lb.rewind = true;
 
-          short type = LogRecordType.CTRL | LogRecordType.FILE_HEADER;
+          short type = LogRecordType.FILE_HEADER;
           
           fileHeaderBB.clear();
           fileHeaderBB.put(automark ? autoMarkOn : autoMarkOff);
@@ -358,7 +358,7 @@ class LogFileManager
         else
         {
         	// initialize new block with a MARKKEY control record
-        	short type = LogRecordType.CTRL | LogRecordType.MARKKEY;
+        	short type = LogRecordType.MARKKEY;
 
           setMarkData(markRecordBB);
           assert markRecord.length == markRecordBB.position()
@@ -427,7 +427,7 @@ class LogFileManager
     byte[] markData = new byte[markRecord.length];
     ByteBuffer markDataBuffer = ByteBuffer.wrap(markData);
 
-    short type = LogRecordType.CTRL | LogRecordType.MARKKEY;
+    short type = LogRecordType.MARKKEY;
     setMarkData(markDataBuffer);
     
     long markKey = 0L;
@@ -711,7 +711,7 @@ class LogFileManager
       lb.read(lf, fpos-blockSize);
       LogRecord record = new LogRecord(lb.buffer.capacity());
       ByteBuffer dataBuffer = record.dataBuffer;
-      short marktype = LogRecordType.CTRL | LogRecordType.MARKKEY;
+      short marktype = LogRecordType.MARKKEY;
       while (!record.get(lb).isEOB()) {
         if (record.type == marktype) {
           dataBuffer.clear();
@@ -732,7 +732,7 @@ class LogFileManager
     // TODO: move code so it only gets executed for writeable logs 
     // Write a RESTART record for replay
     if (false) {
-      short type = LogRecordType.CTRL | LogRecordType.RESTART;
+      short type = LogRecordType.RESTART;
       try {
         bmgr.put(type, new byte[0], false);
       } catch (InterruptedException e) {
@@ -768,7 +768,7 @@ class LogFileManager
     assert fh != null : "LogRecord reference [fh] is null";
 
     fh.get(lb);
-    if (fh.type != (LogRecordType.CTRL | LogRecordType.FILE_HEADER) ||
+    if (fh.type != LogRecordType.FILE_HEADER ||
         fh.length != fileHeader.length)
     {
       throw new InvalidLogBufferException("HEADER_TYPE: " + Integer.toHexString(fh.type));
@@ -838,9 +838,8 @@ class LogFileManager
     // TODO: define content of closeData record 
     closeDataBuffer.put(crlf);
 
-    short type = LogRecordType.CTRL | LogRecordType.CLOSE;
     try {
-      bmgr.put(type, closeData, false);
+      bmgr.put(LogRecordType.CLOSE, closeData, false);
     } catch (LogRecordSizeException e) {
       // will never happen but use assert to catch during development
       assert e == null : "Unhandled LogRecordSizeException" + e;

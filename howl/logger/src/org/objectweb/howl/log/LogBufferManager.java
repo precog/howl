@@ -469,7 +469,7 @@ class LogBufferManager
 
     // get log file containing the requested mark
     if (buffer.bsn == -1) {
-      record.type = LogRecordType.CTRL | LogRecordType.END_OF_LOG;
+      record.type = LogRecordType.END_OF_LOG;
       listener.onRecord(record);
       return;
     }
@@ -532,7 +532,7 @@ class LogBufferManager
         
         // return end of log indicator
         if (buffer.bsn == -1) {
-          record.type = LogRecordType.CTRL | LogRecordType.END_OF_LOG;
+          record.type = LogRecordType.END_OF_LOG;
           listener.onRecord(record);
           return;
         }

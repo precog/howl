@@ -33,7 +33,7 @@ public interface LogRecordType
   /**
    * Header records generated at start of every log file.
    */
-  static final short FILE_HEADER = 0x0800;
+  static final short FILE_HEADER = CTRL | 0x0800;
   
   /**
    * Log records containing mark data.
@@ -42,18 +42,18 @@ public interface LogRecordType
    * current automark mode (true or false) and
    * the active mark.
    */
-  static final short MARKKEY  = 0x0400;
+  static final short MARKKEY  = CTRL | 0x0400;
   
   /**
    * recorded by Logger to signal a clean close on the log.
    */
-  static final short CLOSE = 0x0200;
+  static final short CLOSE = CTRL | 0x0200;
   
   /**
    * recorded by Logger to mark first block following a 
    * restart of the Logger.
    */
-  static final short RESTART = 0x0100;
+  static final short RESTART = CTRL | 0x0100;
   
   /**
    * Type returned by get() methods to signal end of buffer.
@@ -63,7 +63,7 @@ public interface LogRecordType
    * record type when the ByteBuffer.position() is at or beyond
    * the used bytes for the buffer.
    */
-  static final short EOB = 0xE0B;
+  static final short EOB = CTRL | 0xE0B;
   
   /**
    * Type indicating that end of log has been reached.
@@ -71,6 +71,6 @@ public interface LogRecordType
    * <p>signals ReplayListener that no more records will
    * be delivered.
    */
-  static final short END_OF_LOG = 0xE0F;
+  static final short END_OF_LOG = CTRL | 0xE0F;
   
 }

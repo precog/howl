@@ -77,7 +77,7 @@ public final class LogRecord
    */
   public boolean isEOB()
   {
-    return (type == (LogRecordType.CTRL | LogRecordType.EOB));
+    return (type == LogRecordType.EOB);
   }
   
   /**
@@ -156,7 +156,7 @@ public final class LogRecord
     else
     {
       // no data left in this buffer
-      type = LogRecordType.CTRL | LogRecordType.EOB;
+      type = LogRecordType.EOB;
       
       // set key to first record in next block 
       key = ((long) (lb.bsn + 1) << 24); 
