@@ -74,7 +74,7 @@ public class XALogRecord extends LogRecord {
    * 
    * @param tx The XACommittingTx to set.
    */
-  public void setTx(XACommittingTx tx) {
+  void setTx(XACommittingTx tx) {
     this.tx = tx;
   }
   
