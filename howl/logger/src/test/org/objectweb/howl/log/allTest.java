@@ -47,5 +47,6 @@ public class allTest extends TestCase
   public static void main(String[] args) {
     junit.textui.TestRunner.run(ConfigurationTest.class);
     junit.textui.TestRunner.run(XALoggerTest.class);
+    junit.textui.TestRunner.run(LogTest.class);
   }
 }
