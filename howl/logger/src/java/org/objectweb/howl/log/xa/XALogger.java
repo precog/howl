@@ -615,6 +615,18 @@ public class XALogger extends Logger
         //       cause this thread to wait in onpWait().
         txKey = put(LogRecordType.XACOMMIT, tx.getRecord(), false);
         
+        // during replay there is a slight chance that the
+        // the XACOMMIT record will be moved and recorded to the
+        // log, but the system fails before the new mark is written.
+        // In this case, replay will see two copies of the same
+        // XACOMMIT record.
+        // We write an XACOMMITMOVED control record so that replay can
+        // remove the original entry from the activeTx table if it 
+        // happens to be seen twice.
+        // The record data contains the log key of the original XACOMMIT
+        // record.
+        put(LogRecordType.XACOMMITMOVED, tx.logKeyData, false);
+        
         // keep track of the number of records moved.
         ++movedRecordCount;
         
@@ -775,6 +787,23 @@ public class XALogger extends Logger
   }
   
   /**
+   * displays entries in the activeTx table.
+   * <p>useful for debug.
+   */
+  public void activeTxDisplay()
+  {
+    for (int i=0; i < activeTx.length; ++i)
+    {
+      if (activeTx[i] == null) continue;
+      synchronized(activeTx)
+      {
+        XACommittingTx tx = activeTx[i];
+        System.out.println("activeTx[" + i + "] key=" + tx.getLogKey());
+      }
+    }
+  }
+  
+  /**
    * private class used by XALogger to replay the log.
    * 
    * <p>As log records are replayed through onRecord method,
@@ -865,6 +894,15 @@ public class XALogger extends Logger
           tmListener.onRecord(lr);
           break;
           
+        /*
+         * Processing for both XACOMMITMOVED and XADONE are
+         * the same.  We remove the corresponding XACOMMIT
+         * record from the activeTx table.
+         * 
+         * Neither record is passed on to the TM. 
+         */  
+        case LogRecordType.XACOMMITMOVED:
+          tx = null; // breakpoint for XACOMMITMOVED record processing
         case LogRecordType.XADONE:
           if (b.getShort() != 8)
             throw new IllegalArgumentException();
@@ -873,14 +911,13 @@ public class XALogger extends Logger
           long xacommitKey = b.getLong();
           assert b.remaining() == 0 : "Unexpected data in XADONE record";
           
-          tx = (XACommittingTx)activeTxHashMap.remove(new Long(xacommitKey));
-          
           /*
            * If the XACOMMIT record was recorded to a different file
            * it is possible we will not see the XACOMMIT, but we
            * may see the XADONE.  This is not an error, so just
            * ignore this XADONE if it occurs. 
            */
+          tx = (XACommittingTx)activeTxHashMap.remove(new Long(xacommitKey));
           if (tx == null) break;
           
           // remove this entry from the activeTx table
