@@ -39,7 +39,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 
 import junit.framework.TestCase;
@@ -152,6 +151,31 @@ public class TestDriver extends TestCase {
     String testName = getName();
     File outFile = new File(reportDir + testName + ".xml");
     out = new PrintStream(new FileOutputStream(outFile));
+    
+  }
+  
+  /**
+   * Delete log files for tests that verify behaviour
+   * against newly created files.
+   */
+  protected void deleteLogFiles()
+  {
+    String logDir = cfg.getLogFileDir();
+    File dir = new File(logDir);
+    File[] logs = dir.listFiles();
+    
+    String logFileName = cfg.getLogFileName();
+    String logFileExt = cfg.getLogFileExt();
+    
+    // file name pattern for current test
+    String pattern = "^" + logFileName + "_" + "\\d+\\." + logFileExt;
+
+    for (int i=0; i<logs.length; ++i)
+    {
+      File f = logs[i];
+      if (f.getName().matches(pattern))
+        f.delete();
+    }
   }
   
   protected void saveStats()
@@ -195,7 +219,7 @@ public class TestDriver extends TestCase {
    */
   protected void tearDown() throws Exception {
     super.tearDown();
-    
+    log.close();
   }
 
   public TestDriver(String name) {
@@ -208,26 +232,11 @@ public class TestDriver extends TestCase {
    * @param workerClass Class object representing the type of worker to be created.
    * @return requested worker class instance
    */
-  protected TestWorker getWorker(Class workerClass) throws ClassNotFoundException
+  protected TestWorker getWorker(Class workerClass) throws Exception
   {
-    TestWorker worker = null;
     Class cls = this.getClass().getClassLoader().loadClass(workerClass.getName());
-    try {
-      Constructor ctor = cls.getDeclaredConstructor(new Class[] { TestDriver.class } );
-      worker = (TestWorker)ctor.newInstance(new Object[] {this});
-    } catch (InstantiationException e) {
-      throw new ClassNotFoundException(e.toString());
-    } catch (IllegalAccessException e) {
-      throw new ClassNotFoundException(e.toString());
-    } catch (NoSuchMethodException e) {
-      throw new ClassNotFoundException(e.toString());
-    } catch (IllegalArgumentException e) {
-      throw new ClassNotFoundException(e.toString());
-    } catch (InvocationTargetException e) {
-      throw new ClassNotFoundException(e.toString());
-    }
-    
-    return worker; 
+    Constructor ctor = cls.getDeclaredConstructor(new Class[] { TestDriver.class } );
+    return (TestWorker)ctor.newInstance(new Object[] {this});
   }
   
   /**

@@ -41,6 +41,7 @@ class TestLogReader implements ReplayListener
   long recordCount = 0;
   long previousKey = 0;
   boolean done = false;
+  Exception exception = null;
   
   public void onRecord(LogRecord lr)
   {
@@ -61,7 +62,7 @@ class TestLogReader implements ReplayListener
   }
   public void onError(LogException e)
   {
-    e.printStackTrace();
+    exception = e;
   }
   
   public LogRecord getLogRecord()
