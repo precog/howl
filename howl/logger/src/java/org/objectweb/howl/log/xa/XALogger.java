@@ -70,10 +70,10 @@ public class XALogger extends Logger
    * overhead of managing the linked list for every
    * log record.   
    */
-  XATransaction[] activeTx = null;
+  XACommittingTx[] activeTx = null;
   
   /**
-   * array of available XATransaction objects.
+   * array of available XACommittingTx objects.
    * <p>Each entry in the array is associated with 
    * an entry in activeTx[].
    * <ul>
@@ -82,7 +82,7 @@ public class XALogger extends Logger
    * <li>The activeTx and availableTx arrays are grown as needed.</li>
    * </ul>
    */
-  XATransaction[] availableTx = null;
+  XACommittingTx[] availableTx = null;
   
   /**
    * index into availableTx[] used to remove an
@@ -151,14 +151,14 @@ public class XALogger extends Logger
   private void growActiveTxArray()
   {
     // allocate new arrays
-    XATransaction[] newActiveTx    = new XATransaction[activeTx.length + 100];
-    XATransaction[] newAvailableTx = new XATransaction[activeTx.length + 100];
+    XACommittingTx[] newActiveTx    = new XACommittingTx[activeTx.length + 100];
+    XACommittingTx[] newAvailableTx = new XACommittingTx[activeTx.length + 100];
 
     // initialize new elements
     for (int i = activeTx.length; i < newActiveTx.length; ++ i)
     {
       newActiveTx[i] = null;
-      newAvailableTx[i] = new XATransaction(i);
+      newAvailableTx[i] = new XACommittingTx(i);
     }
     
     // calling thread already holds the lock, so this is really not necessary
@@ -189,16 +189,16 @@ public class XALogger extends Logger
   private void init()
   {
     // allocate a table of active transaction objects
-    activeTx = new XATransaction[100];
+    activeTx = new XACommittingTx[100];
     for (int i=0; i < 100; ++i)
       activeTx[i] = null;
     
     // allocate and initialize the table of indexes
     // for available entries in activeTx.
     // initially, all entries are available.
-    availableTx = new XATransaction[100];
+    availableTx = new XACommittingTx[100];
     for (int i=0; i < 100; ++i)
-      availableTx[i] = new XATransaction(i);
+      availableTx[i] = new XACommittingTx(i);
     
     // register the event listener
     super.setLogEventListener(this);
@@ -232,7 +232,7 @@ public class XALogger extends Logger
    * Write a begin COMMIT record to the log.
    * <p>Call blocks until the data is forced to disk.
    * 
-   * @param tx Object that implements XATransaction interface.
+   * @param tx Object that implements XACommittingTx interface.
    * 
    * @return log key associated with the COMMIT record
    * 
@@ -242,10 +242,10 @@ public class XALogger extends Logger
    * @throws LogRecordSizeException
    * @throws LogClosedException
    */
-  public XATransaction putCommit(byte[][] record)
+  public XACommittingTx putCommit(byte[][] record)
   throws LogClosedException, LogRecordSizeException, LogFileOverflowException, InterruptedException, IOException
   {
-    XATransaction tx = null;
+    XACommittingTx tx = null;
     long key = 0L;
     long overflowFence = 0L;
     
@@ -281,7 +281,7 @@ public class XALogger extends Logger
       availableTx[atxGet] = null;
       atxGet = (atxGet + 1) % activeTx.length;
 
-      // update XATransaction with values for this COMMIT
+      // update XACommittingTx with values for this COMMIT
       tx.setLogKey(key);
       tx.setRecord(record);
       tx.setDone(false);
@@ -301,10 +301,10 @@ public class XALogger extends Logger
   
   /**
    * Write a DONE record to the log.
-   * <p>Remove XATransaction object from the list of
+   * <p>Remove XACommittingTx object from the list of
    * active transactions.
    * 
-   * @param tx the XATransaction that was returned
+   * @param tx the XACommittingTx that was returned
    * by the putCommit() routine for this transaction.
    * 
    * @throws IOException
@@ -314,7 +314,7 @@ public class XALogger extends Logger
    * @throws LogClosedException
    * 
    */
-  public long putDone(byte[][] record, XATransaction tx)
+  public long putDone(byte[][] record, XACommittingTx tx)
   throws LogClosedException, LogRecordSizeException, LogFileOverflowException, 
     InterruptedException, IOException
   {
@@ -361,7 +361,7 @@ public class XALogger extends Logger
   /**
    * called by Logger when log file is about to overflow.
    * 
-   * <p>copies XATransaction records forward to allow reuse
+   * <p>copies XACommittingTx records forward to allow reuse
    * of older log file space.
    * 
    * <p>calls Logger.mark() to set the new active mark
@@ -383,7 +383,7 @@ public class XALogger extends Logger
   public void logOverflowNotification(long overflowFence)
   {
     long newMark = Long.MAX_VALUE;
-    XATransaction tx = null;
+    XACommittingTx tx = null;
     long txKey = 0L;
     
     // increment number of times we are notified
