@@ -728,7 +728,8 @@ public class XALogger extends Logger
   /**
    * Not supported for XALogger.
    * <p>XALogger must rebuild the activeTx table prior to allowing
-   * any calls to put() methods.
+   * any calls to put() methods.  To enforce this, callers must
+   * use the {@link #open(ReplayListener)} method.
    * 
    * @throws UnsupportedOperationException
    */
@@ -738,13 +739,17 @@ public class XALogger extends Logger
   }
   
   /**
-   * calls super.open() then 
+   * calls super.open() to perform standard open functionality then
    * replays the log to rebuild the activeTx table.
    * <p>Sets replayNeeded flag to block calls to put() methods
-   * until the replay is complete. 
+   * until the replay is complete. (This may be unnecessary because
+   * the replay blocks until it is complete, but we do this to
+   * prevent the TM from trying to make log entries on another
+   * thread before the log is fully open.) 
    */
   public void open(ReplayListener listener)
-  throws InvalidFileSetException, LogConfigurationException, InvalidLogBufferException,
+  throws InvalidFileSetException, LogConfigurationException,
+         InvalidLogBufferException, LogClosedException,
          ClassNotFoundException, IOException, InterruptedException
   {
     this.replayNeeded = true; // block put() methods until replay completes
@@ -755,14 +760,17 @@ public class XALogger extends Logger
     try {
       super.replay(xaListener, getActiveMark(), true); // replay CTRL records also
     } catch (InvalidLogKeyException e) {
-      // should not happen -- use assert to catch during development
-      assert e == null : "Unhandled InvalidLogKeyException" + e.toString();
+      LogClosedException lce = new LogClosedException();
+      lce.initCause(e);
+      throw lce;
     }
     
-    synchronized(xaListener)
+    // something very wrong if we come back from replay and we have not cleared the flag.
+    if (replayNeeded)
     {
-      while(replayNeeded)
-        xaListener.wait();
+      LogClosedException lce = new LogClosedException();
+      lce.initCause(xaListener.replayException);
+      throw lce;
     }
   }
   
@@ -785,6 +793,9 @@ public class XALogger extends Logger
     LogRecord lr = new XALogRecord(80);
     
     final XALogger parent = XALogger.this;
+    
+    // set by onError() 
+    LogException replayException = null;
     
     /**
      * ReplayListener registered by TM that instantiated
@@ -893,9 +904,12 @@ public class XALogger extends Logger
     
     public void onError(LogException e)
     {
-      // TODO handle error during replay
-
+      System.err.println("onError: " + e);
+      replayException = e;
       // QUESTION - mark log unusable?
+      
+      // pass the error onto the TM
+      tmListener.onError(e);
     }
 
     public LogRecord getLogRecord()
