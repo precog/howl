@@ -569,11 +569,17 @@ class LogBufferManager extends LogObject
   /**
    * Replays log from requested mark forward to end of log.
    * 
+   * <p>Blocks caller until replay completes due to end of log, 
+   * or an exception is passed to listener.onError().
+   * 
    * @param listener ReplayListener to receive notifications for each log record.
    * @param mark log key for the first record to be replayed.
    * <p>If mark is zero then the entire active log is replayed.
    * @param replayCtrlRecords indicates whether to return control records.
    * <p>used by utility routines such as CopyLog.
+   * 
+   * @throws InvalidLogKeyException
+   * if the requested key is not found in the log.
    * 
    * @see org.objectweb.howl.log.Logger#replay(ReplayListener, long)
    */
@@ -616,7 +622,7 @@ class LogBufferManager extends LogObject
     
     // verify we have the desired block
     // if requested mark == 0 then we start with the oldest block available
-    long markBSN = (mark == 0) ? buffer.bsn : bsnFromMark(mark);
+    int markBSN = (mark == 0) ? buffer.bsn : bsnFromMark(mark);
     if (markBSN != buffer.bsn) {
       InvalidLogBufferException lbe = new InvalidLogBufferException(
           "block read [" + buffer.bsn + "] not block requested: " + markBSN);
@@ -634,7 +640,9 @@ class LogBufferManager extends LogObject
      */
     try {
       record.get(buffer);
-      if (mark > 0) {
+      // BUG 300720 - active mark might be set to offset zero
+      //              by XALogger.logOverflowNotification
+      if (mark > 0 && mark > markFromBsn(markBSN,0)) {
         while(record.key < mark) {
           record.get(buffer);
         }
