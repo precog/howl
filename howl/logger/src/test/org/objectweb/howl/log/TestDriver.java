@@ -196,9 +196,8 @@ public class TestDriver extends TestCase {
     {
       TestWorker w = getWorker(workerClass);
       worker[i] = w;
-      if (delayedWorkers >0) 
+      if (i < delayedWorkers) 
       {
-        --delayedWorkers;
         w.setDelayBeforeDone(delayBeforeDone);
       }
       w.setWorkerIndex(i);   
@@ -257,6 +256,11 @@ public class TestDriver extends TestCase {
         "'>Number of transactions per second</txPerSecond>" +
         "\n  <avgLatency value='" + avgLatency +
         "'>Average Latency</avgLatency>" +
+        "\n  <workers value='" + workers +
+        "'>Number of worker threads</workers>" +
+        "\n  <delayedWorkers value='" + delayedWorkers + 
+        "'>Number of worker threads using delay between COMMIT and DONE" +
+        "</delayedWorkers>" +
         "\n</TestMetrics>"
         );
     
