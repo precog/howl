@@ -26,7 +26,7 @@ abstract class LogBuffer
    * 
    * <p>Actual use of <i> index </i> is determined by the buffer manager implementation.
    */
-  short index = 0;
+  short index = -1;
 
   /**
    * currentTimeMillis that buffer was initialized.
@@ -170,7 +170,7 @@ abstract class LogBuffer
 
     // TODO: consider using Properties obtained from LogBufferManager for additional configuration
   }
-
+  
   /**
    * returns the number of threads currently waiting for
    * the buffer to be forced to disk.
