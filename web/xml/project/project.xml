@@ -33,6 +33,8 @@
       <menuitem><a href="contribute.html">How to Contribute</a></menuitem>
       <menuitem><a href="http://forge.objectweb.org/scm/?group_id=92">CVS Repository</a></menuitem>
       <menuitem><a href="http://forge.objectweb.org/projects/howl/">ObjectWeb Forge Site</a></menuitem>
+      <menuitem><a href="http://forge.objectweb.org/tracker/?atid=100092&amp;group_id=92&amp;func=browse">Bug Tracker</a></menuitem>
+      <menuitem><a href="http://forge.objectweb.org/tracker/?atid=350092&amp;group_id=92&amp;func=browse">Feature Requests </a></menuitem>
     </menu>
 
     <menu>
