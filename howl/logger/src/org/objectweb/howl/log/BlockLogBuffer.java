@@ -70,7 +70,10 @@ class BlockLogBuffer extends LogBuffer
 
   /**
    * Size of the header for each data record in the block.
-   * <p>Record header is an short containing the length of data.
+   * 
+   * <p>Record header format:
+   * short record type                [2] see LogRecordType
+   * short record length of user data [2]
    */
   private int recordHeaderSize = 4;
 
@@ -102,6 +105,11 @@ class BlockLogBuffer extends LogBuffer
    * Subclass defines <i> doWrite </i> to be false to eliminate IO.
    */
   boolean doWrite = true;
+
+  /**
+   * maximum size of user data record
+   */
+  private int maxRecordSize;
   
   /**
    * default constructor calls super class constructor.
@@ -153,12 +161,17 @@ class BlockLogBuffer extends LogBuffer
    *
    * @return 0 if no room in buffer for record.
    */
-  long put(short type, byte[] data, boolean sync)
+  long put(short type, byte[] data, boolean sync) throws LogRecordSizeException
   {
     long logKey = 0L;
+    int recordSize = recordHeaderSize + data.length;
+    
     synchronized(buffer)
     {
-      if ((recordHeaderSize + data.length) <= buffer.remaining()) 
+      if (recordSize > maxRecordSize)
+        throw new LogRecordSizeException(maxRecordSize);
+      
+      if (recordSize <= buffer.remaining()) 
       {
         // first 8 bits available to Logger -- possibly to carry file rotation number
         logKey = ((long)bsn << 24) | buffer.position();
@@ -200,7 +213,9 @@ class BlockLogBuffer extends LogBuffer
     // EOB\n
     try {
       buffer.putInt(0x454F420A); // "EOB\n".getBytes()
-    } catch (BufferOverflowException e) { /* ignore it */ }
+    } catch (BufferOverflowException e) {
+    	/* ignore it -- we do not care if it does not get written */
+    }
     
     
     // update checksum -- hashCode
@@ -273,14 +288,22 @@ class BlockLogBuffer extends LogBuffer
     buffer.putLong( tod );
     buffer.put(CRLF);
     
-    // reserve room for buffer footer, and one record header
-    buffer.limit(bufferSize - bufferFooterSize - recordHeaderSize);
+    // reserve room for buffer footer
+    buffer.limit(bufferSize - bufferFooterSize);
     
-    // obtain LogFile from the LogFileManager
-    // LogFileManager will put a header record into this buffer
-    // so we must make this call after all other initialization is complete.
+    // set maxRecordSize now so LogFileManager can put records
+    maxRecordSize = buffer.remaining();
+
+    /*
+     * obtain LogFile from the LogFileManager
+     * LogFileManager will put a header record into this buffer
+     * so we must make this call after all other initialization is complete.
+     */
     lf = lfm.getLogFile(this);
     assert lf != null: "LogFileManager returned null LogFile pointer";
+    
+    // set maxRecordSize again for user records
+    maxRecordSize = buffer.remaining();
 
     return this;
   }

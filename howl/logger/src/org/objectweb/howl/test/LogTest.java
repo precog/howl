@@ -12,7 +12,11 @@ import java.io.File;
 import java.util.Date;
 
 import org.objectweb.howl.log.LogClosedException;
+import org.objectweb.howl.log.LogConfigurationException;
 import org.objectweb.howl.log.LogException;
+import org.objectweb.howl.log.LogRecord;
+import org.objectweb.howl.log.LogRecordType;
+import org.objectweb.howl.log.ReplayListener;
 
 import org.objectweb.howl.log.Logger;
 
@@ -112,11 +116,55 @@ public class LogTest
       System.err.println("End test: elapsed time " + (endTime - beginTime) + " ms");
   }
 
-  public void testXAJournalValidate() throws Exception {
-    System.err.println("Begin Journal Validation");
-//    XAJournalReader reader = new XAJournalReader();
-//    reader.open(journalFile);
+  class LogReader implements ReplayListener
+  {
+    LogRecord logrec = new LogRecord(MESSAGE_SIZE);
+    long recordCount = 0;
+    boolean done = false;
+    
+    public void onRecord(LogRecord lr)
+    {
+      if (lr.type == (LogRecordType.CTRL | LogRecordType.END_OF_LOG))
+      {
+        synchronized(this) {
+          done = true;
+          notify();
+        }
+      }
+      else
+        ++recordCount;
+    }
+    public void onError(LogException e)
+    {
+      System.err.println(e);
+      e.printStackTrace();
+    }
+    
+    public LogRecord getLogRecord()
+    {
+      return logrec;
+    }
+    
+    void run() throws InterruptedException, LogConfigurationException
+    {
+      log.replay(this);
+      
+      synchronized (this)
+      {
+        while(!done)
+        {
+          wait();
+        }
+      }
+    }
+    
+  }
 
+  public void testXAJournalValidate() throws Exception, LogException {
+    System.err.println("Begin Journal Validation");
+    LogReader reader = new LogReader();
+    reader.run();
+    System.err.println("End Journal Validation; total records processed: " + reader.recordCount);
   }
 
   final Object mutex = new Object();

@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.RandomAccessFile;
 
 import java.nio.channels.FileChannel;
-import java.nio.ByteBuffer;
 
 /**
  * An individual file within a set of log files managed by a Logger.
@@ -101,6 +100,9 @@ class LogFile
   {
     // remember whether the file existed or not
     newFile = !name.exists();
+    
+    // if it already existed, but length is zero, then it is still a new file
+    if (!newFile) newFile = name.length() == 0;
     
     channel = new RandomAccessFile(name, "rw").getChannel();
     return this;

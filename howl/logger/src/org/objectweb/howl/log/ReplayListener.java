@@ -34,12 +34,11 @@ public interface ReplayListener
   /**
    * Called by Logger when ReplayListener is registered for
    * replay.
-   * <p>Logger calls getLogRecord to obtain a LogRecord instance
-   * to be used to process the next logical record from the log.
+   * <p>The Logger calls getLogRecord to obtain a LogRecord instance
+   * to be used to process log records.
    *  
-   * <p>Implementations that wish to reduce garbage collection overhead
-   * should implement this method so that it returns a singleton
-   * instance.
+   * <p>The same LogRecord instance is used to return all
+   * log records to the ReplayListener.
    * 
    * @return LogRecord object to be used when calling onRecord()
    */

@@ -166,6 +166,12 @@ class LogBufferManager
    * <p>configured by -Dhowl.LogBuffer.checksum
    */
   boolean doChecksum = true;
+
+  /**
+   * maximum number of threads waiting in bsnManagerLock for
+   * bsn to increment to the bsn of the buffer.
+   */
+  private short maxWaitingForBSN;
   
   /**
    * forces buffer to disk.
@@ -182,6 +188,8 @@ class LogBufferManager
       if (buffer.bsn != nextWriteBSN)
       {
         ++waitingForBSN;
+        if (waitingForBSN > maxWaitingForBSN)
+          maxWaitingForBSN = waitingForBSN;
         while (buffer.bsn != nextWriteBSN)
         {
           ++waitForBSN;
@@ -422,6 +430,65 @@ class LogBufferManager
   }
 
   /**
+   * @see Logger.replay(ReplayListener, long)
+   */
+  void replay(ReplayListener listener, long mark)
+  	throws LogConfigurationException, InvalidLogKeyException
+  {
+    if (mark < 0)
+      throw new InvalidLogKeyException("log key [" + mark + "] must be >= zero");
+    
+    // DEBUG:
+    System.err.println("begin replay from mark: " + Long.toHexString(mark));
+    
+    LogBuffer buffer = null;
+    
+    // get a LogBuffer for reading
+    try {
+      buffer = getLogBuffer();
+    } catch (ClassNotFoundException e) {
+      throw new LogConfigurationException(e.toString());
+    }
+    buffer.configure(this, (short)-1);
+
+    // get a LogRecord from caller
+    LogRecord record = listener.getLogRecord();
+
+    // get log file containing the requested mark
+    LogFile lf = lfm.getLogFile(mark);
+    if (lf == null) {
+      record.type = LogRecordType.CTRL | LogRecordType.END_OF_LOG;
+    }
+    // position log to mark
+    assert lf != null : "LogFile pointer is null";
+    long markPosition = ((mark - lf.highMark) >> 24) // number of blocks to skip over
+                      * bufferSize;
+    try {
+      buffer.read(lf, markPosition);
+    } catch (InvalidLogBufferException e) {
+      listener.onError(e);
+      return;
+    } catch (IOException e) {
+      listener.onError(new LogException(e.toString()));
+      return;
+    }
+
+    // verify we have the desired block
+    long markBSN = mark >> 24;
+    if (markBSN != buffer.bsn) {
+      InvalidLogBufferException lbe = new InvalidLogBufferException(
+          "block read [" + buffer.bsn + "] not block requested: " + markBSN);
+      listener.onError(lbe);
+      return;
+    }
+    
+    // TODO: replay from a specific mark
+    
+    // return end of log indicator
+    record.type = LogRecordType.CTRL | LogRecordType.END_OF_LOG;
+    listener.onRecord(record);
+  }
+  /**
    * Allocate pool of IO buffers for Logger.
    * 
    * <p>The LogBufferManager class is a generalized manager for any
@@ -492,7 +559,7 @@ class LogBufferManager
     }
     catch (InterruptedException e)
     {
-      ; // ignore it
+      // ignore it
     }
 
   }
@@ -525,7 +592,12 @@ class LogBufferManager
            "\n  <growPoolCounter value='" + growPoolCounter + "'>" +
                 "Number of times buffer pool was grown" +
                 "</growPoolCounter>" +
-           "\n  <bsnwait     value='" + waitForBSN        + "'>Waits for BSN</bsnwait>" +
+           "\n  <bsnwait     value='" + waitForBSN        + "'>" +
+           		  "Waits for BSN" +
+           		  "</bsnwait>" +
+           "\n  <maxWaitForBSN value='" + maxWaitingForBSN + "'>" +
+           		  "Maximum number of threads waiting for BSN increment" +
+                "</maxWaitForBSN>" +
            "\n  <forcecount  value='" + forceCount        + "'>Number of force() calls</forcecount>" +
            "\n  <bufferfull  value='" + noRoomInBuffer    + "'>Buffer full</bufferfull>" + 
            "\n  <nextfillbsn value='" + nextFillBSN       + "'></nextfillbsn>" +
@@ -667,7 +739,7 @@ class LogBufferManager
         }
         catch (IOException e)
         {
-          ; // TODO: report IOException to error log
+          // TODO: report IOException to error log
         }
       }
     }

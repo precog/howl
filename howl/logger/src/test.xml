@@ -1,134 +1,95 @@
-<?xml version='1.0'?>
+AssertionError
+
+<?xml version='1.0' ?>
 <Logger  class='org.objectweb.howl.log.Logger'>
 <LogBufferManager  class='org.objectweb.howl.log.LogBufferManager'>
-  <poolsize    value='32'></poolsize>
-  <bufferwait  value='0'>Wait for available buffer</bufferwait>
-  <bsnwait     value='6576'>Waits for BSN</bsnwait>
-  <forcecount  value='94'>Number of force() calls</forcecount>
-  <bufferfull  value='1110'>Buffer full</bufferfull>
-  <nextfillbsn value='1120'></nextfillbsn>
-  <forceOnTimeout value='10'></forceOnTimeout>
-  <forceNoWaitingThreads value='45'>force because no other trheads waiting on force</forceNoWaitingThreads>
-  <forceHalfOfBuffers value='0'>force due to 1/2 of buffers waiting</forceHalfOfBuffers>
-  <forceMaxWaitingThreads value='49'>force due to max waiting threads</forceMaxWaitingThreads>
-  <maxThreadsWaitingForce value='776'>maximum threads waiting</maxThreadsWaitingForce>
-  <avgThreadsWaitingForce value='437.4468085106383'>Avg threads waiting force</avgThreadsWaitingForce>
+  <bufferSize value='4096'>Buffer Size (in bytes)</bufferSize>
+  <poolsize    value='9'>Number of buffers in the pool</poolsize>
+  <initialPoolSize value='2'>Initial number of buffers in the pool</initialPoolSize>
+  <bufferwait  value='359'>Wait for available buffer</bufferwait>
+  <growPoolCounter value='4'>Number of times buffer pool was grown</growPoolCounter>
+  <bsnwait     value='110'>Waits for BSN</bsnwait>
+  <maxWaitForBSN value='3'>Maximum number of threads waiting for BSN increment</maxWaitForBSN>
+  <forcecount  value='55'>Number of force() calls</forcecount>
+  <bufferfull  value='110'>Buffer full</bufferfull>
+  <nextfillbsn value='830'></nextfillbsn>
+  <forceOnTimeout value='1'></forceOnTimeout>
+  <forceNoWaitingThreads value='53'>force because no other trheads waiting on force</forceNoWaitingThreads>
+  <forceHalfOfBuffers value='1'>force due to 1/2 of buffers waiting</forceHalfOfBuffers>
+  <forceMaxWaitingThreads value='0'>force due to max waiting threads</forceMaxWaitingThreads>
+  <maxThreadsWaitingForce value='187'>maximum threads waiting</maxThreadsWaitingForce>
+  <avgThreadsWaitingForce value='74.87272727272727'>Avg threads waiting force</avgThreadsWaitingForce>
   <LogBufferPool>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='0'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='15'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='1'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='15'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='2'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='15'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='3'>
-  <timesUsed value='34'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='13'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='4'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='13'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='5'>
-  <timesUsed value='35'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='14'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='6'>
-  <timesUsed value='33'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='12'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='7'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='10'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='8'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='9'>
-  <timesUsed value='34'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='10'>
-  <timesUsed value='35'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='11'>
-  <timesUsed value='35'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='12'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='13'>
-  <timesUsed value='35'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='14'>
-  <timesUsed value='39'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='15'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='16'>
-  <timesUsed value='35'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='17'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='18'>
-  <timesUsed value='34'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='19'>
-  <timesUsed value='37'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='20'>
-  <timesUsed value='35'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='21'>
-  <timesUsed value='33'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='22'>
-  <timesUsed value='36'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='23'>
-  <timesUsed value='37'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='24'>
-  <timesUsed value='34'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='25'>
-  <timesUsed value='34'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='26'>
-  <timesUsed value='32'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='27'>
-  <timesUsed value='35'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='28'>
-  <timesUsed value='33'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='29'>
-  <timesUsed value='34'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='30'>
-  <timesUsed value='32'>Number of times this buffer was initialized for use</timesUsed>
-</LogBuffer>
-<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='31'>
-  <timesUsed value='35'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='11'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 
 </LogBufferPool>
 </LogBufferManager>
 
 <LogFileManager  class='org.objectweb.howl.log.LogFileManager'>
+<initialKey value='2c9000000'>Initial Log Key</initialKey>
+<currentKey value='33d000035'>Current Log Key</currentKey>
+<restartAutoMark value='false'>automark value restored from prior log file</restartAutoMark>
 <LogFiles>
 <LogFile class='org.objectweb.howl.log.LogFile' file='..\logs\xa_1.log'>
-  <rewindCount value='2'>Number of times this file was rewind to position(0)</rewindCount>
-  <bytesWritten value='1638400'>Number of bytes written to the file</bytesWritten>
+  <rewindCount value='0'>Number of times this file was rewind to position(0)</rewindCount>
+  <bytesWritten value='155648'>Number of data written to the file</bytesWritten>
+  <position value='0'>FileChannel.position()</position>
 </LogFile>
 
 <LogFile class='org.objectweb.howl.log.LogFile' file='..\logs\xa_2.log'>
-  <rewindCount value='2'>Number of times this file was rewind to position(0)</rewindCount>
-  <bytesWritten value='1638400'>Number of bytes written to the file</bytesWritten>
+  <rewindCount value='1'>Number of times this file was rewind to position(0)</rewindCount>
+  <bytesWritten value='204800'>Number of data written to the file</bytesWritten>
+  <position value='0'>FileChannel.position()</position>
 </LogFile>
 
 <LogFile class='org.objectweb.howl.log.LogFile' file='..\logs\xa_3.log'>
-  <rewindCount value='2'>Number of times this file was rewind to position(0)</rewindCount>
-  <bytesWritten value='1310720'>Number of bytes written to the file</bytesWritten>
+  <rewindCount value='1'>Number of times this file was rewind to position(0)</rewindCount>
+  <bytesWritten value='122880'>Number of data written to the file</bytesWritten>
+  <position value='0'>FileChannel.position()</position>
 </LogFile>
 
 </LogFiles>

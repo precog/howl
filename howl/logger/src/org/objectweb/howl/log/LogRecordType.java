@@ -50,6 +50,12 @@ public interface LogRecordType
   static final short CLOSE = 0x0200;
   
   /**
+   * recorded by Logger to mark first block following a 
+   * restart of the Logger.
+   */
+  static final short RESTART = 0x0100;
+  
+  /**
    * Type returned by get() methods to signal end of buffer.
    * 
    * <p>This record type may or may not actually exist within

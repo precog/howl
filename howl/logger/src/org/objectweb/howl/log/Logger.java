@@ -114,7 +114,7 @@ public class Logger
    *
    * <p>calls LogFileManager to process the request.
    * 
-   * @param key is a log key returned by a previous call to put() or putAndSync().
+   * @param key is a log key returned by a previous call to put().
    * @throws InvalidLogKeyException if <i> key </i> parameter is out of range.
    * key must be greater than current activeMark and less than the most recent
    * key returned by put().
@@ -164,9 +164,7 @@ public class Logger
    */
   public void open()
     throws InvalidFileSetException, ClassNotFoundException,
-           FileNotFoundException, IOException,
-           InvalidLogBufferException,
-           LogConfigurationException
+           IOException, LogConfigurationException, InvalidLogBufferException, InterruptedException
   {
     configure();
 
@@ -174,10 +172,11 @@ public class Logger
     lfmgr.open();
     
     bmgr = new LogBufferManager();
-    bmgr.open(); // TODO: get logfile[0] 
+    bmgr.open(); 
     
     // read header information from each file
     lfmgr.init(bmgr);
+    
     
     // indicate that Log is ready for use.
     isClosed = false;
@@ -212,34 +211,33 @@ public class Logger
    * <p>The <i> mark </i> should be a valid log key returned by the put()
    * method.  To replay the entire log beginning with the oldest available
    * record, <i> mark </i> should be set to zero (0L).
+   * @throws LogConfigurationException
+   * most likely because the configured LogBuffer class cannot be found.
    * @throws InvalidLogKeyException
    * if <i> mark </i> is not a valid log key.
    */
   public void replay(ReplayListener listener, long mark)
-    throws InvalidLogKeyException
+    throws InvalidLogKeyException, LogConfigurationException
   {
-    
-    if (mark == 0)
-    {
-      // TODO: mark = oldest_available_key;
-    }
-
-    // TODO: position log to mark
-    
-    // TODO: replay from a specific mark
+    bmgr.replay(listener, mark);
   }
   
   /**
-   * Replays log from the active mark forward to the current mark.
+   * Replays log from the active mark forward to the current position.
    * 
    * @param listener an object that implements ReplayListener interface.
-   * @throws InvalidLogKeyException
+   * @throws LogConfigurationException
+   * most likely because the configured LogBuffer class cannot be found.
    * @see #replay(ReplayListener, long)
    */
-  public void replay(ReplayListener listener)
-    throws InvalidLogKeyException
+  public void replay(ReplayListener listener) throws LogConfigurationException
   {
-    replay(listener, lfmgr.activeMark);
+    try {
+      replay(listener, lfmgr.activeMark);
+    } catch (InvalidLogKeyException e) {
+      // should not happen -- use assert to catch during development
+      assert e == null : "Unhandled InvalidLogKeyException" + e.toString();
+    }
   }
   
   /**

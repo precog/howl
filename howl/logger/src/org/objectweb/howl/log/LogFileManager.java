@@ -44,7 +44,7 @@ class LogFileManager
    * The log key for the oldest active entry in the log.
    * 
    * <p>When automark is enabled (true) the <i> activeMark </i>
-   * is updated after every put() or putAndSync() operation.
+   * is updated after every put() operation.
    * When automark is disabled (as should be the case with JOTM)
    * the <i> activeMark </i> is updated manually by a call
    * to mark().
@@ -73,7 +73,7 @@ class LogFileManager
   boolean restartAutoMark = false;
   
   /**
-   * last key returned by  put() or putAndSync().
+   * last key returned by  put().
    * 
    * @see #setCurrentKey(long)
    */
@@ -223,7 +223,40 @@ class LogFileManager
   private LogEventListener eventListener = null;
   
   /**
-   * Called by LogBuffer.init() to obtain the LogFile that is to be used
+   * Returns the LogFile that contains the requested <i> mark </i>.
+   * <p>Called by LogBufferManager to locate a log file needed
+   * for a replay() request.
+   * 
+   * @param mark A log key previously returned by LogBufferManager.put().
+   * The log key is used to compute the desired file.
+   * 
+   * @return LogFile containing the requested <i> mark </i>.
+   * <p>Returns null if none of the files in fileSet[] contain
+   * the requested mark.
+   */
+  LogFile getLogFile(long mark)
+  {
+    LogFile lf = null;
+
+    int fsl = fileSet.length;
+    short lfIndex = (short)(this.lfIndex + 1);  // start looking at the oldest file
+    
+    for (int i=0; i < fsl; ++i)
+    {
+      lfIndex %= fsl;
+      if (mark < fileSet[lfIndex].highMark)
+      {
+        lf = fileSet[lfIndex];
+        break;
+      }
+      ++lfIndex;
+    }
+
+    return lf;
+  }
+  
+  /**
+   * Called by LogBuffer.init() to obtain the LogFile that will be used
    * to write a specific log block.
    * 
    * <p>The buffer sequence number of the LogBuffer parameter ( <i> lf.bsn</i> ) represents an
@@ -235,8 +268,7 @@ class LogFileManager
    * 
    * <p>In all cases, getLogFile records a header record into the buffer
    * containing the current state of the automark mode and the current
-   * active mark.  If a file switch occurs, a file header is 
-   * 
+   * active mark. 
    *  
    * @param lb LogBuffer that is asking for the LogFile.
    * LogFileManager implementations use <i> lf.bsn </i> to determine when to switch 
@@ -246,71 +278,77 @@ class LogFileManager
    */
   LogFile getLogFile(LogBuffer lb) throws LogFileOverflowException
   {
-    synchronized(fileManagerLock)
+    try
     {
-      if (currentLogFile == null || ((lb.bsn - 1) % maxBlocksPerFile) == 0)
+      synchronized(fileManagerLock)
       {
-        int fsl = fileSet.length;
-        lfIndex %= fsl;
-        
-        // Make sure active mark is not within the next log file. 
-        LogFile nextLogFile = fileSet[lfIndex];
-        assert nextLogFile != null: "nextLogFile == null";
-
-        if (activeMark < nextLogFile.highMark)
-          throw new LogFileOverflowException(activeMark, nextLogFile.highMark, nextLogFile.name);
-
-        ++lfIndex;
-        
-        // remember the TOD we switched to this file
-        nextLogFile.tod = System.currentTimeMillis();
-
-        // fabricate log key for beginning of new bsn as high mark for current file
-        // this value is used to compare with activeMark the next time this object is
-        // reused.
-        long highMark = lb.bsn << 24;
-        
-        // default tod for previous file switch is current file switch tod
-        long switchTod = nextLogFile.tod;
-
-        if (currentLogFile != null)
+        if (currentLogFile == null || ((lb.bsn - 1) % maxBlocksPerFile) == 0)
         {
-          switchTod = currentLogFile.tod;
-          currentLogFile.highMark = highMark;
+          int fsl = fileSet.length;
+          lfIndex %= fsl;
+          
+          // Make sure active mark is not within the next log file. 
+          LogFile nextLogFile = fileSet[lfIndex];
+          assert nextLogFile != null: "nextLogFile == null";
+
+          if (activeMark < nextLogFile.highMark)
+            throw new LogFileOverflowException(activeMark, nextLogFile.highMark, nextLogFile.name);
+
+          ++lfIndex;
+          
+          // remember the TOD we switched to this file
+          nextLogFile.tod = System.currentTimeMillis();
+
+          // fabricate log key for beginning of new bsn as high mark for current file
+          // this value is used to compare with activeMark the next time this object is
+          // reused.
+          long highMark = lb.bsn << 24;
+          
+          // default tod for previous file switch is current file switch tod
+          long switchTod = nextLogFile.tod;
+
+          if (currentLogFile != null)
+          {
+            switchTod = currentLogFile.tod;
+            currentLogFile.highMark = highMark;
+          }
+          
+          // indicate that the new file must be rewound before this buffer is written
+          lb.rewind = true;
+
+          short type = LogRecordType.CTRL | LogRecordType.FILE_HEADER;
+          
+          fileHeaderBB.clear();
+          fileHeaderBB.put(automark ? autoMarkOn : autoMarkOff);
+          fileHeaderBB.putLong(activeMark);
+          fileHeaderBB.putLong(highMark);
+          fileHeaderBB.putLong(switchTod);
+          fileHeaderBB.putInt(fileSet.length);
+          fileHeaderBB.putInt(maxBlocksPerFile);
+          fileHeaderBB.put(crlf);
+          assert fileHeader.length == fileHeaderBB.position()
+            : "byte[] fileHeader size error";
+          
+          lb.put(type, fileHeader, false);
+          currentLogFile = nextLogFile;
         }
-        
-        // indicate that the new file must be rewound before this buffer is written
-        lb.rewind = true;
+        else
+        {
+        	// initialize new block with a MARKKEY control record
+        	short type = LogRecordType.CTRL | LogRecordType.MARKKEY;
 
-        short type = LogRecordType.CTRL | LogRecordType.FILE_HEADER;
-        
-        fileHeaderBB.clear();
-        fileHeaderBB.put(automark ? autoMarkOn : autoMarkOff);
-        fileHeaderBB.putLong(activeMark);
-        fileHeaderBB.putLong(highMark);
-        fileHeaderBB.putLong(switchTod);
-        fileHeaderBB.putInt(fileSet.length);
-        fileHeaderBB.putInt(maxBlocksPerFile);
-        fileHeaderBB.put(crlf);
-        assert fileHeader.length == fileHeaderBB.position()
-          : "byte[] fileHeader size error";
-        
-        lb.put(type, fileHeader, false);
-        currentLogFile = nextLogFile;
+          setMarkData(markRecordBB);
+          assert markRecord.length == markRecordBB.position()
+            : "byte[] markRecord size error";
+          
+          lb.put(type, markRecord, false);
+          
+          // TODO: detech 50% full and notify event listener
+        }
       }
-      else
-      {
-      	// initialize new block with a MARKKEY control record
-      	short type = LogRecordType.CTRL | LogRecordType.MARKKEY;
-
-        setMarkData(markRecordBB);
-        assert markRecord.length == markRecordBB.position()
-          : "byte[] markRecord size error";
-        
-        lb.put(type, markRecord, false);
-        
-        // TODO: detech 50% full and notify event listener
-      }
+    } catch (LogRecordSizeException e) {
+      // will never happen but use assert to catch during development
+      assert e == null : "Unhandled LogRecordSizeException" + e;
     }
     
     return currentLogFile;
@@ -342,7 +380,7 @@ class LogFileManager
    * <p>writes a MARKKEY control record to the log.
    * 
    * @param key is an opaque log key returned by a previous call
-   * to put() or putAndSync().
+   * to put().
    * 
    * @return log key for the MARK record
    * 
@@ -373,7 +411,8 @@ class LogFileManager
       markKey = bmgr.put(type, markData, false);
     }
     catch (LogRecordSizeException e) {
-      // cannot happen, but ignore it if it does.
+      // will never happen but use assert to catch during development
+      assert e == null : "Unhandled LogRecordSizeException" + e;
     }
     catch (LogFileOverflowException e) {
       // should not happen since we just gave back some space
@@ -381,6 +420,46 @@ class LogFileManager
     }
     
     return markKey;
+  }
+  
+  /**
+   * reads next block of data from the LogFile specified
+   * by lb.lf. 
+   * @param lb LogBuffer to read data into.
+   * @return number of bytes read.
+   * @throws IOException
+   * returns -1 if no data available in file.
+   */
+  int read (LogBuffer lb) throws IOException
+  {
+    int bytesRead = lb.lf.channel.read(lb.buffer);
+    return bytesRead;
+  }
+  
+  /**
+   * reads a block of data into LogBuffer <i> lb </i>.
+   * <p>Amount of data read is determined by lb.capacity().
+   * <p>sets lb.lf with the fileSet[] entry that contains
+   * the requested BSN.
+   * 
+   * @param lb LogBuffer to read data into.
+   * @param bsn block sequence number of the block to be read.
+   * File position is computed as follows:
+   * <ol>
+   * <li>locate the entry within fileSet[] that contains the
+   * requested bsn.
+   * <li>compute position as (requested bsn - first bsn in file) * block size;
+   * </ol>
+   * @return number of bytes read.
+   * returns -1 if no data available in file.
+   * @see #read(lb)
+   */
+  int read(LogBuffer lb, int bsn) throws IOException
+  {
+    // TODO: locate file
+    // TODO: set file position
+
+    return read(lb);
   }
   
   /**
@@ -396,7 +475,7 @@ class LogFileManager
   {
     this.automark = automark;
     
-    return mark(activeMark);
+    return mark(automark ? currentKey : activeMark);
     
   }
 
@@ -490,31 +569,34 @@ class LogFileManager
    * validate LogFiles and set member variables.
    * 
    * <p>activeMark set based on last block written during previous execution.
-   * <p>currentKey set to first block of next available log file.  This may
-   * result in some unused blocks in the LogFile that was active at the time
-   * the logger was shutdown last.
+   * <p>currentKey set to key of the last record written to the log.
    * <p>currentLogFile set to the next available LogFile in fileSet[] with
    * file position set to resume writing at the next block following the last block 
    * written.
    *
    */
   void init(LogBufferManager bmgr)
-    throws ClassNotFoundException, IOException,
-           LogConfigurationException, InvalidLogBufferException
+    throws IOException,
+           LogConfigurationException, InvalidLogBufferException, InterruptedException
   {
     this.bmgr = bmgr;
     
-    int lfIndex = 0;
+    short lfIndex = 0;
     int bsn = 0;
     LogFile lf = null;
     
-    LogBuffer lb = bmgr.getLogBuffer();
+    LogBuffer lb = null;
+    try { 
+      lb = bmgr.getLogBuffer();
+    } catch (ClassNotFoundException e) {
+      lb = null;
+    }
     if (lb == null)
-      throw new ClassNotFoundException();
+      throw new LogConfigurationException("LogBuffer.class not found");
     
     lb.configure(bmgr, (short)-1);
     
-    for (int i = 0; i < fileSet.length; ++i)
+    for (short i = 0; i < fileSet.length; ++i)
     {
       lf = fileSet[i];
       assert lf != null : "LogFile pointer lf is null";
@@ -524,8 +606,8 @@ class LogFileManager
       
       lb.read(lf, 0L);
       
-      // save previous file highMark
-      // these get moved into correct LogFile later
+      // save previous file's highMark
+      // these get moved into correct LogFile object later
       lf.highMark = ((long)lb.bsn) << 24;
       
       // locate the last file to be written
@@ -543,39 +625,33 @@ class LogFileManager
     for (int i=1; i < fsl; ++i)
     {
       int n1 = (lfIndex + i) % fsl;
-      int n2 = (lfIndex + i + 1) % fsl;
+      int n2 = (n1 + 1) % fsl;
       fileSet[n1].highMark = fileSet[n2].highMark;
     }
     
     // reposition the last active file
     int blockSize = lb.buffer.capacity();
     currentLogFile = fileSet[lfIndex];
+    this.lfIndex = (short)(lfIndex + 1);
     lf = currentLogFile;
     
     // compare file header with current configuration
     validateFileHeader(lb);
 
-    // TODO: read through last block for MARK control records
-    
+    // locate last block written starting in second block
     long fpos = blockSize;
-    try
-    {
-      while(lb.read(lf, fpos).bsn > bsn)
-      {
+    try {
+      while(lb.read(lf, fpos).bsn > bsn) {
         fpos += blockSize;
         bsn = lb.bsn;
       }
-    }
-    catch (InvalidLogBufferException e)
-    {
+    } catch (InvalidLogBufferException e) {
       /*
        * Ignore this exception here during restart processing.
        * An invalid block marks the end of the log.
        */
       e.printStackTrace();
-    }
-    catch (IOException e)
-    {
+    } catch (IOException e) {
       e.printStackTrace();
       throw e;
     }
@@ -591,9 +667,45 @@ class LogFileManager
     // update activeMark based on automark setting recovered from log
     if (automark) activeMark = currentKey;
     
+    // process MARK control records in last block
+    assert fpos > 0 : "Unexpected file postion: " + fpos;
+    lb.read(lf, fpos-blockSize);
+    LogRecord record = new LogRecord(lb.buffer.capacity());
+    ByteBuffer dataBuffer = record.dataBuffer;
+    short marktype = LogRecordType.CTRL | LogRecordType.MARKKEY;
+    try {
+      while (!record.get(lb).isEOB()) {
+        if (record.type == marktype) {
+          dataBuffer.clear();
+          automark = dataBuffer.get() == 1 ? true : false;
+          activeMark = dataBuffer.getLong();
+        }
+      }
+    } catch (LogRecordSizeException e) {
+      // cannot happen because record is same size as buffer
+      assert e == null : "unhandled LogRecordSizeException";
+    }
+    
+    // position current log file for writing
     lf.channel.position(fpos);
     
+    // Write a RESTART record for replay
+    short type = LogRecordType.CTRL | LogRecordType.RESTART;
+    try {
+      bmgr.put(type, new byte[0], false);
+    } catch (InterruptedException e) {
+      throw e;
+    } catch (LogException e) {
+      // should not happen, but if it does, we just ignore it here
+      assert e == null : "unhandled LogException" + e.toString();
+    } catch (IOException e) {
+      // should not happen, but if it does, we just ignore it here
+      assert e == null : "unhandled IOException";
+    }
+
     // TODO: validate information against state file.
+    //       a. define a state file and update during close
+    //       b. validate current log information against state file
   }
   
   /**
@@ -606,7 +718,6 @@ class LogFileManager
   {
     LogFile lf = currentLogFile;
     
-    // TODO: validate file header record # of files and maxblocks with current config
     lb.read(lf, 0L);
     if (lb.bsn == -1) return; // end of file or empty file
 
@@ -653,7 +764,7 @@ class LogFileManager
       throw new InvalidLogBufferException("FILE_HEADER: expecting CRLF found " +
           Integer.toHexString(crlf));
     
-    assert fileHeader.length == dataBuffer.position()
+    assert dataBuffer.capacity() == dataBuffer.position()
       : "byte[] fileHeader size error";
   }
   
@@ -691,7 +802,8 @@ class LogFileManager
     try {
       bmgr.put(type, closeData, false);
     } catch (LogRecordSizeException e) {
-      // ignore  -- this cannot happen
+      // will never happen but use assert to catch during development
+      assert e == null : "Unhandled LogRecordSizeException" + e;
     } catch (LogFileOverflowException e) {
       // ignore -- we will discover this the next time we open the logs
       // TODO: write message to system log

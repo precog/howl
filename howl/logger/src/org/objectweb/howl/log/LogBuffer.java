@@ -286,6 +286,9 @@ abstract class LogBuffer
    * @param data byte[] to be written to log
    * @param sync true if thread will call sync following the put.
    * Causes count of waitingThreads to be incremented.
+   * 
+   * @throws LogRecordSizeException if <i> data </i> is larger than
+   * the maximum allowed record size for the configured buffer size.
    *
    * @return 0 if no room in buffer for record, otherwise a long
    * that contains the physical position of the record is returned.
@@ -293,7 +296,7 @@ abstract class LogBuffer
    * position.  The format of the returned value is implementation
    * specific, and should be treated as opaque by the caller.
    */
-  abstract long put(short type, byte[] data, boolean sync);
+  abstract long put(short type, byte[] data, boolean sync) throws LogRecordSizeException;
 
   /**
    * write ByteBuffer to the LogFile.

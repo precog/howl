@@ -6,12 +6,13 @@
  */
 package org.objectweb.howl.log;
 
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 /**
  * @author Michael Giroux
  */
-public class LogRecord
+public final class LogRecord
 {
   /**
    * type of data record.
@@ -61,6 +62,25 @@ public class LogRecord
     data = new byte[size];
     dataBuffer = ByteBuffer.wrap(data);
   }
+  
+  /**
+   * Return true if current record is an EOB type control record.
+   * @return true if this record type is an EOB type.
+   */
+  public boolean isEOB()
+  {
+    return (type == (LogRecordType.CTRL | LogRecordType.EOB));
+  }
+  
+  /**
+   * Return true if the current record is a control record.
+   * 
+   * @return true if this record type has LogRecordType.CTRL set.
+   */
+  public boolean isCTRL()
+  {
+    return (type & LogRecordType.CTRL) != 0;
+  }
 
   /**
    * @return length of the byte[] that backs the ByteBuffer.
@@ -72,8 +92,8 @@ public class LogRecord
    * copy next logical record from the LogBuffer specified by the
    * callers <i> lb </i> parameter.
    * 
-   * <p>Followint the call to get()
-   * the number of data bytes transferred into this LogRecords
+   * <p>Following the call to get()
+   * the number of data bytes transferred into this LogRecord's
    * data buffer is available in
    * LogRecord.length. The LogRecord.dataBuffer.limit is also set.
    * <p>Sets LogRecord.type to LogRecordType.EOB if the position of this
@@ -91,7 +111,7 @@ public class LogRecord
    * if the size of the data record exceeds the bytes used for the buffer.
    * @see LogRecordType
    */
-  LogRecord get(LogBuffer lb) throws LogRecordSizeException, InvalidLogBufferException
+  protected LogRecord get(LogBuffer lb) throws LogRecordSizeException, InvalidLogBufferException
   {
     short type = 0;
     short length = 0;
@@ -103,20 +123,24 @@ public class LogRecord
       // save current record position so we can reset on errors
       buffer.mark();
       long logKey = ((long) lb.bsn << 24) | (buffer.position() & 0xffffff ) ;
-      type = buffer.getShort();
-      length  = buffer.getShort();
-      if (length > data.length)
-      {
-        buffer.reset();
-        throw new LogRecordSizeException();
-      }
-      if (buffer.position() + length > lb.bytesUsed)
-      {
+
+      try {
+        type = buffer.getShort();
+        length  = buffer.getShort();
+      } catch (BufferUnderflowException e) {
         buffer.reset();
         throw new InvalidLogBufferException();
       }
-      buffer.get(data, 0, length);
-      // TODO: update key
+      if (length > data.length) {
+        buffer.reset();
+        throw new LogRecordSizeException();
+      }
+      if (buffer.position() + length > lb.bytesUsed) {
+        buffer.reset();
+        throw new InvalidLogBufferException();
+      }
+      if (length > 0)
+        buffer.get(data, 0, length);
       key = logKey;   
     }
     else
