@@ -171,6 +171,10 @@ public class XALogger extends Logger
         newAvailableTx[i] = availableTx[i];
       }
       
+      // update pointers
+      atxPut = 0;
+      atxGet = activeTx.length;
+
       // activate the new tables
       activeTx = newActiveTx;
       availableTx = newAvailableTx;
