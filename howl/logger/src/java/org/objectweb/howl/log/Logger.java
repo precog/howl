@@ -178,21 +178,44 @@ public class Logger extends LogObject
    * <p><i> mark() </i> provides a generalized method for callers
    * to inform the Logger that log space can be released
    * for reuse.
-   *
+   * 
    * <p>calls LogFileManager to process the request.
    * 
    * @param key is a log key returned by a previous call to put().
-   * @throws InvalidLogKeyException if <i> key </i> parameter is out of range.
+   * @param force a boolean that indicates whether the mark data
+   * should be forced to disk.  When set to <b> true </b> the caller
+   * is blocked until the mark record is forced to disk.
+   * 
+   * @throws InvalidLogKeyException
+   * if <i> key </i> parameter is out of range.
    * <i> key </i> must be greater than current activeMark and less than the most recent
    * key returned by put().
+   * @throws LogClosedException
+   * if this logger instance has been closed.
    */
-  public void mark(long key)
+  public void mark(long key, boolean force)
     throws InvalidLogKeyException, LogClosedException, IOException, InterruptedException
   {
     if (isClosed)
       throw new LogClosedException("log is closed");
     
-    lfmgr.mark(key);
+    lfmgr.mark(key, force);
+  }
+  
+  /**
+   * calls Logger.mark(key, force) with <i> force </i> set to <b> true </b>.
+   * <p>Caller is blocked until mark record is forced to disk.
+   * @param key a log key returned by a previous call to put().
+   * @throws InvalidLogKeyException
+   * @throws LogClosedException
+   * @throws IOException
+   * @throws InterruptedException
+   * @see #mark(long, boolean)
+   */
+  public void mark(long key)
+    throws InvalidLogKeyException, LogClosedException, IOException, InterruptedException
+  {
+    mark(key, true);
   }
   
   /**
@@ -307,19 +330,18 @@ public class Logger extends LogObject
   }
   
   /**
-   * return an XML node containing statistics for the Logger, the LogFile pool and the LogBuffer pool.
+   * return an XML node containing statistics for the Logger,
+   * the LogFile pool and the LogBuffer pool.
    * 
-   * <p>The getStats method for the LogBufferManager and LogFileManager are called to include
-   * statistics for these contained objects.
+   * <p>The getStats method for the LogBufferManager and LogFileManager
+   * are called to include statistics for these contained objects.
    * 
-   * @return String contiining XML document.
+   * @return String contiining XML node.
    */
   public String getStats()
   {
     String name = this.getClass().getName();
     StringBuffer stats = new StringBuffer(
-        "<?xml version='1.0' ?>" +
-        // TODO: define style sheet and link in root node
         "\n<Logger  class='" + name + "'>" 
     );
     
