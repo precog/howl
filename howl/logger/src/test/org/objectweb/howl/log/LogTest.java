@@ -34,11 +34,9 @@ package org.objectweb.howl.log;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Vector;
 
 import junit.extensions.RepeatedTest;
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 public class LogTest extends TestDriver
@@ -65,6 +63,11 @@ public class LogTest extends TestDriver
     baseDir = new File(baseDirName);
     outDir = new File(baseDir, "target/test-resources");
     outDir.mkdirs();
+  }
+  
+  protected void tearDown() throws Exception {
+    super.tearDown();
+//    log.close();
   }
   
   public static void main(String[] args) throws Exception {
@@ -99,13 +102,41 @@ public class LogTest extends TestDriver
     // log.close(); called by runWorkers()
   }
   
-  public void testLoggerReplay() throws Exception, LogException {
+  public void testLoggerReplay() throws Exception {
     log.open();
     TestLogReader reader = new TestLogReader();
     reader.run(log);
     System.err.println(getName() + "; total records processed: " + reader.recordCount);
     // log.close(); called by reader.run()
-
+  }
+  
+  public void testLoggerReplay_unforcedRecord() throws Exception {
+    log.open();
+    long key = log.put("".getBytes(), false);
+    TestLogReader reader = new TestLogReader();
+    log.replay(reader, key);
+    if (reader.exception != null)
+      throw reader.exception;
+    log.close();
+  }
+  
+  public void testMultipleClose() throws Exception {
+    log.open();
+    log.close();
+    log.close();
+  }
+  
+  /**
+   * Verify that replay works with newly created files. 
+   * @throws Exception
+   */
+  public void testLoggerReplay_NewFiles() throws Exception {
+    deleteLogFiles();
+    log.open();
+    TestLogReader reader = new TestLogReader();
+    reader.run(log);
+    System.err.println(getName() + "; total records processed: " + reader.recordCount);
+    // log.close(); called by reader.run()
   }
   
   public void testLogClosedException() throws Exception, LogException {
