@@ -205,9 +205,6 @@ class LogBufferManager extends LogObject
   long forceHalfOfBuffers = 0;
   long forceMaxWaitingThreads = 0;
   
-
-
-
   /**
    * thread used to flush long waiting buffers
    */
@@ -290,7 +287,7 @@ class LogBufferManager extends LogObject
     throws IOException, InterruptedException
   {
     LogBuffer logBuffer = null;
-
+    
     // make sure buffers are written in ascending BSN sequence
     long startWait = System.currentTimeMillis();
     synchronized(forceManagerLock)
@@ -314,31 +311,25 @@ class LogBufferManager extends LogObject
       catch (IOException ioe) {
         // ignore for now. buffer.iostatus is checked later for errors.
       }
-    }
-    
-    
-    threadsWaitingForce += logBuffer.getWaitingThreads();
-    // NOTE: following is not synchronized so the stats may be inaccurate.
-    if (threadsWaitingForce > maxThreadsWaitingForce)
-      maxThreadsWaitingForce = threadsWaitingForce;
-
-    /*
-     * The lastForceBSN member is updated by the thread
-     * that actually does a force().  All threads
-     * waiting for the force will detect the change
-     * in lastForceBSN and notify any waiting threads.
-     */
-    boolean doforce = true;
-    startWait = System.currentTimeMillis();
-    synchronized(forceManagerLock)
-    {
-      totalWaitForWriteLockTime += elapsedTime(startWait);
+      
+      threadsWaitingForce += logBuffer.getWaitingThreads();
+      // NOTE: following is not synchronized so the stats may be inaccurate.
+      if (threadsWaitingForce > maxThreadsWaitingForce)
+        maxThreadsWaitingForce = threadsWaitingForce;
+  
+      /*
+       * The lastForceBSN member is updated by the thread
+       * that actually does a force().  All threads
+       * waiting for the force will detect the change
+       * in lastForceBSN and notify any waiting threads.
+       */
 
       // force() is guaranteed to have forced everything that
       // has been written prior to the force, so get the
       // bsn for the last known write prior to the force.
       int forcebsn = nextWriteBSN - 1;
       
+      boolean doforce = true;
       if (logBuffer.bsn <= lastForceBSN)
       {
         // this logBuffer has already been forced by another thread
@@ -785,7 +776,11 @@ class LogBufferManager extends LogObject
   {
     String s = "" + val;
     int dp = s.indexOf('.') + 1; // include the decimal point
-    return s.substring(0, dp + decimalPlaces);
+    if (s.length() > dp + decimalPlaces)
+    {
+      s = s.substring(0, dp + decimalPlaces);
+    }
+    return s;
   }
 
   /**
@@ -802,7 +797,7 @@ class LogBufferManager extends LogObject
     String avgTimeBetweenForce = doubleToString((totalTimeBetweenForce / (double)forceCount), 2);
     String avgBuffersPerForce = doubleToString((writeCount / (double) forceCount), 2);
     String avgWriteTime = doubleToString((totalWriteTime / (double)writeCount), 2);
-    String avgWaitForWriteLockTime = doubleToString((totalWaitForWriteLockTime / (double)(writeCount * 2)), 2);
+    String avgWaitForWriteLockTime = doubleToString((totalWaitForWriteLockTime / (double)writeCount), 2);
     String name = this.getClass().getName();
     
     StringBuffer stats = new StringBuffer(
