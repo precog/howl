@@ -26,14 +26,10 @@ class LogBufferManager
   private final Object bufferManagerLock = new Object();
 
   /**
-   * mutex for synchronizing writes to log
+   * mutex for synchronizing threads through the portion
+   * of force() method that actually forces the channel.
    */
   private final Object forceManagerLock = new Object();
-  
-  /**
-   * mutex for synchronizing BSN increment
-   */
-  private final Object bsnManagerLock = new Object();
   
   /**
    * reference to LogFileManager that owns this Buffer Manager instance.
@@ -190,7 +186,7 @@ class LogBufferManager
     LogBuffer buffer = null;
 
     // make sure buffers are written in ascending BSN sequence
-    synchronized(bsnManagerLock)
+    synchronized(forceManagerLock)
     {
       buffer = forceQueue[fqGet]; // buffer stuffed into forceQ
       fqGet = (fqGet + 1) % forceQueue.length;
@@ -258,7 +254,7 @@ class LogBufferManager
         // has been written prior to the force, so get the
         // bsn for the last known write prior to the force
         int forcebsn = 0;
-        synchronized(bsnManagerLock) { forcebsn = nextWriteBSN - 1; }
+        forcebsn = nextWriteBSN - 1;
         
         ++forceCount;
         buffer.lf.force(false);
@@ -808,7 +804,7 @@ class LogBufferManager
 
                 freeBuffer = fb;
 
-                synchronized(bsnManagerLock)
+                synchronized(bufferManagerLock)
                 {
                   // copy existing force queue entries to new force queue
                   int fqx = 0;
