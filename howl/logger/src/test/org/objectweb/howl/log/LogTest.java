@@ -32,6 +32,8 @@
  */
 package org.objectweb.howl.log;
 
+import org.objectweb.howl.log.Barrier;
+
 import java.io.File;
 import java.util.Date;
 
@@ -39,14 +41,16 @@ import junit.framework.TestCase;
 
 public class LogTest extends TestCase
 {
-  File journalFile = null;
-
-  org.objectweb.howl.log.Barrier startBarrier;
-  org.objectweb.howl.log.Barrier stopBarrier;
-
-  int startedThreads = 0;
-  int stoppedThreads = 0;
-  int runningThreads = 0;
+  /*
+   * findbugs (findbugs.sf.net) reports that
+   * use of mutable objects for synchronization
+   * could lead to problems.  Although this
+   * is not an issue in this test case, the
+   * Barriers are declared as final to eliminate
+   * the findbugs errors.
+   */
+  final Barrier startBarrier = new Barrier();
+  final Barrier stopBarrier = new Barrier();
 
   int MESSAGE_COUNT = 0;
   int MESSAGE_SIZE = 0;
@@ -82,8 +86,8 @@ public class LogTest extends TestCase
       MESSAGE_COUNT = Integer.getInteger("xa.msg.count",5).intValue();
       MESSAGE_SIZE = Integer.getInteger("xa.msg.size",80).intValue();
       
-      startBarrier = new org.objectweb.howl.log.Barrier(WORKERS + 1);
-      stopBarrier = new org.objectweb.howl.log.Barrier(WORKERS + 1);
+      startBarrier.setCount(WORKERS + 1);
+      stopBarrier.setCount(WORKERS + 1);
 
       long beginTime = System.currentTimeMillis();
 

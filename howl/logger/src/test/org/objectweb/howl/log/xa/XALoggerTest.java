@@ -36,11 +36,14 @@ import junit.framework.TestCase;
 import org.objectweb.howl.log.Configuration;
 import org.objectweb.howl.log.LogException;
 import org.objectweb.howl.log.Barrier;
+import org.objectweb.howl.log.TestDriver;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Properties;
 
 /**
@@ -48,10 +51,13 @@ import java.util.Properties;
  * @author Michael Giroux
  */
 public class XALoggerTest extends TestCase
-  implements org.objectweb.howl.log.TestDriver
+  implements TestDriver
 {
   XALogger log = null;
   Configuration cfg = null;
+  
+  // output stream for test report
+  PrintStream out = null;
   
   Properties prop = null;
   final Barrier startBarrier = new Barrier();
@@ -72,9 +78,9 @@ public class XALoggerTest extends TestCase
   
   public final Properties getProperties() { return prop; }
   
-  public final org.objectweb.howl.log.Barrier getStartBarrier() { return startBarrier; }
+  public final Barrier getStartBarrier() { return startBarrier; }
 
-  public final org.objectweb.howl.log.Barrier getStopBarrier() { return stopBarrier; }
+  public final Barrier getStopBarrier() { return stopBarrier; }
   
   public final XALogger getXALogger() { return log; }
   
@@ -92,7 +98,7 @@ public class XALoggerTest extends TestCase
     prop.load(new FileInputStream("conf/test.properties"));
     
 
-    val = prop.getProperty( key = "XALoggerTest.workers", "200" );
+    val = prop.getProperty( key = "test.workers", "200" );
     workers = Integer.parseInt(val);
     if (workers <= 0) throw new IllegalArgumentException(key);
     
@@ -103,7 +109,6 @@ public class XALoggerTest extends TestCase
     val = prop.getProperty( key = "XALoggerTest.delayBeforeDone", "500");
     delayBeforeDone = Long.parseLong(val);
     if (delayBeforeDone < 0) throw new IllegalArgumentException(key);
-    
 }
   
   /*
@@ -116,9 +121,20 @@ public class XALoggerTest extends TestCase
    */
   protected void setUp() throws Exception {
     super.setUp();
-    
     parseProperties();
     cfg = new Configuration(new File("conf/log.properties"));
+    
+    String reportDir = prop.getProperty( "test.report.dir", "reports");
+    if (!reportDir.endsWith("/"))
+      reportDir += "/";
+    
+    // make sure the directory exists
+    File outDir = new File(reportDir);
+    outDir.mkdirs();
+    
+    String testName = getName();
+    File outFile = new File(reportDir + testName + ".xml");
+    out = new PrintStream(new FileOutputStream(outFile));
   }
 
   /*
@@ -177,6 +193,9 @@ public class XALoggerTest extends TestCase
     stopBarrier.barrier();
     long stopTime = System.currentTimeMillis();
     
+    // close the log so we get stats for all buffers and files
+    log.close();
+    
     // Collect stats from workers
     long totalBytesLogged = 0L;
     int totalLatency = 0;
@@ -223,7 +242,7 @@ public class XALoggerTest extends TestCase
         "\n</TestResults>"
         );
     
-    System.out.println(stats.toString());
+    out.println(stats.toString());
   }
   
   /**
@@ -246,9 +265,6 @@ public class XALoggerTest extends TestCase
     
     prop.setProperty("msg.count", "10");
     runWorkers(1);
-    
-    log.close();
-
   }
   
   /**
@@ -268,8 +284,6 @@ public class XALoggerTest extends TestCase
     log.setAutoMark(true);
 
     runWorkers(workers);
-    
-    log.close();
   }
   
   /**
@@ -289,14 +303,15 @@ public class XALoggerTest extends TestCase
     
     delayedWorkers = 1;
     runWorkers(workers);
-    
-    log.close();
   }
 
   /**
    * Test with automark FALSE so we can checkout the
    * log overflow processing.
    * <p>Test uses four delayed workers.
+   * 
+   * TODO: may be able to delete this test since
+   * the basic feature is covered in previous test.
    * 
    * @throws LogException
    * @throws Exception
@@ -310,8 +325,6 @@ public class XALoggerTest extends TestCase
     
     delayedWorkers = 4;
     runWorkers(workers);
-    
-    log.close();
   }
 
 }

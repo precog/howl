@@ -33,9 +33,10 @@
 package org.objectweb.howl.log.xa;
 
 import java.util.Date;
-import java.util.Properties;
 
 import org.objectweb.howl.log.LogException;
+import org.objectweb.howl.log.TestDriver;
+import org.objectweb.howl.log.TestWorker;
 import org.objectweb.howl.log.xa.XACommittingTx;
 import org.objectweb.howl.log.xa.XALogger;
 
@@ -45,70 +46,11 @@ import org.objectweb.howl.log.xa.XALogger;
  * 
  * @author Michael Giroux
  */
-public class XAWorker extends Thread {
-  /**
-   * configuration properties for the test case.
-   */
-  final Properties config;
-  
-  /**
-   * byte[] containing data to be logged for COMMIT record.
-   * <p>default size is 80 bytes.
-   * <p>Configuration property: <b> msg.size </b>
-   */
-  byte[] commitData = new byte[80];
-  byte[][] commitDataRecord = new byte[][] { commitData };
-  
-  /**
-   * byte[] containing data to be logged for DONE records.
-   * <p>initialized by initDoneData().
-   */
-  byte[] doneData = null;
-  byte[][] doneDataRecord = new byte[1][];
-  
-  /**
-   * number of COMMIT messages to be generated.
-   * 
-   * <p>default is 200.
-   * <p>Configuration property: <b> msg.count </b> 
-   */
-  int count = 200;
-  
-  /**
-   * When set <b> true </b> each COMMIT message contains
-   * the formatted TOD the record was generated.
-   *  
-   * <p>The information may be interesting during debug and
-   * analysis of log records, but does use a bit of CPU.
-   */
-  boolean doTimeStamp = false;
-  
-  /**
-   * total latency time for all COMMIT/DONE message
-   * pairs written by this XAWorker.
-   */
-  long latency = 0L;
-
-  /**
-   * reference to our test driver.
-   */
-  final org.objectweb.howl.log.TestDriver driver;
-  
-  /**
-   * XALogger obtained from test driver.
-   */
-  final XALogger log;
-  
+public class XAWorker extends TestWorker {
   /**
    * total number of bytes logged by this XAWorker.
    */
   long bytesLogged = 0L;
-  
-  /**
-   * thread name length.
-   * <p>initialized in initCommitData()
-   */
-  int tnl = 0;
   
   /**
    * any exception encountered by run() will be saved here.
@@ -130,93 +72,22 @@ public class XAWorker extends Thread {
   long delayBeforeDone = 0;
   
   /**
-   * parse the configuration properties.
-   */
-  void parseProperties()
-  {
-    String val = null;
-    String key = null;
-    int ival;
-    
-    val = config.getProperty( key = "msg.size" ).trim();
-    if (val != null)
-    {
-      ival = Integer.parseInt(val);
-      if (ival <= 0) throw new IllegalArgumentException();
-      if (ival != commitData.length)
-        commitData = new byte[ival];
-    }
-    
-    val = config.getProperty( key = "msg.count" ).trim();
-    if (val != null)
-    {
-      ival = Integer.parseInt(val);
-      if (ival <= 0) throw new IllegalArgumentException();
-      count = ival;
-    }
-    
-    val = config.getProperty ( key = "msg.timestamp", "false").trim().toLowerCase();;
-    doTimeStamp = val.equals("true"); 
-  }
-  
-  /**
-   * initializes the commitData array with data to be written to the log.
-   */
-  void initCommitData()
-  {
-    int msgSize = commitData.length;
-    
-    for (int i = 0; i < msgSize; i++)
-      commitData[i] = (byte) (32 + (i % 94));
-    commitData[msgSize - 2] = '\r';
-    commitData[msgSize - 1] = '\n';
-
-    String threadName = "[xxxx]COMMIT:" + Thread.currentThread().getName() + " " ;
-    tnl = threadName.length();
-
-    if (tnl < commitData.length)
-      System.arraycopy(threadName.getBytes(), 0, commitData, 0, tnl);
-  }
-  
-  /**
-   * initializes the doneData array with data to be written to the log.
-   */
-  void initDoneData()
-  {
-    doneData = ("[xxxx]DONE  :" + 
-        Thread.currentThread().getName() + 
-        "\n").getBytes();
-    doneDataRecord[0] = doneData;
-  }
-  
-  /**
    * constructs an XAWorker thread instance.
    * 
    * @param driver provides access to configuration information
    * and other features supplied by the test driver.
    */
-  XAWorker(org.objectweb.howl.log.TestDriver driver)
+  XAWorker(TestDriver driver)
   {
-    this.driver = driver;
-    config = driver.getProperties();
-    log = driver.getXALogger();
-  }
-  
-  /**
-   * Sets the delay time between commit and done records.
-   * 
-   * @param delayBeforeDone number of ms to delay between
-   * commit and done.
-   */
-  void setDelayBeforeDone(long delayBeforeDone)
-  {
-    this.delayBeforeDone = delayBeforeDone;
+    super(driver);
   }
   
   
   XACommittingTx logCommit(int id)
   throws LogException, Exception
   {
+    XALogger log = (XALogger)this.log;
+    
     // put message number into data buffer
     int msg = id;
     for(int j = 4; j > 0; --j)
@@ -240,6 +111,8 @@ public class XAWorker extends Thread {
   void logDone(XACommittingTx tx)
   throws LogException, Exception
   {
+    XALogger log = (XALogger)this.log;
+    
     // journalize FORGET record
     System.arraycopy(commitData,1,doneData,1,4);
     log.putDone(doneDataRecord, tx);
@@ -249,13 +122,6 @@ public class XAWorker extends Thread {
   
   public void run()
   {
-    
-    parseProperties();
-    
-    initCommitData();
-    
-    initDoneData();
-    
     // recuce count if this worker is doing delays between COMMIT and DONE 
     if (delayBeforeDone > 0)
       count = 4;
