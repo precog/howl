@@ -116,11 +116,6 @@ class LogBufferManager extends LogObject
   private int growPoolCounter = 0;
 
   /**
-   * number of fatal errors in buffer management logic.
-   */
-  private int bufferManagerError = 0;
-
-  /**
    * next block sequence number for fillBuffer.
    */
   int nextFillBSN = 1;
