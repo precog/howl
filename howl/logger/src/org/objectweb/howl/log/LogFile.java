@@ -25,7 +25,7 @@ import java.nio.channels.FileChannel;
  */
 class LogFile
 {
-  File name = null;
+  File file = null;
   
   /**
    * FileChannel associated with this LogFile.
@@ -93,11 +93,11 @@ class LogFile
   
   /**
    * construct an instance of LogFile for a given file name
-   * @param name filename
+   * @param file filename
    */
-  LogFile(File name)
+  LogFile(File file)
   {
-    this.name = name;
+    this.file = file;
   }
   
   /**
@@ -111,12 +111,12 @@ class LogFile
   LogFile open() throws FileNotFoundException
   {
     // remember whether the file existed or not
-    newFile = !name.exists();
+    newFile = !file.exists();
     
     // if it already existed, but length is zero, then it is still a new file
-    if (!newFile) newFile = name.length() == 0;
+    if (!newFile) newFile = file.length() == 0;
     
-    channel = new RandomAccessFile(name, "rw").getChannel();
+    channel = new RandomAccessFile(file, "rw").getChannel();
     return this;
   }
   
@@ -127,6 +127,7 @@ class LogFile
    */
   LogFile close() throws IOException
   {
+    position = channel.position(); // remember postion at close
     channel.close();
     return this;
   }
@@ -147,6 +148,7 @@ class LogFile
     }
 
     bytesWritten += channel.write(lb.buffer);
+    position = channel.position();
   }
   
   /**
@@ -170,24 +172,14 @@ class LogFile
   {
     String clsname = this.getClass().getName();
 
-    StringBuffer result = new StringBuffer("\n<LogFile class='" + clsname + "' file='" + name + "'>" +
+    StringBuffer result = new StringBuffer("\n<LogFile class='" + clsname + "' file='" + file + "'>" +
     "\n  <rewindCount value='" + rewindCounter + "'>Number of times this file was rewind to position(0)</rewindCount>" +
-    "\n  <bytesWritten value='" + bytesWritten + "'>Number of data written to the file</bytesWritten>"
+    "\n  <bytesWritten value='" + bytesWritten + "'>Number of bytes written to the file</bytesWritten>" +
+    "\n  <position value='" + position + "'>FileChannel.position()</position>" +
+    "\n</LogFile>" +
+    "\n" 
     );
 
-    long position = 0L;
-    try {
-      position = channel.position();
-    }
-    catch(IOException e) { /* ignore the exception */ }
-    finally {
-      result.append("\n  <position value='" + position + "'>FileChannel.position()</position>");
-    }
-    
-    result.append("\n</LogFile>" +
-    "\n"
-        );
-    
     return result.toString();
   }
 }

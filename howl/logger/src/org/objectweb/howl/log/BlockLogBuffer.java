@@ -462,7 +462,7 @@ class BlockLogBuffer extends LogBuffer
     StringBuffer sb = new StringBuffer(
         "\nClass: " + getClass().getName() + 
         "\n  index: " + Integer.toHexString(index) +
-        "\n  LogFile: " + lf.name.getPath() +
+        "\n  LogFile: " + lf.file.getPath() +
         "\n  HEADER" + 
         "\n    HEADER_ID: 0x" + Integer.toHexString(buffer.getInt()) +
         "\n    bsn: 0x" + Integer.toHexString(buffer.getInt()) +

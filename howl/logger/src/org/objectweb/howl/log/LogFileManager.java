@@ -310,7 +310,7 @@ class LogFileManager
           assert nextLogFile != null: "nextLogFile == null";
 
           if (activeMark < nextLogFile.highMark)
-            throw new LogFileOverflowException(activeMark, nextLogFile.highMark, nextLogFile.name);
+            throw new LogFileOverflowException(activeMark, nextLogFile.highMark, nextLogFile.file);
 
           ++lfIndex;
           
