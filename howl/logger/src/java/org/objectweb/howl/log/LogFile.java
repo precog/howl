@@ -54,6 +54,16 @@ class LogFile
   File file = null;
   
   /**
+   * @see java.io.RandomAccessFile#RandomAccessFile(java.lang.String, java.lang.String)
+   */
+  String fileMode = "rw";
+  
+  /**
+   * Will be set false for fileMode "rwd".
+   */
+  boolean forceRequired = true;
+  
+  /**
    * FileChannel associated with this LogFile.
    * 
    * <p>The FileChannel is private to guarantee that all calls to the
@@ -131,18 +141,23 @@ class LogFile
    * 
    * <p>If the file does not exist, then the newFile member is set true.
    * 
+   * @param fileMode value passed to RandomAccessFile constructor.
    * @throws FileNotFoundException
    * if the parent directory structure does not exist. 
+   * @see java.io.RandomAccessFile#RandomAccessFile(java.lang.String, java.lang.String)
    */
-  LogFile open() throws FileNotFoundException
+  LogFile open(String fileMode) throws FileNotFoundException
   {
+    this.fileMode = fileMode;
+    forceRequired = fileMode.equals("rw");
+
     // remember whether the file existed or not
     newFile = !file.exists();
     
     // if it already existed, but length is zero, then it is still a new file
     if (!newFile) newFile = file.length() == 0;
     
-    channel = new RandomAccessFile(file, "rw").getChannel();
+    channel = new RandomAccessFile(file, fileMode).getChannel();
     return this;
   }
   
@@ -187,7 +202,8 @@ class LogFile
    */
   void force(boolean forceMetadata) throws IOException
   {
-    channel.force(forceMetadata);
+    if (forceRequired)
+      channel.force(forceMetadata);
   }
   
   /**
@@ -199,6 +215,7 @@ class LogFile
     String clsname = this.getClass().getName();
 
     StringBuffer result = new StringBuffer("\n<LogFile class='" + clsname + "' file='" + file + "'>" +
+    "\n  <fileMode value='" + fileMode + "'>RandomAccessFile open mode</fileMode>" +    
     "\n  <rewindCount value='" + rewindCounter + "'>Number of times this file was rewind to position(0)</rewindCount>" +
     "\n  <bytesWritten value='" + bytesWritten + "'>Number of bytes written to the file</bytesWritten>" +
     "\n  <position value='" + position + "'>FileChannel.position()</position>" +

@@ -55,6 +55,7 @@ class LogBufferManager extends LogObject
   {
     super(config);
     threadsWaitingForceThreshold = config.getThreadsWaitingForceThreshold();
+    forceRequired = config.getLogFileMode().equals("rw");
     
     flushManager = new FlushManager(flushManagerName);
     flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
@@ -79,6 +80,12 @@ class LogBufferManager extends LogObject
    * @see LogFileManager#getLogFileForWrite(LogBuffer)
    */
   private LogFileManager lfm = null;
+  
+  /**
+   * indicates if a force() must be called in the flush() method.
+   * <p>Set false in constructor if config.getLogFileMode() is "rwd".
+   */
+  final boolean forceRequired;
   
   /**
    * The LogBuffer that is currently being filled.
