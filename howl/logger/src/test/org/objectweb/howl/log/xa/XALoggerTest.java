@@ -206,6 +206,22 @@ public class XALoggerTest extends TestDriver
   }
   
   /**
+   * Verify that XALogger created with default constructor
+   * works correctly.
+   * 
+   * @throws Exception
+   */
+  public void testXALoggerDefaultConstructor() throws Exception
+  {
+    log = new XALogger();
+    super.log = log;
+    log.open(openListener);
+    log.setAutoMark(true);
+    runWorkers(XAWorker.class);
+    // log.close(); called by runWorkers()
+  }
+  
+  /**
    * Verify that XALogger.open() throwss
    * an UnsupportedOperationException.
    * 
