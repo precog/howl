@@ -59,6 +59,14 @@ import org.objectweb.howl.log.ReplayListener;
  * <p>This class provides wrappers for all public methods of Logger
  * to allow enforcement of policies that are in place for an XA TM log.
  * 
+ * <p>This class implements {@link org.objectweb.howl.log.LogEventListener}.
+ * During logOverflowNotification processing, entries in the activeTx[]
+ * are re-logged and the active mark is moved.
+ * 
+ * <p>If the application has called setLogEventListener, then
+ * Log events are forwarded to the application after they are
+ * processed by this class.
+ * 
  * @author Michael Giroux
  * 
  * @history
@@ -574,6 +582,8 @@ public class XALogger extends Logger
    */
   public void logOverflowNotification(long overflowFence)
   {
+    boolean logClosed = false; // BUG 300799
+    
     long newMark = Long.MAX_VALUE;
     XACommittingTx tx = null;
     long txKey = 0L;
@@ -589,6 +599,14 @@ public class XALogger extends Logger
       this.overflowFence = overflowFence;
     }
     
+    // allow application to process this event
+    if (eventListener != null)
+      eventListener.logOverflowNotification(overflowFence);
+    
+    /*
+     * walk through the activeTx table and move any
+     * records that are below the overflowFence.
+     */
     for (int i=0; i < activeTx.length; ++i)
     {
       synchronized(activeTxLock)
@@ -648,12 +666,15 @@ public class XALogger extends Logger
           tx.setMoving(false);
           tx.notifyAll(); // in case putDone is waiting
         }
-      } catch (LogClosedException e1) { // ignore
-        assert false : "unexpected LogClosedException";
+      } catch (LogClosedException e1) {
+          // We can safely ignore the exception.
+          // Restart may see moved records multiple times, but this is not a problem.
+          logClosed = true;  // BUG 300799
+          break;             // BUG 300799 - remove assert
       } catch (LogRecordSizeException e1)  { // ignore
-        assert false : "unexpected LogRecordSizeException";
+          assert false : "unexpected LogRecordSizeException";
       } catch (LogFileOverflowException e1)  { // ignore
-        assert false : "unexpected LogFileOverflowException";
+          assert false : "unexpected LogFileOverflowException";
       } catch (InterruptedException e1)  { // ignore
       } catch (IOException e1)  { // ignore
       }
@@ -664,7 +685,11 @@ public class XALogger extends Logger
       // if we have not moved any records, set new mark at the beginning of next file.
       if (newMark == Long.MAX_VALUE)
         newMark = overflowFence;
-      mark(newMark, true);  // force = true
+      
+      // BUG 300799 if we got a LogClosedException while moving records
+      // then we cannot update the mark.
+      if (!logClosed)
+        mark(newMark, true);  // force = true
     } catch (InvalidLogKeyException e) { // should never happen
       System.err.println(e.toString());
       Thread.yield();
