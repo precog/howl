@@ -37,7 +37,7 @@ package org.objectweb.howl.log;
  * @author Michael Giroux
  *
  */
-public class LoggerFactory
+class LoggerFactory
 {
 // TODO: implement LoggerFactory
 }
