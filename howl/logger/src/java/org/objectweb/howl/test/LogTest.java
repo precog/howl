@@ -48,8 +48,8 @@ public class LogTest
 {
   File journalFile = null;
 
-  Object startBarrier = new Object();
-  Object stopBarrier = new Object();
+  Barrier startBarrier;
+  Barrier stopBarrier;
 
   int startedThreads = 0;
   int stoppedThreads = 0;
@@ -64,7 +64,6 @@ public class LogTest
   void run()
   {
     try {
-      createJournalFile();
       testXAJournalThroughput();
       testXAJournalValidate();
     } catch (LogException e) {
@@ -89,14 +88,6 @@ public class LogTest
   }
 
   /**
-   * create a journal file for use in a benchmark
-   */
-  void createJournalFile()
-  {
-    journalFile = new File(System.getProperty("howl.journal.filename", "xa.journal"));
-  }
-
-  /**
    * Tests to see what kind of throughput we can get with the current Journal.
    * 
    * @throws Exception
@@ -104,7 +95,7 @@ public class LogTest
   public void testXAJournalThroughput()
     throws Exception, LogException
   {
-      Configuration cfg = new Configuration(new File("test.properties"));
+      Configuration cfg = new Configuration(new File("conf/log.properties"));
       log = new Logger(cfg);
       log.open();
       log.setAutoMark(Boolean.getBoolean("howl.log.test.setautomark"));
@@ -112,7 +103,9 @@ public class LogTest
       WORKERS = Integer.getInteger("xa.workers",1).intValue();
       MESSAGE_COUNT = Integer.getInteger("xa.msg.count",5).intValue();
       MESSAGE_SIZE = Integer.getInteger("xa.msg.size",80).intValue();
-      int MESSAGE_SYNC_COUNT = Integer.getInteger("xa.msg.sync.count",2).intValue();
+      
+      startBarrier = new Barrier(WORKERS + 1);
+      stopBarrier = new Barrier(WORKERS + 1);
 
       long beginTime = System.currentTimeMillis();
 
@@ -121,12 +114,11 @@ public class LogTest
         "\n  WORKERS (xa.workers): " + WORKERS +
         "\n  MESSAGE_COUNT (xa.msg.count): " + MESSAGE_COUNT +
         "\n  MESSAGE_SIZE (xa.msg.size): " + MESSAGE_SIZE +
-        "\n  MESSAGE_SYNC_COUNT(xa.msg.sync.count): " + MESSAGE_SYNC_COUNT +
         "\n"
       );
       
       String testName = "testXAJournalThroughput";
-      long startTime = journalTest(log, MESSAGE_SYNC_COUNT, testName);
+      long startTime = journalTest(log, testName);
       
       log.close();
       
@@ -184,7 +176,7 @@ public class LogTest
     
     void run() throws Exception, LogException
     {
-      Configuration cfg = new Configuration(new File("test.properties"));
+      Configuration cfg = new Configuration(new File("conf/log.properties"));
       Logger log = new Logger(cfg);
       log.open();
       log.replay(this, 0L);
@@ -204,7 +196,7 @@ public class LogTest
   final Object mutex = new Object();
   long totalBytes = 0L;
   long totalLatency = 0L;
-  private long journalTest(final Logger logger, final int MESSAGE_SYNC_COUNT, String testName)
+  private long journalTest(final Logger logger, String testName)
     throws Exception
   {
     
@@ -218,14 +210,11 @@ public class LogTest
             boolean exception = false;
 
             try {
-              synchronized(startBarrier)
-              {
-                ++startedThreads;
-                startBarrier.notifyAll();
-                while (startedThreads < (WORKERS+1)) startBarrier.wait();
-              }
+              startBarrier.barrier();
 
               byte[] data = new byte[MESSAGE_SIZE];
+              byte[][] dataRec = new byte[][] { data };
+              
               for (int i = 0; i < MESSAGE_SIZE; i++)
                 data[i] = (byte) (32 + (i % 94));
               data[MESSAGE_SIZE - 2] = '\r';
@@ -238,6 +227,7 @@ public class LogTest
                 System.arraycopy(threadName.getBytes(), 0, data, 0, tnl);
               
               byte[] donerec = ("[xxxx]DONE  :" + Thread.currentThread().getName() + "\n").getBytes();
+              byte[][] donerecRec = new byte[][] { donerec };
               
               boolean doTimeStamp = Boolean.getBoolean("howl.log.test.timeStamp");
 
@@ -259,12 +249,12 @@ public class LogTest
                 }
 
                 // journalize COMMITTING record
-                logger.put(data, true);
+                logger.put(dataRec, true);
                 bytes += data.length;
 
                 // journalize FORGET record
                 System.arraycopy(data,1,donerec,1,4);
-                logger.put(donerec, false);
+                logger.put(donerecRec, false);
                 bytes += donerec.length;
                 
                 latency += (System.currentTimeMillis() - latencyStart);
@@ -295,11 +285,8 @@ public class LogTest
                 totalBytes += bytes;
                 totalLatency += latency;
               }
-              synchronized(stopBarrier)
-              {
-                ++stoppedThreads;
-                stopBarrier.notifyAll();
-              }
+              
+              stopBarrier.release();
             }
             
           }
@@ -311,19 +298,15 @@ public class LogTest
     long startTime = 0;
     synchronized(startBarrier)
     {
-      while (startedThreads < WORKERS) startBarrier.wait();
-      ++startedThreads;
-      startBarrier.notifyAll();
+      while (startBarrier.getCount() > 1) startBarrier.wait();
       startTime = System.currentTimeMillis();
+      startBarrier.barrier(); // put all threads into execution.
     }
 
     System.err.println("HardenerTest.journalTest(): "+ WORKERS + " threads started");
 
     // Wait for all the workers to finish.
-    synchronized(stopBarrier)
-    {
-      while(stoppedThreads < WORKERS) stopBarrier.wait();
-    }
+    stopBarrier.barrier();
     
     return startTime;
 
