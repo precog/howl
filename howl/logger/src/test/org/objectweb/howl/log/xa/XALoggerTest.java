@@ -32,7 +32,6 @@
  */
 package org.objectweb.howl.log.xa;
 
-import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -108,22 +107,27 @@ public class XALoggerTest extends TestDriver
       byte[] data = lr.getFields()[0];
       String key = new String(data, 1, 9);
       
+      // remove any existing entry
       Object o = activeTx.remove(key);
-      XACommittingTx tx = lr.getTx();
-      if (tx != null) activeTx.put(key, lr.getTx());
       
-      if (out != null) out.print(new String(data));
+      activeTx.put(key, lr.getTx());
     }
     
     private void activeTxRemove(XALogRecord lr)
     {
-      if (lr.getFields().length == 0) return;
+      if (lr.getFields().length == 0)
+        return;
       
       byte[] data = lr.getFields()[0];
+      // make sure we have enough data to be a DONE record
+      if (lr.dataBuffer.limit() < "[xxxx.xxxx]DONE".length())
+        return;
+      // and make sure it is a DONE record
+      if (!(new String(data, 11, 4).equals("DONE")))
+        return;
+      
       String key = new String(data, 1, 9);
       XACommittingTx tx = (XACommittingTx)activeTx.remove(key);
-
-      if (out != null) out.print(new String(data));
     }
     
     public int getActiveTxUsed()
@@ -230,7 +234,8 @@ public class XALoggerTest extends TestDriver
     prop.setProperty("msg.count", "10");
     workers = 1;
     runWorkers(XAWorker.class);
-  }
+    // log.close(); called by runWorkers()
+}
   
   /**
    * Test with automark TRUE so we never get overflow.
@@ -247,6 +252,7 @@ public class XALoggerTest extends TestDriver
     log.setAutoMark(true);
 
     runWorkers(XAWorker.class);
+    // log.close(); called by runWorkers()
   }
   
   /**
@@ -290,66 +296,43 @@ public class XALoggerTest extends TestDriver
     
     delayedWorkers = 1;
     runWorkers(XAWorker.class);
+    // log.close(); called by runWorkers()
   }
 
-  /**
-   * Test with automark FALSE so we can checkout the
-   * log overflow processing.
-   * <p>Test uses four delayed workers.
-   * 
-   * TODO: may be able to delete this test since
-   * the basic feature is covered in previous test.
-   * 
-   * @throws LogException
-   * @throws Exception
-   */
-  public void testAutoMarkFalseFourDelayedWorker() throws Exception
-  {
-    log.open(openListener);
-    log.setAutoMark(false);
-    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
-    assertNull("openListener.exception", openListener.exception);
-    
-    delayedWorkers = 4;
-    runWorkers(XAWorker.class);
-  }
-  
   /**
    * Display the activeTx table following open.
    */
   public void testActiveTxDisplay() throws Exception
   {
     log.open(openListener);
-    log.activeTxDisplay();
-    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
     assertNull("openListener.exception", openListener.exception);
+    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
+    log.activeTxDisplay();
+    log.close();
   }
   
   /**
-   * Verify that number of records replayed during open()
-   * is the same as the number of records replayed by
-   * replay().
+   * Verify that number of records in the activeTx table
+   * after log.open() 
+   * is the same as the number of records in the activeTx 
+   * table after log.replay().
    */
   public void testReplayFromAutoMark() throws Exception
   {
-    openListener.setPrintStream(out.toString());
     log.open(openListener);
-    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
     assertNull("openListener.exception", openListener.exception);
     
     XLTReplayListener replayListener = new XLTReplayListener();
     log.replay(replayListener);
     assertNull("replayListener.exception", replayListener.exception);
-    assertEquals("records replayed", openListener.count, replayListener.count);
-    
+
     assertEquals("activeTxUsed", openListener.getActiveTxUsed(), replayListener.getActiveTxUsed());
-    assertEquals("activeTxUsed", 1, replayListener.getActiveTxUsed());
+    log.close();
   }
   
   /**
    * Verify that the XACommittingTx entry that is recovered during replay
    * can be used to complete any open transactions.
-   * <p>Each entry 
    * @throws Exception
    */
   public void testFinishIncompleteTx() throws Exception
@@ -368,13 +351,12 @@ public class XALoggerTest extends TestDriver
     {
       XACommittingTx tx = (XACommittingTx)txSet.next();
       byte[] record = tx.getRecord()[0];
-      assertEquals("workerID", "[9000.0001]",new String(record, 0, 11));
+      assertEquals("workerID", "["+FAILEDRM+".0001]",new String(record, 0, 11));
 
-      byte[] doneRecord = "[9000.0001]DONE\n".getBytes();
+      byte[] doneRecord = ("["+FAILEDRM+".0001]DONE\n").getBytes();
       log.putDone(new byte[][] { doneRecord }, tx);
-      System.out.println("putDone for " + new String(tx.getRecord()[0]));
-      System.out.println("key=" + Long.toHexString(tx.getLogKey()));
     }
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
     log.close();
   }
   
@@ -388,9 +370,11 @@ public class XALoggerTest extends TestDriver
   public void testVerifyFinishIncompleteTx() throws Exception
   {
     log.open(openListener);
-    log.activeTxDisplay();
-    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
     assertNull("openListener.exception", openListener.exception);
+
+    if (log.getActiveTxUsed() > 0)
+      log.activeTxDisplay(); // show any unresolved entries in the log
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
     log.close();
   }
   
