@@ -70,10 +70,8 @@ class TestLogReader implements ReplayListener
     return logrec;
   }
   
-  void run(Configuration cfg) throws Exception, LogException
+  void run(Logger log) throws Exception, LogException
   {
-    Logger log = new Logger(cfg);
-    log.open();
     log.replay(this, 0L);
     log.close();
     
