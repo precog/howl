@@ -54,10 +54,25 @@ public interface LogEventListener
    * Called by Logger to notify the LogEventListener
    * that a log file overflow is approaching.
    * 
-   * @param logkey first log key in the current log file.
+   * @param logkey lowest safe log key.
+   * 
    * <p>LogEventListener should cause log records with 
    * keys less than <i> logkey </i> to be copied forward
-   * to prevent a LogOverflowException. 
+   * to prevent a LogOverflowException.
+   * <p>Hopefully, the LogEventListener will be able
+   * to regenerate the records from memory without
+   * having to read the physical log file.  For example,
+   * a Transaction Manager should maintain a table of
+   * transactions that are in the COMMITTING mode,
+   * with associated log key for each transaction.
+   * The logOverflowNotification method would call
+   * Logger.put() for each transaction that has a
+   * log key less than <i> logKey </i>.
+   * <p>Before returning from logOverflowNotification
+   * the LogEventListener should call Logger.mark(newMark, force)
+   * with <i> force </i> set to <b> true </b> to 
+   * assure that the new records have been committed to
+   * physical disk. 
    */
   void logOverflowNotification(long logkey);
   
