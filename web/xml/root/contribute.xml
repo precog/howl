@@ -22,22 +22,19 @@
           on the <a href="http://forge.objectweb.org/mail/?group_id=92">mail lists</a>,
           by submitting 
           <a href="http://forge.objectweb.org/tracker/?atid=100092&amp;group_id=92&amp;func=browse">
-            bug reports
-          </a>
+            bug reports</a>
           and
           <a href="http://forge.objectweb.org/tracker/?atid=350092&amp;group_id=92&amp;func=browse">
-            feature requests
-          </a>.
+            feature requests</a>.
           <br/>
           Developers who discover and report bugs in HOWL code are
           encouraged to provide suggested corrections in the form of
-          <a href="http://forge.objectweb.org/tracker/?atid=300092&amp;group_id=92&amp;func=browse">
-            patches.
-          </a>
+          <a
+          href="http://forge.objectweb.org/tracker/?atid=300092&amp;group_id=92&amp;func=browse">patches.</a>
           <br/>
         </p>
         <p>
-          All contributions are important and help improve the quality of C-JDBC.
+          All contributions are important and help improve the quality of HOWL.
         </p>
       </s2>
     </s1>
