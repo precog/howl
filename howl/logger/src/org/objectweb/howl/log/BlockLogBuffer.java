@@ -37,16 +37,21 @@ class BlockLogBuffer extends LogBuffer
    */
   int initCounter = 0;
 
-  /* buffer Header format
-   * byte  HEADER_ID              [4] "HOWL"
-   * int   block_sequence_number  [4]
-   * int   block_size             [4] in bytes
-   * int   bytes_used              [4]
-   * int   checkSum               [4] 
-   * long  currentTimeMillis      [8]
-   * byte  CRLF                   [2] to make it easier to read buffers in an editor
+  /**
+   * size of a buffer header.
+   * <pre>
+   * <b>buffer Header format</b>
+   * byte[]  HEADER_ID              [4] "HOWL"
+   * int     block_sequence_number  [4]
+   * int     block_size             [4] in bytes
+   * int     bytes used             [4]
+   * int     checkSum               [4] 
+   * long    currentTimeMillis      [8]
+   * byte[]  CRLF                   [2] to make it easier to read buffers in an editor
+   * </pre>
    */
-  
+  private final int bufferHeaderSize = 30; 
+ 
   /**
    * Offset within the block header of the bytes_used field.
    */
@@ -55,7 +60,7 @@ class BlockLogBuffer extends LogBuffer
   /**
    * The number of bytes to reserve for block footer information.
    */
-  private int bufferFooterSize = 18;
+  private final int bufferFooterSize = 18;
   /* 
    * byte FOOTER_ID             [4] "LOWH"
    * int block_sequence_number  [4]
@@ -301,7 +306,7 @@ class BlockLogBuffer extends LogBuffer
    * Reads a block from LogFile <i> lf </i> and validates
    * header and footer information.
    * 
-   * @see LogBuffer#read
+   * @see LogBuffer#read(LogFile, long)
    * @throws IOException
    * if anything goes wrong during the file read.
    * @throws InvalidLogBufferException
