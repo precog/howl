@@ -272,6 +272,7 @@ class LogFileManager extends LogObject
   {
     super(config);
     
+    // retrieve configuration properties for this object
     maxBlocksPerFile = config.getMaxBlocksPerFile();
     
     // light up the event managemer thread
@@ -368,7 +369,7 @@ class LogFileManager extends LogObject
           // Make sure active mark is not within the next log file. 
           LogFile nextLogFile = fileSet[lfIndex];
           assert nextLogFile != null: "nextLogFile == null";
-
+          
           if (activeMark < nextLogFile.highMark)
             throw new LogFileOverflowException(activeMark, nextLogFile.highMark, nextLogFile.file);
 
@@ -450,7 +451,7 @@ class LogFileManager extends LogObject
    * forward to prevent log overflow.
    * <p><b>Called by:</b> getLogFileForWrite(Logbuffer lb)
    * 
-   * @param lb the LogBuffer taht was passed to getLogFileForWrite()
+   * @param bsn The block sequence number of the current LogBuffer.
    * 
    * @see #getLogFileForWrite(LogBuffer)
    */
@@ -473,7 +474,7 @@ class LogFileManager extends LogObject
 
             // kick the event manager thread
             event |= LOG_OVERFLOW_EVENT;
-            eventManagerLock.notify();
+            eventManagerLock.notifyAll();
           }
         } // synchronized(eventManagerLock)
       }
@@ -979,6 +980,13 @@ class LogFileManager extends LogObject
     
     // Wait for logger information to flush to disk
     bmgr.flushAll();
+    
+    // Allow buffer manager to shut down any helper threads
+    bmgr.close();
+    
+    // shut down the event manager thread before we close the files
+    if (eventManagerThread != null)
+      eventManagerThread.interrupt();
   	
     // close the log files
     for (int i=0; i < fileSet.length; ++i)
@@ -1034,7 +1042,6 @@ class LogFileManager extends LogObject
    * helper thread used invoke LogEventListener when
    * log overflow (or other event) is about to occur.
    * 
-   * TODO Currently this thread is never shut down.
    */
   class EventManager extends Thread
   {
@@ -1050,8 +1057,11 @@ class LogFileManager extends LogObject
      */
     public void run()
     {
+      // provide access to members in containing class
       LogFileManager parent = LogFileManager.this;
-      int event; 
+      
+      int event;
+      long lowestSafeLogKey;
       
       while(true)
       {
@@ -1068,6 +1078,8 @@ class LogFileManager extends LogObject
             // we've been shut down.
             return;
           }
+          
+          lowestSafeLogKey = parent.lowestSafeLogKey;
         }
         
         if ((event & LOG_OVERFLOW_EVENT) != 0)
@@ -1079,12 +1091,12 @@ class LogFileManager extends LogObject
             // update count of notifications
             parent.overflowNotificationCount += 1;
           }
-
-          // get ready to wait for the next event
-          lowestSafeLogKey = 0;
           
-          // turn of the event request
-          event ^= LOG_OVERFLOW_EVENT;
+          synchronized(eventManagerLock)
+          {
+            parent.lowestSafeLogKey = 0;
+            parent.event ^= LOG_OVERFLOW_EVENT;
+          }
         }
 
         else
@@ -1093,12 +1105,6 @@ class LogFileManager extends LogObject
             "unexpected event type [" +
             event +
             "] in LogFileManager eventManagetThread"; 
-        }
-        
-        // remember any events we did not process during the current pass.
-        synchronized(eventManagerLock)
-        {
-          parent.event |= event;
         }
       }
     }
