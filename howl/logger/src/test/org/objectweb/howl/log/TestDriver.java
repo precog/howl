@@ -82,6 +82,12 @@ public class TestDriver extends TestCase {
   
   public final Logger getLogger() { return log; }
   
+  public class TestException extends Exception
+  {
+    public TestException() { super(); }
+    public TestException(String s) { super(s); }
+  }
+  
   /**
    * process properties for this test case
    * @throws FileNotFoundException
@@ -184,6 +190,8 @@ public class TestDriver extends TestCase {
   protected void runWorkers(Class workerClass)
   throws LogException, Exception
   {
+    TestException exception = null;
+    
     if (workers <=0) throw new IllegalArgumentException();
     
     TestWorker[] worker = new TestWorker[workers];
@@ -231,8 +239,8 @@ public class TestDriver extends TestCase {
       totalTransactions += w.transactions;
       if (w.exception != null)
       {
-        w.exception.printStackTrace();
-        throw w.exception;
+        exception = new TestException();
+        exception.initCause(w.exception);
       }
     }
     
@@ -271,6 +279,8 @@ public class TestDriver extends TestCase {
         );
     
     out.println(stats.toString());
+    
+    if (exception != null) throw exception;
   }
   
 }

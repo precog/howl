@@ -32,7 +32,10 @@
  */
 package org.objectweb.howl.log;
 
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class LogTest extends TestDriver
 {
@@ -201,14 +204,41 @@ public class LogTest extends TestDriver
     runWorkers(LogTestWorker.class);
   }
 
+  /**
+   * Verify that test terminates with an IOException.
+   * <p>Remove log drive to cause IOExcepion during test.  
+   * This test will probably hang if IOException is not
+   * reported properly.
+   * 
+   * @throws Exception
+   */
   public void testIOException() throws Exception {
-    cfg.setLogFileDir("f:/logs");
+    String defDir = cfg.getLogFileDir(); // so test runs if test.ioexception.dir not defined
+    String logDir = prop.getProperty("test.ioexception.dir", defDir);
+    cfg.setLogFileDir(logDir);
     log.open();
     log.setAutoMark(true);
-    prop.setProperty("msg.force.interval", "0");
-    prop.setProperty("msg.count", "1000");
-    System.err.println("Starting IOException test");
-    runWorkers(LogTestWorker.class);
+    prop.setProperty("msg.count", "100");
+    System.err.println("Begin " + getName() +
+        "\n  remove " + logDir + " to generate IOException");
+    try {
+      runWorkers(LogTestWorker.class);
+      fail("Expected an IOException");
+    } catch (TestException e) {
+      Throwable cause = e.getCause();
+      assertTrue(cause instanceof IOException);
+    }
+    System.err.println("End " + getName());
+  }
+  
+  /**
+   * Verify that file mode "rw" works as expected.
+   * 
+   * @throws Exception
+   */
+  public void testVerifyMode_rw() throws Exception
+  {
+    
   }
 
 }
