@@ -80,7 +80,7 @@ public class LogRecord
   protected byte[][] fields = null;
   
   /**
-   * byte[] containing record data.
+   * byte[] containing unparsed record data.
    */
   public byte[] data = null;
   
