@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project>
+
+    <!-- the version of maven's project object model -->
+    <pomVersion>3</pomVersion>
+
+    <id>trace</id>
+    <name>trace</name>
+    <currentVersion>DEV</currentVersion>
+
+    <!-- jar files the project is dependent on -->
+    <dependencies>
+        <dependency>
+            <id>log4j</id>
+            <version>1.2.8</version>
+            <url>http://jakarta.apache.org/log4j</url>
+        </dependency>
+    </dependencies>
+
+    <!-- build information for the project -->
+    <build>
+        <sourceDirectory>src/java</sourceDirectory>
+        <unitTestSourceDirectory>src/test</unitTestSourceDirectory>
+    </build>
+
+
+</project>
+

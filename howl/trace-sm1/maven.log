@@ -1,0 +1,5 @@
+2003-12-19 12:23:49,194 INFO  org.apache.maven.verifier.DependencyVerifier - Attempting to download maven-SNAPSHOT.jar.
+2003-12-19 12:23:50,632 INFO  com.werken.werkz.jelly.PostGoalTag - Running post goal: clean:clean
+2003-12-19 12:23:50,632 INFO  org.apache.maven.cli.App - Total time: 3 seconds
+2003-12-19 12:23:50,632 INFO  org.apache.maven.cli.App - Finished at: Fri Dec 19 12:23:50 PST 2003
+2003-12-19 12:23:50,632 INFO  org.apache.maven.cli.App - 
