@@ -40,7 +40,7 @@ set emma=emmarun -r html -sp ./src/java;./src/test -ix -org.objectweb.howl.log.*
 
 pushd ..
 echo on
-%java_home%\bin\java %java_opts% %emma%  org.objectweb.howl.log.ThroughputTest
+%java_home%\bin\java %java_opts% %emma%  org.objectweb.howl.log.LogTest
 @echo off
 popd
 endlocal
