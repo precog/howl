@@ -158,7 +158,7 @@ class LogFileManager
    * int      maxBlocksPerFile   byte[4]  
    * byte[2]  crlf               byte[2]
    */
-  byte[] fileHeader = new byte[35];
+  byte[][] fileHeader = new byte[1][35];
   
   /**
    * ByteBuffer wrapper for fileHeader to facilitate conversion of numeric
@@ -166,7 +166,7 @@ class LogFileManager
    * 
    * <p>protected by fileManagerLock
    */
-  ByteBuffer fileHeaderBB = ByteBuffer.wrap(fileHeader);
+  ByteBuffer fileHeaderBB = ByteBuffer.wrap(fileHeader[0]);
   
   /**
    * MARK control Record.
@@ -193,7 +193,7 @@ class LogFileManager
    * 
    * @see #setMarkData(ByteBuffer)
    */
-  byte[] markRecord = new byte[19];
+  byte[][] markRecord = new byte[1][19];
   
   /**
    * ByteBuffer wrapper for markRecord to facilitate conversion of numeric
@@ -201,7 +201,7 @@ class LogFileManager
    * 
    * <p>protected by fileManagerLock
    */
-  ByteBuffer markRecordBB = ByteBuffer.wrap(markRecord);
+  ByteBuffer markRecordBB = ByteBuffer.wrap(markRecord[0]);
   
   /**
    * end of line for log records to make logs readable in text editors.
@@ -347,7 +347,7 @@ class LogFileManager
           fileHeaderBB.putInt(fileSet.length);
           fileHeaderBB.putInt(maxBlocksPerFile);
           fileHeaderBB.put(crlf);
-          assert fileHeader.length == fileHeaderBB.position()
+          assert fileHeader[0].length == fileHeaderBB.position()
             : "byte[] fileHeader size error";
           
           lb.lf = nextLogFile;
@@ -361,7 +361,7 @@ class LogFileManager
         	short type = LogRecordType.MARKKEY;
 
           setMarkData(markRecordBB);
-          assert markRecord.length == markRecordBB.position()
+          assert markRecord[0].length == markRecordBB.position()
             : "byte[] markRecord size error";
 
           lb.lf = currentLogFile;
@@ -424,8 +424,8 @@ class LogFileManager
 
     activeMark = key;
 
-    byte[] markData = new byte[markRecord.length];
-    ByteBuffer markDataBuffer = ByteBuffer.wrap(markData);
+    byte[][] markData = new byte[1][markRecord[0].length];
+    ByteBuffer markDataBuffer = ByteBuffer.wrap(markData[0]);
 
     short type = LogRecordType.MARKKEY;
     setMarkData(markDataBuffer);
@@ -512,7 +512,7 @@ class LogFileManager
    * 
    * @param key a log key returned by the buffer manager.
    * 
-   * @see Logger#put(byte[],boolean) 
+   * @see org.objectweb.howl.log.Logger#put(byte[],boolean) 
    */
   synchronized void setCurrentKey(long key)
   {
@@ -734,7 +734,7 @@ class LogFileManager
     if (false) {
       short type = LogRecordType.RESTART;
       try {
-        bmgr.put(type, new byte[0], false);
+        bmgr.put(type, new byte[0][0], false);
       } catch (InterruptedException e) {
         throw e;
       } catch (LogException e) {
@@ -764,12 +764,12 @@ class LogFileManager
     lb.read(lf, 0L);
     if (lb.bsn == -1) return; // end of file or empty file
 
-    LogRecord fh = new LogRecord(fileHeader.length);
+    LogRecord fh = new LogRecord(fileHeader[0].length);
     assert fh != null : "LogRecord reference [fh] is null";
 
     fh.get(lb);
     if (fh.type != LogRecordType.FILE_HEADER ||
-        fh.length != fileHeader.length)
+        fh.length != fileHeader[0].length)
     {
       throw new InvalidLogBufferException("HEADER_TYPE: " + Integer.toHexString(fh.type));
     }
@@ -832,8 +832,8 @@ class LogFileManager
     bmgr.flushAll();
     
     // save current configuration details to the log
-    byte[] closeData = new byte[2];
-    ByteBuffer closeDataBuffer = ByteBuffer.wrap(closeData);
+    byte[][] closeData = new byte[1][2];
+    ByteBuffer closeDataBuffer = ByteBuffer.wrap(closeData[0]);
     closeDataBuffer.clear();
     // TODO: define content of closeData record 
     closeDataBuffer.put(crlf);
