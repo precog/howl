@@ -37,7 +37,7 @@
 
     <menu>
       <legend>About</legend>
-      <menuitem><a href="index.html">Team</a></menuitem>
+      <menuitem><a href="team.html">Team</a></menuitem>
       <menuitem><a href="mailto:howl@objectweb.org">Contact</a></menuitem>
     </menu>
 

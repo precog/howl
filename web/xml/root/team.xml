@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+
+<!DOCTYPE document PUBLIC "-//ObjectWeb//DTD ObjectWeb Project Web Site//EN"
+"../../common/dtd/objectweb.dtd">
+
+<document>
+  <properties>
+    <author email="michael.giroux@objectweb.org">Michael Giroux</author>
+    <title>Team</title>
+    <filename>team.xml</filename>
+    <pathtoroot>.</pathtoroot>
+  </properties>
+  
+  <body>
+    <s1 name="Team">
+      <p>
+        The HOWL team consists of two sets of individuals.  The target users of the
+        HOWL logger implementation provide the requirements that have driven the
+        project.  This group includes the JOTM developers, the Apache Geronimo 
+        developers, and the ActiveMQ developers.  The second group of individuals
+        contributing to the HOWL project are the actual developers.
+      </p>
+      <s2 name="Developers">
+        <table>
+          <tr>
+            <td>Michael Giroux</td>
+            <td>Architect and lead developer.</td>
+          </tr>
+          <tr>
+            <td>Jeremy Boynes</td>
+            <td>
+              Submitted a prototype for a trace package.  Although the trace package
+              is not currently include in the HOWL distribution, it will serve as
+              a good proof of concept if we attempt to add trace support in the 
+              future.
+            </td>
+          </tr>
+          <tr>
+            <td>David Jencks</td>
+            <td>
+              Conducted a very thourough code review of the HOWL logger
+              classes.<br/>
+              Supplied a patch with several
+              suggestions for improved synchronization.<br/>
+              Contributed build files for use with Apache Maven.
+            </td>
+          </tr>
+          <tr>
+            <td>Hiram Chirino</td>
+            <td>
+              Contributed an initial prototype for the HOWL logger.
+              <br/>
+              Integraed HOWL into the ActiveMQ project.
+            </td>
+          </tr>
+        </table>
+        <p>
+        The HOWL forge details the current list of
+        <a href='http://forge.objectweb.org/project/memberlist.php?group_id=92'>developers</a>.
+        </p>
+      </s2>
+    </s1>
+  </body>
+</document>
