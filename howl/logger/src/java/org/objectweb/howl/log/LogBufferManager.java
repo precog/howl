@@ -64,11 +64,6 @@ class LogBufferManager extends LogObject
   short nextIndex = 0;
   
   /**
-   * number of log Write forces
-   */
-  private long forceCounter = 0;
-
-  /**
    * number of times there were no buffers available
    */
   private long waitForBuffer = 0;
@@ -332,7 +327,9 @@ class LogBufferManager extends LogObject
     LogBuffer lb = null;
     Class lbcls = this.getClass().getClassLoader().loadClass(config.getBufferClassName());
     
-    String thisPackage = this.getClass().getPackage().getName();
+    String thisPackage = this.getClass().getName();
+    int pkgLength = thisPackage.lastIndexOf('.');
+    thisPackage = thisPackage.substring(0,pkgLength);
     Class cfgcls = this.getClass().getClassLoader().loadClass(thisPackage + ".Configuration");
 
     try {

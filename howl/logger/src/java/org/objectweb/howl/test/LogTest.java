@@ -160,7 +160,8 @@ public class LogTest
     
     void run() throws Exception, LogException
     {
-      Logger log = new Logger();
+      Configuration cfg = new Configuration(new File("test.properties"));
+      Logger log = new Logger(cfg);
       log.open();
       log.replay(this, 0L);
       log.close();
@@ -314,4 +315,5 @@ public class LogTest
     System.err.println(" wrote: "+kb+" kb in " + duration +" ms. ("+(kb*1000/(duration))+" kb/s)");
     System.err.println(" average latency: " + avgLatency + " ms.");
   }
+  
 }

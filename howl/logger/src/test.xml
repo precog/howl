@@ -2,217 +2,257 @@
 <Logger  class='org.objectweb.howl.log.Logger'>
 <LogBufferManager  class='org.objectweb.howl.log.LogBufferManager'>
   <bufferSize value='6144'>Buffer Size (in bytes)</bufferSize>
-  <poolsize    value='40'>Number of buffers in the pool</poolsize>
-  <initialPoolSize value='12'>Initial number of buffers in the pool</initialPoolSize>
-  <bufferwait  value='605'>Wait for available buffer</bufferwait>
-  <growPoolCounter value='3'>Number of times buffer pool was grown</growPoolCounter>
-  <forcecount  value='287'>Number of force() calls</forcecount>
-  <bufferfull  value='4583'>Buffer full</bufferfull>
-  <nextfillbsn value='4634'></nextfillbsn>
-  <forceOnTimeout value='38'></forceOnTimeout>
-  <forceNoWaitingThreads value='225'>force because no other trheads waiting on force</forceNoWaitingThreads>
-  <forceHalfOfBuffers value='24'>force due to 1/2 of buffers waiting</forceHalfOfBuffers>
+  <poolsize    value='48'>Number of buffers in the pool</poolsize>
+  <initialPoolSize value='32'>Initial number of buffers in the pool</initialPoolSize>
+  <bufferwait  value='104'>Wait for available buffer</bufferwait>
+  <growPoolCounter value='1'>Number of times buffer pool was grown</growPoolCounter>
+  <forcecount  value='303'>Number of force() calls</forcecount>
+  <bufferfull  value='4571'>Buffer full</bufferfull>
+  <nextfillbsn value='9277'></nextfillbsn>
+  <forceOnTimeout value='58'></forceOnTimeout>
+  <forceNoWaitingThreads value='220'>force because no other trheads waiting on force</forceNoWaitingThreads>
+  <forceHalfOfBuffers value='25'>force due to 1/2 of buffers waiting</forceHalfOfBuffers>
   <forceMaxWaitingThreads value='0'>force due to max waiting threads</forceMaxWaitingThreads>
-  <maxThreadsWaitingForce value='1181'>maximum threads waiting</maxThreadsWaitingForce>
-  <avgThreadsWaitingForce value='852.3797909407665'>Avg threads waiting force</avgThreadsWaitingForce>
+  <maxThreadsWaitingForce value='1190'>maximum threads waiting</maxThreadsWaitingForce>
+  <avgThreadsWaitingForce value='807.3927392739274'>Avg threads waiting force</avgThreadsWaitingForce>
   <LogBufferPool>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='0'>
-  <timesUsed value='116'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='108'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='1'>
-  <timesUsed value='115'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='2'>
-  <timesUsed value='116'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='3'>
-  <timesUsed value='115'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='4'>
-  <timesUsed value='116'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='105'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='5'>
-  <timesUsed value='114'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='106'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='6'>
-  <timesUsed value='112'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='108'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='7'>
-  <timesUsed value='117'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='104'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='8'>
-  <timesUsed value='122'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='9'>
-  <timesUsed value='115'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='106'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='10'>
-  <timesUsed value='119'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='109'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='11'>
-  <timesUsed value='117'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='12'>
-  <timesUsed value='123'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='106'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='13'>
-  <timesUsed value='118'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='106'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='14'>
-  <timesUsed value='121'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='108'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='15'>
-  <timesUsed value='119'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='108'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='16'>
-  <timesUsed value='116'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='105'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='17'>
-  <timesUsed value='115'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='18'>
-  <timesUsed value='113'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='19'>
-  <timesUsed value='122'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='20'>
-  <timesUsed value='119'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='106'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='21'>
-  <timesUsed value='115'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='22'>
-  <timesUsed value='115'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='106'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='23'>
-  <timesUsed value='122'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='24'>
-  <timesUsed value='115'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='109'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='25'>
-  <timesUsed value='117'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='105'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='26'>
-  <timesUsed value='114'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='107'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='27'>
-  <timesUsed value='114'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='106'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='28'>
-  <timesUsed value='114'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='106'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='29'>
-  <timesUsed value='117'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='103'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='30'>
-  <timesUsed value='111'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='106'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='31'>
-  <timesUsed value='112'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='105'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='32'>
-  <timesUsed value='112'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='33'>
-  <timesUsed value='116'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='34'>
-  <timesUsed value='112'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='35'>
-  <timesUsed value='118'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='36'>
-  <timesUsed value='115'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='37'>
-  <timesUsed value='114'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='38'>
-  <timesUsed value='110'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
 <LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='39'>
-  <timesUsed value='110'>Number of times this buffer was initialized for use</timesUsed>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
+</LogBuffer>
+<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='40'>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
+</LogBuffer>
+<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='41'>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
+</LogBuffer>
+<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='42'>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
+</LogBuffer>
+<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='43'>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
+</LogBuffer>
+<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='44'>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
+</LogBuffer>
+<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='45'>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
+</LogBuffer>
+<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='46'>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
+  <physicalWrites value='true'>Physical writes enabled</physicalWrites>
+  <checksums value='true'>Checksum Calculations enabled</checksums>
+</LogBuffer>
+<LogBuffer class='org.objectweb.howl.log.BlockLogBuffer' index='47'>
+  <timesUsed value='77'>Number of times this buffer was initialized for use</timesUsed>
   <physicalWrites value='true'>Physical writes enabled</physicalWrites>
   <checksums value='true'>Checksum Calculations enabled</checksums>
 </LogBuffer>
@@ -221,19 +261,31 @@
 </LogBufferManager>
 
 <LogFileManager  class='org.objectweb.howl.log.LogFileManager'>
-<initialKey value='1000000'>Initial Log Key</initialKey>
-<currentKey value='1218000037'>Current Log Key</currentKey>
+<initialKey value='121d000000'>Initial Log Key</initialKey>
+<currentKey value='243b000091'>Current Log Key</currentKey>
 <restartAutoMark value='false'>automark value restored from prior log file</restartAutoMark>
 <LogFiles>
 <LogFile class='org.objectweb.howl.log.LogFile' file='..\logs\howl_1.log'>
-  <rewindCount value='24'>Number of times this file was rewind to position(0)</rewindCount>
-  <bytesWritten value='14333952'>Number of bytes written to the file</bytesWritten>
-  <position value='202752'>FileChannel.position()</position>
+  <rewindCount value='12'>Number of times this file was rewind to position(0)</rewindCount>
+  <bytesWritten value='7225344'>Number of bytes written to the file</bytesWritten>
+  <position value='466944'>FileChannel.position()</position>
 </LogFile>
 
 <LogFile class='org.objectweb.howl.log.LogFile' file='..\logs\howl_2.log'>
-  <rewindCount value='23'>Number of times this file was rewind to position(0)</rewindCount>
-  <bytesWritten value='14131200'>Number of bytes written to the file</bytesWritten>
+  <rewindCount value='11'>Number of times this file was rewind to position(0)</rewindCount>
+  <bytesWritten value='6758400'>Number of bytes written to the file</bytesWritten>
+  <position value='614400'>FileChannel.position()</position>
+</LogFile>
+
+<LogFile class='org.objectweb.howl.log.LogFile' file='..\logs\howl_3.log'>
+  <rewindCount value='11'>Number of times this file was rewind to position(0)</rewindCount>
+  <bytesWritten value='7151616'>Number of bytes written to the file</bytesWritten>
+  <position value='614400'>FileChannel.position()</position>
+</LogFile>
+
+<LogFile class='org.objectweb.howl.log.LogFile' file='..\logs\howl_4.log'>
+  <rewindCount value='12'>Number of times this file was rewind to position(0)</rewindCount>
+  <bytesWritten value='7372800'>Number of bytes written to the file</bytesWritten>
   <position value='614400'>FileChannel.position()</position>
 </LogFile>
 
