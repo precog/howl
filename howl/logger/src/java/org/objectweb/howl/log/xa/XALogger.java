@@ -529,10 +529,10 @@ public class XALogger extends Logger
         tx.wait();
     }
     
-    // write the DONE record
     long doneKey = 0L;
     if (record != null)
     {
+      // write the DONE record
       do {
         try {
           doneKey = put(LogRecordType.USER, record, false);
