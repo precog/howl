@@ -70,7 +70,7 @@ public class LogRecord
    * 
    * @see #getFields();
    */
-  private byte[][] fields = null;
+  protected byte[][] fields = null;
   
   /**
    * byte[] containing record data.
