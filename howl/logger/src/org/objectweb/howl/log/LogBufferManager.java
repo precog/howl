@@ -347,20 +347,6 @@ class LogBufferManager
   }
   
   /**
-   * perform initialization following reposition of LogFileManager.
-   * 
-   * @param bsn last Block Sequence Number written by Logger. 
-   */
-  void init(LogFileManager lfm, int bsn)
-  {
-    assert lfm != null : "constructor requires non-null LogFileManager parameter";
-    this.lfm = lfm;
-    
-    nextFillBSN = bsn;
-    nextWriteBSN = ++bsn;
-  }
-  
-  /**
    * return a new instance of LogBuffer.
    * <p>Actual LogBuffer implementation class is specified by
    * configuration.
@@ -468,6 +454,22 @@ class LogBufferManager
   }
   
   /**
+   * perform initialization following reposition of LogFileManager.
+   *
+   * @param lfm LogFileManager used by the buffer manager to obtain
+   * log files for writing buffers. 
+   * @param bsn last Block Sequence Number written by Logger. 
+   */
+  void init(LogFileManager lfm, int bsn)
+  {
+    assert lfm != null : "constructor requires non-null LogFileManager parameter";
+    this.lfm = lfm;
+    
+    nextFillBSN = bsn;
+    nextWriteBSN = ++bsn;
+  }
+  
+  /**
    * flush active buffers to disk and wait for all LogBuffers to
    * be returned to the freeBuffer pool.
    * 
@@ -568,12 +570,13 @@ class LogBufferManager
     threadsWaitingForceThreshold = Integer.getInteger("howl.log.maxWaitingThreads",threadsWaitingForceThreshold).intValue();
     bufferClassName = System.getProperty("howl.LogBuffer.class", "org.objectweb.howl.log.LogException");
     doChecksum = Boolean.getBoolean("howl.LogBuffer.checksum");
+    
   }
 
   /**
    * @return current value of bufferSize instance variable.
    */
-  protected int getBufferSize()
+  int getBufferSize()
   {
     return bufferSize;
   }
