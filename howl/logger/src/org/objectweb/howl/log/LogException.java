@@ -8,7 +8,7 @@ package org.objectweb.howl.log;
 /**
  * Base exception class for HOWL exceptions.
  */
-public class LogException extends Throwable
+public class LogException extends Exception
 {
   public LogException()
   {
