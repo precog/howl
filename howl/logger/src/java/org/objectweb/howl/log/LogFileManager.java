@@ -801,7 +801,7 @@ class LogFileManager extends LogObject
          * Ignore this exception here during restart processing.
          * An invalid block marks the end of the log.
          */
-        e.printStackTrace();
+        System.err.println(e);
       } catch (IOException e) {
         e.printStackTrace();
         throw e;
