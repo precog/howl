@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- $Id: project.xml,v 1.1 2004-06-21 21:36:29 djencks Exp $ -->
+<project>
+    <pomVersion>3</pomVersion>
+    <name>HOWL :: Logger</name>
+    <groupId>howl</groupId>
+    <id>howl-logger</id>
+    <currentVersion>GERONIMO-PRIVATE-0.1</currentVersion>
+    <organization>
+        <name>HOWL Development Team</name>
+        <url>http://forge.objectweb.org/projects/howl</url>
+    </organization>
+
+    <inceptionYear>2003</inceptionYear>
+    <package>org.objectweb.howl.logger</package>
+
+    <shortDescription>High-speed ObjectWeb Logger</shortDescription>
+    <description>High-speed ObjectWeb Logger</description>
+
+    <url>http://forge.objectweb.org/projects/howl</url>
+    <issueTrackingUrl>http://forge.objectweb.org/tracker/?group_id=92</issueTrackingUrl>
+    <siteAddress>http://forge.objectweb.org/projects/howl</siteAddress>
+    <siteDirectory></siteDirectory>
+    <distributionDirectory></distributionDirectory>
+
+    <repository>
+        <connection>scm:cvs:pserver:anonymous@cvs.forge.objectweb.org:/cvsroot:howl</connection>
+        <url>http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/</url>
+    </repository>
+
+    <mailingLists>
+        <mailingList>
+            <name>howl@objectweb.org</name>
+            <subscribe>howl-subscribe@objectweb.org</subscribe>
+            <unsubscribe>howl-unsubscribe@objectweb.org</unsubscribe>
+            <archive>http://mail-archive.objectweb.org/howl/index.html</archive>
+        </mailingList>
+    </mailingLists>
+
+    <developers>
+        <developer>
+            <name>Michael Giroux</name>
+            <id></id>
+            <email/>
+            <organization/>
+        </developer>
+    </developers>
+
+
+    <build>
+
+        <nagEmailAddress>na</nagEmailAddress>
+        <sourceDirectory>src/java</sourceDirectory>
+        <unitTestSourceDirectory>src/test</unitTestSourceDirectory>
+        <unitTest>
+            <includes>
+                <include>**/*Test.java</include>
+            </includes>
+        </unitTest>
+        <resources>
+            <includes>
+                <include>**/*.properties</include>
+            </includes>
+        </resources>
+        <jarResources>
+            <jarResource>**/*.properties</jarResource>
+        </jarResources>
+
+    </build>
+
+</project>
