@@ -171,7 +171,7 @@ public class LogTest extends TestDriver
     log.open();
     TestLogReader reader = new TestLogReader();
     reader.run(log);
-    System.err.println(getName() + "; total records processed: " + reader.recordCount);
+    assertEquals("unexpected records found in new log files", 0L, reader.recordCount);    
     // log.close(); called by reader.run()
   }
   
