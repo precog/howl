@@ -662,6 +662,7 @@ class LogBufferManager extends LogObject
     
     // get a LogRecord from caller
     LogRecord record = listener.getLogRecord();
+    record.buffer = buffer;
 
     // read block containing requested mark
     try {
@@ -675,11 +676,11 @@ class LogBufferManager extends LogObject
       return;
     }
 
-    // get log file containing the requested mark
     if (buffer.bsn == -1) {
-      record.type = LogRecordType.END_OF_LOG;
-      listener.onRecord(record);
-      return;
+      // BUG 300733 following line changed to throw an exception
+      String msg = "The initial mark [" + Long.toHexString(mark) + 
+      "] requested for replay was not found in the log.";
+      throw new InvalidLogKeyException(msg);
     }
     
     // verify we have the desired block
