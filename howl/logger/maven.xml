@@ -1,5 +1,10 @@
 <project default="jar:install" xmlns:j="jelly:core" xmlns:ant="jelly:ant">
 
+
+    <goal name="default">
+        <attainGoal name="jar:install"/>
+    </goal>
+
     <!-- Check if the tests need to run -->
     <preGoal name="test:test">
         <j:if test="${context.getVariable('maven.test.force') == null}">
