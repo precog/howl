@@ -12,7 +12,7 @@ import java.io.File;
  * Checked exception thrown when the Logger
  * attempts to switch to an alternate log file that
  * contains the active mark.
- * @see Logger#mark
+ * @see Logger#mark(long)
  */
 public class LogFileOverflowException extends LogException
 {

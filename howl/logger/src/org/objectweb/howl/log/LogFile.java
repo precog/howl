@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.RandomAccessFile;
 
 import java.nio.channels.FileChannel;
+import java.nio.ByteBuffer;
 
 /**
  * An individual file within a set of log files managed by a Logger.
@@ -75,7 +76,7 @@ class LogFile
   
   /**
    * indicates the file was created during the call to open()
-   * @see #open
+   * @see #open()
    */
   boolean newFile = true;
   
@@ -183,7 +184,7 @@ class LogFile
    * <p>Hides actual FileChannel and allows capture of statistics.
    * @param forceMetadata as defined by FileChannel.force()
    * @throws IOException
-   * @see FileChannel#force
+   * @see FileChannel#force(boolean)
    */
   void force(boolean forceMetadata) throws IOException
   {

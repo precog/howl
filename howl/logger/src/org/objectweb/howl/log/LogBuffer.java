@@ -86,7 +86,7 @@ abstract class LogBuffer
    * files to be performed in parallel, each LogBuffer must keep track of its own
    * LogFile.
    * 
-   * @see LogFileManager#getLogFile
+   * @see LogFileManager#getLogFile(LogBuffer)
    */
   LogFile lf = null;
   
@@ -123,7 +123,6 @@ abstract class LogBuffer
    * default constructor.
    * <p>after creating a new instance of LogBuffer the caller must
    * invoke config().
-   * @see #configure
    */
   LogBuffer()
   {
@@ -134,7 +133,7 @@ abstract class LogBuffer
    * decrements count of waiting threads and returns updated value.
    *
    * @return number of threads still waiting after the release.
-   * @see #put
+   * @see #put(short,byte[],boolean)
    */
   final int release()
   {
@@ -187,7 +186,7 @@ abstract class LogBuffer
    * be forced to disk.
    * <p>The count of waiting threads (<i> waitingThreads </i>)
    * has been incremented in <i> put() </i>.
-   * @see #put
+   * @see #put(short,byte[],boolean)
    */
   final void sync() throws IOException, InterruptedException
   {
@@ -321,7 +320,7 @@ abstract class LogBuffer
    *
    * <p>QUESTION: should waiters be interupted if IO Error occurs?
    * @see #init(int, LogFileManager)
-   * @see LogFile#write
+   * @see LogFile#write(LogBuffer)
    */
   abstract void write(boolean force) throws IOException;
   

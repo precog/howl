@@ -36,7 +36,7 @@ class LogFileManager
    * <p>controls when logging is switched to a new log file, and/or when a circular
    *  log is reset to  seek address zero.
    * 
-   * @see #getLogFile
+   * @see #getLogFile(LogBuffer)
    */
   int maxBlocksPerFile = Integer.MAX_VALUE;
 
@@ -49,7 +49,7 @@ class LogFileManager
    * the <i> activeMark </i> is updated manually by a call
    * to mark().
    * 
-   * @see #mark
+   * @see #mark(long)
    */
   long activeMark = 0;
   
@@ -75,7 +75,7 @@ class LogFileManager
   /**
    * last key returned by  put() or putAndSync().
    * 
-   * @see #setCurrentKey
+   * @see #setCurrentKey(long)
    */
   private long currentKey = 0;
   
@@ -106,7 +106,7 @@ class LogFileManager
   /**
    * set of LogFile objects associated with the physical log files.
    * 
-   * @see #open
+   * @see #open()
    */
   LogFile[] fileSet = null;
   
@@ -191,7 +191,7 @@ class LogFileManager
    * int      maxBlocksPerFile   byte[4]  
    * byte[2]  crlf               byte[2]
    * 
-   * @see #setMarkData
+   * @see #setMarkData(ByteBuffer)
    */
   byte[] markRecord = new byte[19];
   
@@ -408,7 +408,7 @@ class LogFileManager
    * 
    * @param key a log key returned by the buffer manager.
    * 
-   * @see Logger#put 
+   * @see Logger#put(byte[],boolean) 
    */
   synchronized void setCurrentKey(long key)
   {
@@ -662,7 +662,7 @@ class LogFileManager
    * 
    * @throws IOException
    * If FileChannel.close() encounters an error.
-   * @see java.nio.channels.FileChannel#close
+   * @see java.nio.channels.FileChannel#close()
    */
   void close()
     throws IOException, InterruptedException

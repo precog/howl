@@ -374,8 +374,6 @@ class LogBufferManager
    * <p>waits for IO to complete if sync is true.
    *
    * @return token reference to block
-   * @throws LogClosedException
-   *   if the log has been closed
    * @throws LogRecordSizeException
    *   when size of byte[] is larger than the maximum possible
    *   record for the configured buffer size. 
@@ -433,7 +431,7 @@ class LogBufferManager
    * @throws ClassNotFoundException
    * if the configured LogBuffer class cannot be found.
    * 
-   * @see #configure
+   * @see #configure()
    */
   void open()
     throws ClassNotFoundException

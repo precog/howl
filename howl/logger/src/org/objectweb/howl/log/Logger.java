@@ -89,7 +89,7 @@ public class Logger
    * @throws InterruptedException
    * @throws IOException
    * 
-   * @see #mark
+   * @see #mark(long)
    */
   public long put(byte[] data, boolean sync)
     throws LogClosedException, LogRecordSizeException, LogFileOverflowException,

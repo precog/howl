@@ -10,7 +10,7 @@ package org.objectweb.howl.log;
 /**
  * Objects that wish to read a log must implement the ReplayListener interface.
  * @author Michael Giroux
- * @see Logger#replay
+ * @see Logger#replay(ReplayListener,long)
  */
 public interface ReplayListener
 {

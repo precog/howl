@@ -291,8 +291,7 @@ class BlockLogBuffer extends LogBuffer
    * @param val byte[] containing data to be validated
    * @param expected byte[] containing expected sequence of data
    * 
-   * @throws InvalidLogBufferException
-   * if the two byte[] objects do not compere equal
+   * @return true if the two byte[] objects are equal, otherwise false.
    */
   private boolean compareBytes(byte[] val, byte[] expected)
   {
