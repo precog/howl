@@ -41,7 +41,7 @@ import org.objectweb.howl.journal.ReplayListener;
  * The log files are always named <file-name>.<n> where n is a positive integer.
  * When the log file rolls over n is allways incremented. 
  *  
- * @version $Revision: 1.1 $ $Date: 2004-01-26 20:59:30 $
+ * @version $Revision: 1.2 $ $Date: 2004-01-27 22:56:15 $
  */
 public class RollingLogHardener implements Hardener {
 
@@ -462,12 +462,19 @@ public class RollingLogHardener implements Hardener {
                         continue;
                     }
                 }
-
+                
                 now = System.currentTimeMillis();
                 if (bufferWriteStartTime == 0)
                     bufferWriteStartTime = now;
-                // Only allow the buffer to stay around for bufferSyncDelay amount of time. 
-                pollInterval = bufferSyncDelay - (now - bufferWriteStartTime);
+
+                // Force a sync if we have been writting too long without a sync.
+                if ( (now-bufferWriteStartTime) > bufferSyncDelay ) {                    
+                    sync();
+                    continue;
+                }
+                
+                pollInterval = 0;
+                
             }
         } catch (InterruptedException e) {
         } catch (IOException e) {
