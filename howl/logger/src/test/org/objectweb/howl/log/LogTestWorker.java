@@ -30,58 +30,52 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.objectweb.howl.log.xa;
-
-import org.objectweb.howl.log.LogException;
-import org.objectweb.howl.log.TestDriver;
-import org.objectweb.howl.log.TestWorker;
-import org.objectweb.howl.log.xa.XACommittingTx;
-import org.objectweb.howl.log.xa.XALogger;
+package org.objectweb.howl.log;
 
 /**
- * The XAWorker class is used by test cases to write
- * XA 2-phase-commit record sequences to a log.
+ * Worker object used by test cases for org.objectweb.howl.log package.
  * 
  * @author Michael Giroux
  */
-public class XAWorker extends TestWorker {
+public class LogTestWorker extends TestWorker {
+    
   /**
-   * Constructor upcasts the TestWorker.log member to an
-   * XALogger for these tests.
-   */
-  final XALogger xalog;
-  
-  /**
-   * constructs an XAWorker thread instance.
+   * constructs a LogTestWorker thread instance.
    * 
    * @param driver provides access to configuration information
    * and other features supplied by the test driver.
    */
-  public XAWorker(TestDriver driver)
+  LogTestWorker(TestDriver driver)
   {
     super(driver);
-    xalog = (XALogger)log;
   }
-  
-  
-  XACommittingTx logCommit(int id)
+    
+  long logCommit(int id)
       throws LogException, Exception
   {
-    // journalize COMMIT record
+    // journalize COMMITTING record
     updateRecordData(id);
     bytesLogged += commitData.length;
-    return xalog.putCommit(commitDataRecord);
+    boolean force = msgForceInterval > 0;
+    return log.put(commitDataRecord, force);
   }
   
-  void logDone(XACommittingTx tx)
+  long logInfo()
+    throws LogException, Exception
+  {
+    // log intermediate records when msgForceInterval > 1
+    bytesLogged += infoData.length;
+    return log.put(infoDataRecord, false);
+  }
+  
+  void logDone(long logkey)
   throws LogException, Exception
   {
     // journalize FORGET record
-    xalog.putDone(doneDataRecord, tx);
+    log.put(doneDataRecord, false);
     bytesLogged += doneData.length;
     ++transactions;
   }
-  
   public void run()
   {
     // recuce count if this worker is doing delays between COMMIT and DONE 
@@ -97,11 +91,15 @@ public class XAWorker extends TestWorker {
       for (int i = 0; i < count; ++i)
       {
         long startTime = System.currentTimeMillis();
-        XACommittingTx tx = logCommit(i);
+        long logkey = logCommit(i);
+        
+        // generate info records as needed 
+        for (int k=1; k < msgForceInterval; ++k) logInfo();
+        
         if (delayBeforeDone > 0) {
           sleep(delayBeforeDone);
         }
-        logDone(tx);
+        logDone(logkey);
         latency += System.currentTimeMillis() - startTime;
       }
     } catch (Exception e) {
@@ -110,5 +108,7 @@ public class XAWorker extends TestWorker {
       // notify driver that this thread has finishe its work
       driver.getStopBarrier().release();
     }
+    
   }
+
 }

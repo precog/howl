@@ -63,6 +63,14 @@ public abstract class TestWorker extends Thread {
   protected final byte[][] commitDataRecord = new byte[1][];
   
   /**
+   * byte[] containing data that is logged between commit
+   * and done records when msg.force.interval is > 1.
+   */
+  protected int infoSize = 80;
+  protected final byte[] infoData;
+  protected final byte[][] infoDataRecord = new byte[1][];
+  
+  /**
    * byte[] containing data to be logged for DONE records.
    * <p>initialized by initDoneData().
    */
@@ -76,6 +84,14 @@ public abstract class TestWorker extends Thread {
    * <p>Configuration property: <b> msg.count </b> 
    */
   protected int count = 50;
+  
+  /**
+   * number of messages between calls to put() with force.
+   * 
+   * <p>default is 1 for simulation of XA protocol.
+   * <p>Configuration property: <b> msg.force.interval </b>
+   */
+  protected int msgForceInterval = 1;
   
   /**
    * When set <b> true </b> each COMMIT message contains
@@ -105,7 +121,7 @@ public abstract class TestWorker extends Thread {
   /**
    * total number of bytes logged by this XAWorker.
    */
-  protected long bytesLogged = 0L;
+  public long bytesLogged = 0L;
   
   /**
    * thread name length.
@@ -116,12 +132,12 @@ public abstract class TestWorker extends Thread {
   /**
    * any exception encountered by run() should be saved here.
    */
-  protected Exception exception = null;
+  public Exception exception = null;
   
   /**
    * number of transactions logged by this worker.
    */
-  protected int transactions = 0;
+  public int transactions = 0;
   
   /**
    * number of ms to delay between commit and done records.
@@ -149,7 +165,17 @@ public abstract class TestWorker extends Thread {
     if (count <= 0) throw new IllegalArgumentException(key + "must be > 0");
     
     val = config.getProperty ( key = "msg.timestamp", "false").trim().toLowerCase();;
-    doTimeStamp = val.equals("true"); 
+    doTimeStamp = val.equals("true");
+    
+    val = config.getProperty ( key = "msg.force.interval", 
+        Integer.toString(msgForceInterval)).trim();
+    msgForceInterval = Integer.parseInt(val);
+    if (msgForceInterval < 0) throw new IllegalArgumentException(key + "must be >= 0");
+
+    val = config.getProperty( key = "info.size", Integer.toString(infoSize)).trim();
+    infoSize = Integer.parseInt(val);
+    if (infoSize <= 0) throw new IllegalArgumentException(key + "must be > 0");
+    
   }
   
   /**
@@ -175,6 +201,48 @@ public abstract class TestWorker extends Thread {
     return commitData;
   }
   
+ /**
+  * sets message number into commit record and 
+  * done record, and optionally
+  * moves current date/time into  commit record.
+  * 
+  * @param id message number to be stored in record.
+  */
+  protected void updateRecordData(int id)
+  {
+    // put message number into data buffer
+    int msg = id;
+    for(int j = 4; j > 0; --j)
+    {
+      commitData[j] = (byte)('0' + (msg % 10));
+      msg /= 10;
+    }
+    
+    if (doTimeStamp)
+    {
+      byte[] now = new Date().toString().getBytes();
+      if (now.length < (commitData.length - tnl))
+        System.arraycopy(now, 0, commitData, tnl, now.length);
+    }
+
+    // and into the done record as well
+    System.arraycopy(commitData,1,doneData,1,4);
+  }
+  
+  /**
+   * initializes the infoData array with data to be written to
+   * the log when msg.force.interval > 1.
+   * 
+   * @return initialized infoData[]
+   */
+  byte[] initInfoData()
+  {
+    byte[] infoData = ("[xxxx]INFO :" +
+        Thread.currentThread().getName() +
+        "\n").getBytes();
+    return infoData;
+  }
+  
   /**
    * initializes the doneData array with data to be written to the log.
    */
@@ -197,12 +265,15 @@ public abstract class TestWorker extends Thread {
   {
     this.driver = driver;
     config = driver.getProperties();
-    log = driver.getXALogger();
+    log = driver.getLogger();
     
     parseProperties();
     
     commitData = initCommitData();
     commitDataRecord[0] = commitData;
+    
+    infoData = initInfoData();
+    infoDataRecord[0] = infoData;
     
     doneData = initDoneData();
     doneDataRecord[0] = doneData;

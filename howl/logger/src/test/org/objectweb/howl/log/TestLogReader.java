@@ -32,57 +32,59 @@
  */
 package org.objectweb.howl.log;
 
-public class LogTest extends TestDriver
+import java.io.File;
+
+
+class TestLogReader implements ReplayListener
 {
-  /**
-   * Constructor for XALoggerTest.
-   * @param name
-   */
-  public LogTest(String name) {
-    super(name);
+  LogRecord logrec = new LogRecord(80);
+  long recordCount = 0;
+  long previousKey = 0;
+  boolean done = false;
+  
+  public void onRecord(LogRecord lr)
+  {
+    if (lr.type == LogRecordType.END_OF_LOG)
+    {
+      synchronized(this) {
+        done = true;
+        notify();
+      }
+    }
+    else {
+      ++recordCount;
+      if (lr.key <= previousKey) {
+        System.err.println("Key Out of Sequence; total/prev/this: " + recordCount + " / " +
+            Long.toHexString(previousKey) + " / " + Long.toHexString(lr.key));
+      }
+    }
+  }
+  public void onError(LogException e)
+  {
+    System.err.println(e);
+    e.printStackTrace();
   }
   
-  protected void setUp() throws Exception {
-    super.setUp();
-
-    log = new Logger(cfg);
+  public LogRecord getLogRecord()
+  {
+    return logrec;
+  }
+  
+  void run() throws Exception, LogException
+  {
+    Configuration cfg = new Configuration(new File("conf/log.properties"));
+    Logger log = new Logger(cfg);
     log.open();
-  }
-  
-
-  public static void main(String[] args) throws Exception {
-    junit.textui.TestRunner.run(LogTest.class);
-  }
-
-  public void testLoggerSingleThread()
-    throws LogException, Exception
-  {
-    log.setAutoMark(true);
+    log.replay(this, 0L);
+    log.close();
     
-    prop.setProperty("msg.count", "10");
-    workers = 1;
-    runWorkers(LogTestWorker.class);
+    synchronized (this)
+    {
+      while(!done)
+      {
+        wait();
+      }
+    }
   }
   
-  public void testLoggerAutomarkTrue()
-    throws LogException, Exception
-  {
-    log.setAutoMark(true);
-
-    runWorkers(LogTestWorker.class);
-  }
-  
-  public void testLoggerReplay() throws Exception, LogException {
-    TestLogReader reader = new TestLogReader();
-    reader.run();
-    System.err.println("End Journal Validation; total records processed: " + reader.recordCount);
-  }
-  
-  public void testLoggerThroughput() throws Exception, LogException {
-    log.setAutoMark(true);
-    prop.setProperty("msg.force.interval", "0");
-    prop.setProperty("msg.count", "1000");
-    runWorkers(LogTestWorker.class);
-  }
-
 }

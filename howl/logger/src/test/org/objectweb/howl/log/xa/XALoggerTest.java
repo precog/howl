@@ -32,118 +32,19 @@
  */
 package org.objectweb.howl.log.xa;
 
-import junit.framework.TestCase;
-import org.objectweb.howl.log.Configuration;
 import org.objectweb.howl.log.LogException;
-import org.objectweb.howl.log.Barrier;
 import org.objectweb.howl.log.TestDriver;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.Properties;
 
 /**
  * 
  * @author Michael Giroux
  */
-public class XALoggerTest extends TestCase
-  implements TestDriver
+public class XALoggerTest extends TestDriver
 {
-  XALogger log = null;
-  Configuration cfg = null;
-  
-  // output stream for test report
-  PrintStream out = null;
-  
-  Properties prop = null;
-  final Barrier startBarrier = new Barrier();
-  final Barrier stopBarrier = new Barrier();
-  
-  int workers = 0;
-  
-  int delayedWorkers = 0;
-  
-  long delayBeforeDone = 500;
-  
-  boolean autoMarkMode = true;
-  
-
   public static void main(String[] args) {
     junit.textui.TestRunner.run(XALoggerTest.class);
   }
   
-  public final Properties getProperties() { return prop; }
-  
-  public final Barrier getStartBarrier() { return startBarrier; }
-
-  public final Barrier getStopBarrier() { return stopBarrier; }
-  
-  public final XALogger getXALogger() { return log; }
-  
-  /**
-   * process properties for this test case
-   * @throws FileNotFoundException
-   * @throws IOException
-   */
-  void parseProperties() throws FileNotFoundException, IOException
-  {
-    String val = null;
-    String key = null;
-    
-    prop = new Properties();
-    prop.load(new FileInputStream("conf/test.properties"));
-    
-
-    val = prop.getProperty( key = "test.workers", "200" );
-    workers = Integer.parseInt(val);
-    if (workers <= 0) throw new IllegalArgumentException(key);
-    
-    val = prop.getProperty( key = "XALoggerTest.delayedWorkers", "0");
-    delayedWorkers = Integer.parseInt(val);
-    if (delayedWorkers < 0) throw new IllegalArgumentException(key);
-    
-    val = prop.getProperty( key = "XALoggerTest.delayBeforeDone", "500");
-    delayBeforeDone = Long.parseLong(val);
-    if (delayBeforeDone < 0) throw new IllegalArgumentException(key);
-}
-  
-  /*
-   * Refresh test properties and log configuration from
-   * property files.
-   * <p>Individual test cases will override values as
-   * needed for specific tests.
-   * 
-   * @see TestCase#setUp()
-   */
-  protected void setUp() throws Exception {
-    super.setUp();
-    parseProperties();
-    cfg = new Configuration(new File("conf/log.properties"));
-    
-    String reportDir = prop.getProperty( "test.report.dir", "reports");
-    if (!reportDir.endsWith("/"))
-      reportDir += "/";
-    
-    // make sure the directory exists
-    File outDir = new File(reportDir);
-    outDir.mkdirs();
-    
-    String testName = getName();
-    File outFile = new File(reportDir + testName + ".xml");
-    out = new PrintStream(new FileOutputStream(outFile));
-  }
-
-  /*
-   * @see TestCase#tearDown()
-   */
-  protected void tearDown() throws Exception {
-    super.tearDown();
-  }
-
   /**
    * Constructor for XALoggerTest.
    * @param name
@@ -152,97 +53,11 @@ public class XALoggerTest extends TestCase
     super(name);
   }
   
-  /**
-   * creates worker objects and runs the test as defined by
-   * the calling testXxx() routine.
-   * @param workers number of XAWorker objects to create
-   * @throws LogException
-   * @throws Exception
-   */
-  private void runWorkers(int workers)
-  throws LogException, Exception
-  {
-    if (workers <=0) throw new IllegalArgumentException();
-    
-    XAWorker[] xaWorker = new XAWorker[workers];
-    
-    startBarrier.setCount(workers + 1);
-    stopBarrier.setCount(workers + 1);
+  protected void setUp() throws Exception {
+    super.setUp();
 
-    for (int i = 0; i < workers; ++i)
-    {
-      XAWorker w = new XAWorker(this);
-      xaWorker[i] = w;
-      if (delayedWorkers >0) 
-      {
-        --delayedWorkers;
-        w.setDelayBeforeDone(delayBeforeDone);
-      }
-      w.start();
-    }
-
-    synchronized(startBarrier)
-    {
-      while (startBarrier.getCount() > 1) startBarrier.wait();
-    }
-
-    long startTime = System.currentTimeMillis();
-    startBarrier.barrier(); // put all threads into execution.
-
-    // Wait for all the workers to finish.
-    stopBarrier.barrier();
-    long stopTime = System.currentTimeMillis();
-    
-    // close the log so we get stats for all buffers and files
-    log.close();
-    
-    // Collect stats from workers
-    long totalBytesLogged = 0L;
-    int totalLatency = 0;
-    int totalTransactions = 0;
-    for (int i = 0; i < workers; ++i)
-    {
-      XAWorker w = xaWorker[i];
-      totalBytesLogged += w.bytesLogged;
-      totalLatency += w.latency;
-      totalTransactions += w.transactions;
-      if (w.exception != null)
-      {
-        w.exception.printStackTrace();
-        throw w.exception;
-      }
-    }
-    
-    long elapsedTime = stopTime - startTime;
-    float avgLatency = (float)totalLatency / (float)totalTransactions;
-    float txPerSecond = (float)(totalTransactions / (elapsedTime / 1000.0));
-    
-    StringBuffer stats = new StringBuffer(
-        "<?xml version='1.0' ?>" +
-        "\n<TestResults>"
-        );
-    
-    // append test metrics
-    stats.append(
-        "\n<TestMetrics>" +
-        "\n  <elapsedTime value='" + elapsedTime +
-        "'>Elapsed time (ms) for run</elapsedTime>" +
-        "\n  <totalTransactions value='" + totalTransactions +
-        "'>Total number of transactions</totalTransactions>" +
-        "\n  <txPerSecond value='" + txPerSecond +
-        "'>Number of transactions per second</txPerSecond>" +
-        "\n  <avgLatency value='" + avgLatency +
-        "'>Average Latency</avgLatency>" +
-        "\n</TestMetrics>"
-        );
-    
-    stats.append(log.getStats());
-    
-    stats.append(
-        "\n</TestResults>"
-        );
-    
-    out.println(stats.toString());
+    log = new XALogger(cfg);
+    log.open();
   }
   
   /**
@@ -259,12 +74,11 @@ public class XALoggerTest extends TestCase
   public void testSingleThread()
   throws LogException, Exception
   {
-    log = new XALogger(cfg);
-    log.open();
     log.setAutoMark(true);
     
     prop.setProperty("msg.count", "10");
-    runWorkers(1);
+    workers = 1;
+    runWorkers(XAWorker.class);
   }
   
   /**
@@ -279,11 +93,9 @@ public class XALoggerTest extends TestCase
   public void testAutoMarkTrue()
   throws LogException, Exception
   {
-    log = new XALogger(cfg);
-    log.open();
     log.setAutoMark(true);
 
-    runWorkers(workers);
+    runWorkers(XAWorker.class);
   }
   
   /**
@@ -297,12 +109,10 @@ public class XALoggerTest extends TestCase
   public void testAutoMarkFalseOneDelayedWorker()
   throws LogException, Exception
   {
-    log = new XALogger(cfg);
-    log.open();
     log.setAutoMark(false);
     
     delayedWorkers = 1;
-    runWorkers(workers);
+    runWorkers(XAWorker.class);
   }
 
   /**
@@ -319,12 +129,10 @@ public class XALoggerTest extends TestCase
   public void testAutoMarkFalseFourDelayedWorker()
   throws LogException, Exception
   {
-    log = new XALogger(cfg);
-    log.open();
     log.setAutoMark(false);
     
     delayedWorkers = 4;
-    runWorkers(workers);
+    runWorkers(XAWorker.class);
   }
 
 }
