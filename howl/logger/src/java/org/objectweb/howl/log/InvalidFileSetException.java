@@ -49,13 +49,8 @@ public class InvalidFileSetException extends LogException
 
   public InvalidFileSetException(String s) { super(s); }
 
-  public InvalidFileSetException(Throwable cause) {
-    initCause(cause);
-  }
+  public InvalidFileSetException(Throwable cause) { super(cause); }
 
-  public InvalidFileSetException(String s, Throwable cause) {
-    super(s);
-    initCause(cause);
-  }
+  public InvalidFileSetException(String s, Throwable cause) { super(s, cause); }
 
 }

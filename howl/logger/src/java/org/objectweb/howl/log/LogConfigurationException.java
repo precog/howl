@@ -32,14 +32,23 @@
  */
 package org.objectweb.howl.log;
 
-
 /**
  * @author Michael Giroux
  */
-public class LogConfigurationException extends LogException
-{
-  public LogConfigurationException() { }
+public class LogConfigurationException extends LogException {
+  public LogConfigurationException() {}
 
-  public LogConfigurationException(String s) { super(s); }
+  public LogConfigurationException(String s) {
+    super(s);
+  }
+
+  public LogConfigurationException(Throwable cause) {
+    initCause(cause);
+  }
+  
+  public LogConfigurationException(String s, Throwable cause) {
+    super(s);
+    initCause(cause);
+  }
 
 }

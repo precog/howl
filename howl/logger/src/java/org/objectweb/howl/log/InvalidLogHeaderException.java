@@ -45,12 +45,11 @@ public class InvalidLogHeaderException extends LogException {
   }
 
   public InvalidLogHeaderException(Throwable cause) {
-    initCause(cause);
+    super(cause);
   }
 
   public InvalidLogHeaderException(String s, Throwable cause) {
-    super(s);
-    initCause(cause);
+    super(s, cause);
   }
 
 }

@@ -33,16 +33,27 @@
 package org.objectweb.howl.log;
 
 /**
- * Checked exception thrown when <i>put </i> is called 
- * after the log has been closed.
+ * Checked exception thrown when <i>put </i> is called after the log has been
+ * closed.
  */
-public class LogClosedException extends LogException
-{
+public class LogClosedException extends LogException {
 
   /**
    * Constructs an instance of this class.
    */
   public LogClosedException() {}
 
-  public LogClosedException(String s) { super(s); }
+  public LogClosedException(String s) {
+    super(s);
+  }
+
+  public LogClosedException(Throwable cause) {
+    initCause(cause);
+  }
+
+  public LogClosedException(String s, Throwable cause) {
+    super(s);
+    initCause(cause);
+  }
+
 }

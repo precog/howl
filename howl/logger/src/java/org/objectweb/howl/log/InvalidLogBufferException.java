@@ -52,11 +52,8 @@ public class InvalidLogBufferException extends LogException
 
   public InvalidLogBufferException(String s) { super(s); }
   
-  public InvalidLogBufferException(Throwable cause) { initCause(cause); }
+  public InvalidLogBufferException(Throwable cause) { super(cause); }
 
-  public InvalidLogBufferException(String s, Throwable cause) {
-    super(s);
-    initCause(cause);
-  }
+  public InvalidLogBufferException(String s, Throwable cause) { super(s,cause); }
   
 }

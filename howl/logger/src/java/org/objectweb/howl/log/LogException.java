@@ -35,14 +35,18 @@ package org.objectweb.howl.log;
 /**
  * Base exception class for HOWL exceptions.
  */
-public class LogException extends Exception
-{
-  public LogException()
-  {
+public class LogException extends Exception {
+  public LogException() {}
+
+  public LogException(String s) {
+    super(s);
+  }
+  
+  public LogException(Throwable cause) {
+    super(cause);
   }
 
-  public LogException(String s)
-  {
-    super(s);
+  public LogException(String s, Throwable cause) {
+    super(s, cause);
   }
 }
