@@ -15,24 +15,10 @@ set java_opts=%java_opts% -Dxa.msg.size=80
 
 :: number of worker threads
 set java_opts=%java_opts% -Dxa.workers=1200
-set java_opts=%java_opts% -Dhowl.log.maxWaitingThreads=9999
-
-:: interval used by force manager thread to sleep
-set java_opts=%java_opts% -Dhowl.log.flushSleepTime=50
 
 :: specify buffer size in number of 1024 byte blocks
-set java_opts=%java_opts% -Dhowl.log.bufferSize=4
-set java_opts=%java_opts% -Dhowl.log.bufferPoolSize=2
-set java_opts=%java_opts% -Dhowl.log.maxBlocksPerFile=100
-set java_opts=%java_opts% -Dhowl.log.LogFile.maxLogFiles=3
-set java_opts=%java_opts% -Dhowl.log.LogFile.dir=../logs
-set java_opts=%java_opts% -Dhowl.log.LogFile.filename=xa
-set java_opts=%java_opts% -Dhowl.log.LogFile.ext=log
-set java_opts=%java_opts% -Dhowl.LogBuffer.class=org.objectweb.howl.log.BlockLogBuffer
-set java_opts=%java_opts% -Dhowl.LogBuffer.checksum=true
 set java_opts=%java_opts% -Dhowl.log.test.setautomark=true
 set java_opts=%java_opts% -Dhowl.log.test.timeStamp=false
-
 
 set class=org.objectweb.howl.test.LogTest
 
