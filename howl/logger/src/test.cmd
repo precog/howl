@@ -59,8 +59,9 @@ set PATH=%java_home%\jre\bin;%path%
 )
 
 set emma=
-:: uncomment next line to generate code coveratge report
-:: set emma=emmarun -r html -sp . -cp ../bin
+if "%1"=="emma" (
+set emma=emmarun -r html -sp . -cp ../bin
+)
 
-%java_home%\bin\javac -source %mode% -target %mode% -d ../bin -g org/objectweb/howl/test/LogTest.java
+%java_home%\bin\javac -source %mode% -target %mode% -d ../bin -g -sourcepath java java/org/objectweb/howl/test/LogTest.java
 %java_home%\bin\java %java_opts% %emma% %class% 

@@ -55,9 +55,15 @@ class LogBufferManager extends LogObject
   {
     super(config);
     threadsWaitingForceThreshold = config.getThreadsWaitingForceThreshold();
+    
+    flushManager = new FlushManager(flushManagerName);
+    flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
   }
+  
   /**
-   * mutex for synchronizing access to buffers list
+   * mutex for synchronizing access to buffers list.
+   * <p>also synchronizes access to fqPut in routines
+   * that put LogBuffers into the forceQueue[].
    */
   private final Object bufferManagerLock = new Object();
 
@@ -90,7 +96,11 @@ class LogBufferManager extends LogObject
   short nextIndex = 0;
   
   /**
-   * number of times there were no buffers available
+   * number of times there were no buffers available.
+   * 
+   * <p>The FlushManager thread monitors this field
+   * to determine if the buffer pool needs to be
+   * grown.
    */
   private long waitForBuffer = 0;
   
@@ -150,30 +160,49 @@ class LogBufferManager extends LogObject
   /**
    * thread used to flush long waiting buffers
    */
-  Thread flushManager = null;
+  final Thread flushManager;
   
   /**
    * name of flush manager thread
    */
-  private String flushManagerName = "FlushManager";
+  private static final String flushManagerName = "FlushManager";
   
   /**
    * queue of buffers waiting to be written.  The queue guarantees that 
-   * buffers are written to disk in BSN order.
-   * <p>Buffers are added to the queue when put() detects the buffer is full.
+   * buffers are written to disk in BSN order.  Buffers are placed into 
+   * the forceQueue using the fqPut index, and removed from the forceQueue
+   * using the fqGet index.  Access to these two index members is 
+   * synchronized using separate objects to allow most threads to be
+   * storing log records while a single thread is blocked waiting for
+   * a physical force.
+   * 
+   * <p>Buffers are added to the queue when put() detects the buffer is full,
+   * and when the FlushManager thread detects that a buffer has waited
+   * too long to be written.  The <i> fqPut </i> member is the index of
+   * the next location in forceQueue to put a LogBuffer that is to
+   * be written.  <i> fqPut </i> is protected by <i> bufferManagerLock </i>.
+   * 
    * <p>Buffers are removed from the queue in force() and written to disk.
+   * The <i> fqGet </i> member is an index to the next buffer to remove
+   * from the forceQueue.  <i> fqGet </i> is protected by
+   * <i> forceManagerLock </i>.
+   * 
+   * <p>The size of forceQueue[] is one larger than the size of freeBuffer[]
+   * so that fqPut == fqGet always means the queue is empty.
    */
   private LogBuffer[] forceQueue = null;
   
   /**
    * next put index into <i> forceQueue </i>.
+   * <p>synchronized by bufferManagerLock.
    */
-  private volatile int fqPut = 0;
+  private int fqPut = 0;
 
   /**
    * next get index from <i> forceQueue </i>.
+   * <p>synchronized by forceManagerLock.
    */
-  private volatile int fqGet = 0;
+  private int fqGet = 0;
   
   /**
    * forces buffer to disk.
@@ -181,22 +210,22 @@ class LogBufferManager extends LogObject
    * <p>batches multiple buffers into a single force
    * when possible.
    */
-  private void force()
+  private void force(boolean timeout)
     throws IOException, InterruptedException
   {
-    LogBuffer buffer = null;
+    LogBuffer logBuffer = null;
 
     // make sure buffers are written in ascending BSN sequence
     synchronized(forceManagerLock)
     {
-      buffer = forceQueue[fqGet]; // buffer stuffed into forceQ
+      logBuffer = forceQueue[fqGet]; // logBuffer stuffed into forceQ
       fqGet = (fqGet + 1) % forceQueue.length;
       
-      // write the buffer to disk (hopefully non-blocking)
+      // write the logBuffer to disk (hopefully non-blocking)
       try {
-        assert buffer.bsn == nextWriteBSN : "BSN error expecting " + nextWriteBSN + " found " + buffer.bsn;
-        buffer.write(false);
-        nextWriteBSN = buffer.bsn + 1;
+        assert logBuffer.bsn == nextWriteBSN : "BSN error expecting " + nextWriteBSN + " found " + logBuffer.bsn;
+        logBuffer.write();
+        nextWriteBSN = logBuffer.bsn + 1;
       }
       catch (IOException ioe) {
         // ignore for now. buffer.iostatus is checked later for errors.
@@ -204,7 +233,8 @@ class LogBufferManager extends LogObject
     }
     
     
-    threadsWaitingForce += buffer.getWaitingThreads();
+    threadsWaitingForce += logBuffer.getWaitingThreads();
+    // NOTE: following is not synchronized so the stats may be inaccurate.
     if (threadsWaitingForce > maxThreadsWaitingForce)
       maxThreadsWaitingForce = threadsWaitingForce;
 
@@ -217,16 +247,16 @@ class LogBufferManager extends LogObject
     synchronized(forceManagerLock)
     {
       boolean doforce = true;
-      if (buffer.bsn < lastForceBSN)
+      if (logBuffer.bsn < lastForceBSN)
       {
         doforce = false;
       }
       else if (fqGet == fqPut)
       {
-        // no other buffers waiting in forceQueue
+        // no other logBuffers waiting in forceQueue
         ++forceNoWaitingThreads;
       }
-      else if ((buffer.bsn - lastForceBSN) > (freeBuffer.length/2))
+      else if ((logBuffer.bsn - lastForceBSN) > (freeBuffer.length/2))
       {
         // one half of the buffers are waiting on the force
         ++forceHalfOfBuffers;
@@ -236,7 +266,7 @@ class LogBufferManager extends LogObject
         // number of waiting threads exceeds configured limit
         ++forceMaxWaitingThreads;
       }
-      else if (Thread.currentThread().getName().equals(flushManagerName))
+      else if (timeout)
       {
         ++forceOnTimeout;
       }
@@ -254,7 +284,7 @@ class LogBufferManager extends LogObject
         forcebsn = nextWriteBSN - 1;
         
         ++forceCount;
-        buffer.lf.force(false);
+        logBuffer.lf.force(false);
         
         lastForceBSN = forcebsn;
         totalThreadsWaitingForce += threadsWaitingForce;
@@ -263,36 +293,39 @@ class LogBufferManager extends LogObject
       }
 
       // wait for write to be forced
-      while (lastForceBSN < buffer.bsn)
+      while (lastForceBSN < logBuffer.bsn)
       {
         forceManagerLock.wait();
       }
      }
       
-    if (buffer.iostatus == LogBufferStatus.WRITING)
-      buffer.iostatus = LogBufferStatus.COMPLETE;
+    if (logBuffer.iostatus == LogBufferStatus.WRITING)
+      logBuffer.iostatus = LogBufferStatus.COMPLETE;
     
     // notify threads waiting for this buffer to force
-    synchronized(buffer) { buffer.notifyAll(); }
+    synchronized(logBuffer) { logBuffer.notifyAll(); }
 
-    releaseBuffer(buffer);
+    releaseBuffer(logBuffer);
   }
 
   /**
-   * Waits for buffer to be forced to disk.
+   * Waits for logBuffer to be forced to disk.
    *
-   * <p>no monitors are owned when routine is entered.
+   * <p>No monitors are owned when routine is entered.
+   * <p>Prior to calling sync(), the thread called put()
+   * with <i> sync </i> param set true to register
+   * the fact that the thread would wait for the force.
    */
-  private void sync(LogBuffer buffer)
+  private void sync(LogBuffer logBuffer)
     throws IOException, InterruptedException
   {
     try
     {
-      buffer.sync();
+      logBuffer.sync();
     }
     finally
     {
-      releaseBuffer(buffer);
+      releaseBuffer(logBuffer);
     }
   }
 
@@ -352,14 +385,8 @@ class LogBufferManager extends LogObject
   {
     LogBuffer lb = null;
     Class lbcls = this.getClass().getClassLoader().loadClass(config.getBufferClassName());
-    
-    String thisPackage = this.getClass().getName();
-    int pkgLength = thisPackage.lastIndexOf('.');
-    thisPackage = thisPackage.substring(0,pkgLength);
-    Class cfgcls = this.getClass().getClassLoader().loadClass(thisPackage + ".Configuration");
-
     try {
-      Constructor lbCtor = lbcls.getDeclaredConstructor(new Class[] { cfgcls } );
+      Constructor lbCtor = lbcls.getDeclaredConstructor(new Class[] { Configuration.class } );
       lb = (LogBuffer)lbCtor.newInstance(new Object[] {config});
       lb.index = index;
     } catch (InstantiationException e) {
@@ -410,7 +437,6 @@ class LogBufferManager extends LogObject
           fillBuffer = null;
           forceQueue[fqPut] = currentBuffer;
           fqPut = (fqPut + 1) % forceQueue.length;
-          assert fqPut < forceQueue.length : "unexpected fqPut value " + fqPut;
         }
       }
 
@@ -418,7 +444,7 @@ class LogBufferManager extends LogObject
       {
         // force current buffer if there was no room for data
         ++noRoomInBuffer;
-        force();
+        force(false);
         if (currentBuffer.iostatus == LogBufferStatus.ERROR)
           throw currentBuffer.ioexception;
       }
@@ -579,12 +605,14 @@ class LogBufferManager extends LogObject
       freeBuffer[i] = getLogBuffer(i);
     }
     
-    forceQueue = new LogBuffer[bufferPoolSize + 1]; // guarantee we never overrun this queue
+    synchronized(forceManagerLock)
+    {
+      // one larger than bufferPoolSize to guarantee we never overrun this queue
+      forceQueue = new LogBuffer[bufferPoolSize + 1];
+    }
 
     // start a thread to flush buffers that have been waiting more than 50 ms.
-    if (flushManager == null) {
-      flushManager = new FlushManager(flushManagerName);
-      flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
+    if (flushManager != null) {
       flushManager.start();
     }
   }
@@ -657,7 +685,7 @@ class LogBufferManager extends LogObject
            "\n  <initialPoolSize value='" + config.getMinBuffers() + "'>" +
                 "Initial number of buffers in the pool" +
                 "</initialPoolSize>" +
-           "\n  <bufferwait  value='" + waitForBuffer     + "'>" +
+           "\n  <bufferwait  value='" + getWaitForBuffer()     + "'>" +
                 "Wait for available buffer" +
                 "</bufferwait>" +
            "\n  <growPoolCounter value='" + growPoolCounter + "'>" +
@@ -720,10 +748,24 @@ class LogBufferManager extends LogObject
   {
     return ((long)bsn << 24) | offset;
   }
+  
+  /**
+   * provides synchronized access to waitForBuffer
+   * @return the current value of waitForBuffer
+   */
+  final long getWaitForBuffer()
+  {
+    synchronized(bufferManagerLock)
+    {
+      return waitForBuffer;
+    }
+  }
 
   /**
    * helper thread to flush buffers that have threads waiting
    * longer than configured maximum.
+   * 
+   * TODO Currently this thread is never shut down.
    */
   class FlushManager extends Thread
   {
@@ -739,7 +781,7 @@ class LogBufferManager extends LogObject
       
       int flushSleepTime = config.getFlushSleepTime();
       
-      long waitForBuffer = parent.waitForBuffer;
+      long waitForBuffer = parent.getWaitForBuffer();
 
       for (;;)
       {
@@ -753,7 +795,7 @@ class LogBufferManager extends LogObject
            * Dynamically grow buffer pool until number of waits
            * for a buffer is less than 1/2 the pool size.
            */
-          long bufferWaits = parent.waitForBuffer - waitForBuffer;
+          long bufferWaits = parent.getWaitForBuffer() - waitForBuffer;
           int maxBuffers = config.getMaxBuffers();
           int increment = freeBuffer.length / 2;
           if (maxBuffers > 0)
@@ -792,7 +834,7 @@ class LogBufferManager extends LogObject
 
                 freeBuffer = fb;
 
-                synchronized(bufferManagerLock)
+                synchronized(forceManagerLock)
                 {
                   // copy existing force queue entries to new force queue
                   int fqx = 0;
@@ -808,10 +850,13 @@ class LogBufferManager extends LogObject
               }
             }
           }
-          waitForBuffer = parent.waitForBuffer;
+          // end of resizing buffer pool
+          
+          waitForBuffer = parent.getWaitForBuffer();
 
           synchronized(bufferManagerLock)
           {
+
             buffer = fillBuffer;
             if (buffer != null && buffer.shouldForce())
             {
@@ -825,7 +870,7 @@ class LogBufferManager extends LogObject
 
           if (buffer != null)
           {
-              force();
+              force(true);
           }
 
         }

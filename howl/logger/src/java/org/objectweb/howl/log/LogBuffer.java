@@ -46,7 +46,7 @@ abstract class LogBuffer extends LogObject
   /**
    * 
    */
-  ByteBuffer buffer = null;
+  final ByteBuffer buffer;
 
   /**
    * buffer number used by owner (LogBufferManager) to index into an array of buffers.
@@ -70,8 +70,22 @@ abstract class LogBuffer extends LogObject
 
   /**
    * number of waiting threads.
+   * <p>Always synchronized on (waitingThreadsLock).
+   * 
+   * Design Note:<br/>
+   * Originally this field was volatile.  It was changed
+   * at the suggestion of David Jencks to protected.
+   * <p>We tried using (this) to protect access,
+   * but this caused some additional lock contention
+   * and performance fell off about 10%.
+   * 
    */
-  volatile int waitingThreads = 0;
+  protected int waitingThreads = 0;
+  
+  /**
+   * mutex for synchronizing access to waitingThreads
+   */
+  final Object waitingThreadsLock = new Object();
 
   /**
    * results of last write.
@@ -168,7 +182,7 @@ abstract class LogBuffer extends LogObject
    */
   final int release()
   {
-    synchronized(this)
+    synchronized(waitingThreadsLock)
     {
       return --waitingThreads;
     }
@@ -182,7 +196,10 @@ abstract class LogBuffer extends LogObject
    */
   final int getWaitingThreads()
   {
-    return waitingThreads;
+    synchronized (waitingThreadsLock)
+    {
+      return waitingThreads;
+    }
   }
 
   /**
@@ -320,15 +337,9 @@ abstract class LogBuffer extends LogObject
    * <p>The buffer is written using the LogFile.write() method
    * to allow the LogFile to manage file position for circular
    * journals.
-   * <p>if the <i> force </i> parameter is true then the
-   * LogFile.force() method is called to synchronize
-   * data to disk.  When the force completes, all threads
-   * waiting in the sync() method are notified.
-   * <p>If the <i> force </i> parameter is false, then
-   * forcing and notification of waiting threads is
+   * <p>forcing and notification of waiting threads is
    * the responsibility of the LogBufferManager that owns this LogBUffer.
    * 
-   * @param force true if FileChannel.force() should be invoked.
    * @throws IOException
    *          rethrows any IOExceptions thrown by FileChannel methods.
    *
@@ -336,7 +347,7 @@ abstract class LogBuffer extends LogObject
    * @see #init(int, LogFileManager)
    * @see org.objectweb.howl.log.LogFile#write(LogBuffer)
    */
-  abstract void write(boolean force) throws IOException;
+  abstract void write() throws IOException;
   
   /**
    * returns statistics for this LogBuffer object.

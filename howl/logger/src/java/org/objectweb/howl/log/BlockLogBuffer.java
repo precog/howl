@@ -143,6 +143,17 @@ class BlockLogBuffer extends LogBuffer
   private int maxRecordSize;
   
   /**
+   * end-of-block string stuffed into buffers
+   * to help identify end of used portion of buffer
+   * in a hex dump.
+   * 
+   * <p>This string is only stored if there is
+   * room, and it is not accounted for in
+   * the length field of the buffer header.  
+   */
+  private final int EOB = 0x454F420A;  // "EOB\n" 
+  
+  /**
    * default constructor calls super class constructor.
    */
   BlockLogBuffer(Configuration config)
@@ -208,7 +219,13 @@ class BlockLogBuffer extends LogBuffer
         // update LogFile.highMark just in case someone tries to replay the log while it is active.
         lf.highMark = logKey;
         
-        if (sync) ++waitingThreads;
+        if (sync)
+        {
+          synchronized(waitingThreadsLock)
+          {
+            ++waitingThreads;
+          }
+        }
       }
     }
 
@@ -218,7 +235,7 @@ class BlockLogBuffer extends LogBuffer
   /**
    * write ByteBuffer to the log file.
    */
-  void write( boolean force) throws IOException
+  void write() throws IOException
   {
     assert lf != null: "LogFile lf is null";
     
@@ -230,7 +247,10 @@ class BlockLogBuffer extends LogBuffer
         throw new IOException();
 
       // increment count of threads waiting for IO to complete
-      ++waitingThreads;
+      synchronized (waitingThreadsLock)
+      {
+        ++waitingThreads;
+      }
     }
 
     // Update bytesUsed in the buffer header
@@ -240,7 +260,7 @@ class BlockLogBuffer extends LogBuffer
     // so we can find end of data in a hex dump
     // EOB\n
     try {
-      buffer.putInt(0x454F420A); // "EOB\n".getBytes()
+      buffer.putInt(EOB); // "EOB\n".getBytes()
     } catch (BufferOverflowException e) {
     	/* ignore it -- we do not care if it does not get written */
     }
@@ -259,22 +279,12 @@ class BlockLogBuffer extends LogBuffer
       iostatus = LogBufferStatus.WRITING;
       buffer.clear();
       if (doWrite) lf.write(this);
-      if (force)
-      {
-        lf.force(false);
-        iostatus = LogBufferStatus.COMPLETE;
-      }
     }
     catch (IOException e)
     {
       ioexception = e;
       iostatus = LogBufferStatus.ERROR;
       throw e;
-    }
-    finally
-    {
-      // notify waiting threads that force is done
-      if (force) synchronized(this) { notifyAll(); }
     }
   }
 
@@ -465,7 +475,7 @@ class BlockLogBuffer extends LogBuffer
    */ 
   boolean shouldForce()
   {
-    int forceDelta = waitingThreads > 0 ? 50 : 1000;
+    int forceDelta = getWaitingThreads() > 0 ? 50 : 1000;
     long now = System.currentTimeMillis();
 
     return ((todPut + forceDelta) < now);
