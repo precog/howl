@@ -34,8 +34,9 @@ package org.objectweb.howl.log;
 
 
 /**
+ * Not Implemented.
+ * 
  * @author Michael Giroux
- *
  */
 class LoggerFactory
 {
