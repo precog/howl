@@ -113,7 +113,6 @@ public class XACommittingTx {
    * 
    * @param logKey a log key returned by Logger.put()
    * 
-   * @see org.objectweb.howl.log.Logger#put(byte[][], boolean)
    */
   final void setLogKey(long logKey)
   {
