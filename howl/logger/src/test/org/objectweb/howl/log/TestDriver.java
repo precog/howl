@@ -202,7 +202,7 @@ public class TestDriver extends TestCase {
         "\n  " + propertyAsXml("java.vm.name") +
         "\n  " + propertyAsXml("java.vm.vendor") +
         "\n  " + propertyAsXml("java.vm.version") +
-        "</VMInfo>"
+        "\n</VMInfo>"
         );
     
     // append test metrics
