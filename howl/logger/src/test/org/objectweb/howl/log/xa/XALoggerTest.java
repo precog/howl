@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import junit.extensions.RepeatedTest;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
@@ -219,6 +220,25 @@ public class XALoggerTest extends TestDriver
     log.setAutoMark(true);
     runWorkers(XAWorker.class);
     // log.close(); called by runWorkers()
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
+  }
+  
+  /**
+   * Verify that XALogger created with default constructor
+   * works correctly with newly created log files.
+   * 
+   * @throws Exception
+   */
+  public void testXALoggerDefaultConstructor_NewFiles() throws Exception
+  {
+    deleteLogFiles();
+    
+    super.log = log;
+    log.open(openListener);
+    log.setAutoMark(true);
+    runWorkers(XAWorker.class);
+    // log.close(); called by runWorkers()
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
   }
   
   /**
@@ -230,13 +250,13 @@ public class XALoggerTest extends TestDriver
    */
   public void test_001_UnsupportedOpen() throws Exception
   {
-    log = new XALogger(cfg);
     try {
       log.open();
       fail("Expected UnsupportedOperationException");
     } catch (UnsupportedOperationException e) {
       ; // test passed
     }
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
   }
 
   /**
@@ -253,12 +273,14 @@ public class XALoggerTest extends TestDriver
   public void test_002_SingleThread() throws Exception
   {
     log.open(openListener);
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
     log.setAutoMark(true);
     
     prop.setProperty("msg.count", "10");
     workers = 1;
     runWorkers(XAWorker.class);
     // log.close(); called by runWorkers()
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
 }
   
   /**
@@ -273,10 +295,12 @@ public class XALoggerTest extends TestDriver
   public void test_003_AutoMarkTrue() throws Exception
   {
     log.open(openListener);
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
     log.setAutoMark(true);
 
     runWorkers(XAWorker.class);
     // log.close(); called by runWorkers()
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
   }
   
   /**
@@ -295,12 +319,14 @@ public class XALoggerTest extends TestDriver
   public void test_010_RMFailure() throws Exception
   {
     log.open(openListener);
+    assertEquals("activeTxUsed after open", 0, log.getActiveTxUsed());
     log.setAutoMark(false);
 
     XAWorker w = (XAWorker)getWorker(XAWorker.class);
     w.setWorkerIndex(FAILEDRM);
     w.logCommit(1);
     log.close();
+    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
   }
   
   /**
@@ -321,6 +347,7 @@ public class XALoggerTest extends TestDriver
     delayedWorkers = 1;
     runWorkers(XAWorker.class);
     // log.close(); called by runWorkers()
+    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
   }
 
   /**
@@ -333,6 +360,7 @@ public class XALoggerTest extends TestDriver
     assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
     log.activeTxDisplay();
     log.close();
+    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
   }
   
   
@@ -362,8 +390,8 @@ public class XALoggerTest extends TestDriver
       byte[] doneRecord = ("["+FAILEDRM+".0001]DONE\n").getBytes();
       log.putDone(new byte[][] { doneRecord }, tx);
     }
-    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
     log.close();
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
   }
 
   
@@ -381,8 +409,8 @@ public class XALoggerTest extends TestDriver
 
     if (log.getActiveTxUsed() > 0)
       log.activeTxDisplay(); // show any unresolved entries in the log
-    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
     log.close();
+    assertEquals("activeTxUsed after close", 0, log.getActiveTxUsed());
   }
   
   /**
@@ -460,22 +488,27 @@ public class XALoggerTest extends TestDriver
   }
   
   public void testXALoggerThroughput_rw() throws Exception, LogException {
-    
     log.open(openListener);
     assertNull("openListener.exception", openListener.exception);
+    assertEquals("openListener.activeTx used", 0, openListener.getActiveTxUsed());
+    assertEquals("activeTxUsed after open", 0, log.getActiveTxUsed());
 
     prop.setProperty("msg.count", "1000");
     runWorkers(XAWorker.class);
-  }
+    assertEquals("activeTxUsed after test", 0, log.getActiveTxUsed());
+}
   
   public void testXALoggerThroughput_rwd() throws Exception, LogException {
     cfg.setLogFileMode("rwd");
     log.open(openListener);
     assertNull("openListener.exception", openListener.exception);
+    assertEquals("openListener.activeTx used", 0, openListener.getActiveTxUsed());
+    assertEquals("activeTxUsed after open", 0, log.getActiveTxUsed());
 
     prop.setProperty("msg.count", "1000");
     runWorkers(XAWorker.class);
-  }
+    assertEquals("activeTxUsed after test", 0, log.getActiveTxUsed());
+}
   
 
   /**
@@ -499,7 +532,7 @@ public class XALoggerTest extends TestDriver
       if (name.startsWith("test"))
         suite.addTest(new XALoggerTest(name));
     }
-    return suite;
+    return new RepeatedTest(suite, Integer.getInteger("XALoggerTest.repeatcount", 1).intValue());
   }
   
   public int compare(Object a, Object b)

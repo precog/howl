@@ -131,12 +131,12 @@ public class ConfigurationTest extends TestCase
   {
     prop.setProperty("bufferSize", "1");
     cfg = new Configuration(prop);
-    assertEquals("bufferSize", 1024, cfg.getBufferSize());
+    assertEquals("bufferSize", 1, cfg.getBufferSize()); // BUG 300957
     
     // make sure values are trimmed
     prop.setProperty("bufferSize", " 1");
     cfg = new Configuration(prop);
-    assertEquals("bufferSize", 1024, cfg.getBufferSize());
+    assertEquals("bufferSize", 1, cfg.getBufferSize()); // BUG 300957
   }
   
   public void testBufferSize_32()
@@ -144,7 +144,7 @@ public class ConfigurationTest extends TestCase
   {
     prop.setProperty("bufferSize", "32");
     cfg = new Configuration(prop);
-    assertEquals("bufferSize", 32 * 1024, cfg.getBufferSize());
+    assertEquals("bufferSize", 32 , cfg.getBufferSize()); // BUG 300957
   }
   
   public void testBufferSize_0()
@@ -332,7 +332,7 @@ public class ConfigurationTest extends TestCase
     prop.setProperty("logFileDir", cfg.getLogFileDir());
     prop.setProperty("logFileExt", cfg.getLogFileExt());
     prop.setProperty("logFileName", cfg.getLogFileName());
-    prop.setProperty("bufferSize", Integer.toString(cfg.getBufferSize() / 1024));
+    prop.setProperty("bufferSize", Integer.toString(cfg.getBufferSize())); // BUG 300957
     prop.setProperty("flushSleepTime", Integer.toString(cfg.getFlushSleepTime()));
     prop.setProperty("maxLogFiles", Integer.toString(cfg.getMaxLogFiles()));
     prop.setProperty("maxBlocksPerFile", Integer.toString(cfg.getMaxBlocksPerFile()));
@@ -354,7 +354,7 @@ public class ConfigurationTest extends TestCase
     cfg3.setLogFileDir(cfg.getLogFileDir());
     cfg3.setLogFileExt(cfg.getLogFileExt());
     cfg3.setLogFileName(cfg.getLogFileName());
-    cfg3.setBufferSize(cfg.getBufferSize() / 1024);
+    cfg3.setBufferSize(cfg.getBufferSize()); // BUG 300957
     cfg3.setMaxBlocksPerFile(cfg.getMaxBlocksPerFile());
     cfg3.setMaxLogFiles(cfg.getMaxLogFiles());
     cfg3.setMaxBuffers(cfg.getMaxBuffers());
@@ -409,7 +409,7 @@ public class ConfigurationTest extends TestCase
     assertEquals(1, prop.size());
     
     // modify Configuration object with some new properties 
-    cfg.setBufferSize((cfg.getBufferSize() / 1024) + 1);
+    cfg.setBufferSize(cfg.getBufferSize() + 1); // BUG 300957
     cfg.setBufferClassName(cfg.getBufferClassName() + "Sink");
     
     // now compare the current and original properties

@@ -42,9 +42,6 @@ import junit.framework.TestSuite;
 public class LogTest extends TestDriver
 {
 
-  private File baseDir;
-  private File outDir;
-  
   /**
    * Constructor for LogTest.
    * 
@@ -59,15 +56,10 @@ public class LogTest extends TestDriver
 
     log = new Logger(cfg);
 
-    String baseDirName = System.getProperty("basedir", ".");
-    baseDir = new File(baseDirName);
-    outDir = new File(baseDir, "target/test-resources");
-    outDir.mkdirs();
   }
   
   protected void tearDown() throws Exception {
     super.tearDown();
-//    log.close();
   }
   
   public static void main(String[] args) throws Exception {
@@ -77,6 +69,33 @@ public class LogTest extends TestDriver
   public static Test suite() {
     TestSuite suite = new TestSuite(LogTest.class);
     return new RepeatedTest(suite, Integer.getInteger("LogTest.repeatcount", 1).intValue());
+  }
+  
+  public void testGetHighMark() throws Exception {
+    try {
+      log.lfmgr.getHighMark();
+      fail("Expected UnsupportedOperationException");
+    } catch (UnsupportedOperationException e) {
+      ; // expected this
+    }
+    
+    log.open();
+    log.lfmgr.getHighMark();
+    log.close();
+  }
+  
+  public void testGetHighMark_NewFiles() throws Exception {
+    deleteLogFiles();
+    try {
+      log.lfmgr.getHighMark();
+      fail("Expected UnsupportedOperationException");
+    } catch (UnsupportedOperationException e) {
+      ; // expected this
+    }
+    
+    log.open();
+    log.lfmgr.getHighMark();
+    log.close();
   }
   
   public void testLoggerSingleThread()
@@ -110,9 +129,26 @@ public class LogTest extends TestDriver
     // log.close(); called by reader.run()
   }
   
+  /**
+   * Verifies that replay can begin with a log key that
+   * has not been forced to the journal.
+   * <p>puts a record to the journal with sync == false, then
+   * trys to replay from the log key for that record.
+   * @throws Exception
+   */
   public void testLoggerReplay_unforcedRecord() throws Exception {
     log.open();
     long key = log.put("".getBytes(), false);
+    TestLogReader reader = new TestLogReader();
+    log.replay(reader, key);
+    if (reader.exception != null)
+      throw reader.exception;
+    log.close();
+  }
+  
+  public void testLoggerReplay_forcedRecord() throws Exception {
+    log.open();
+    long key = log.put("".getBytes(), true);
     TestLogReader reader = new TestLogReader();
     log.replay(reader, key);
     if (reader.exception != null)
@@ -276,7 +312,7 @@ public class LogTest extends TestDriver
   public void testLogRecordSizeException() throws Exception {
     log.open();
     // record size == block size is guaranteed to fail
-    byte[] data = new byte[cfg.getBufferSize()];
+    byte[] data = new byte[cfg.getBufferSize() * 1024]; // BUG 300957
     
     try {
       log.put(data,false);
@@ -329,57 +365,99 @@ public class LogTest extends TestDriver
     // log.close(); called by runWorkers()
   }
   
+  class DataRecords {
+    final int count;
+    final String[] sVal;
+    final byte[][] r1;
+    final long[] key;
+    final LogRecord lr;
+    
+    DataRecords(int count) {
+      this.count = count;
+      sVal = new String[count];
+      r1   = new byte[count][];
+      key  = new long[count];
+
+      // initialize test records
+      for (int i=0; i< count; ++i)
+      {
+        sVal[i] = "Record_" + (i+1);
+        r1[i] = sVal[i].getBytes();
+      }
+      int last = count - 1;
+      lr = new LogRecord(sVal[last].length()+6);
+    }
+    
+    void putAll(boolean forceLastRecord) throws Exception {
+      // populate journal with test records
+      for (int i=0; i< count; ++i) {
+        boolean force = (i == sVal.length - 1) ? forceLastRecord : false ;
+        key[i] = log.put(r1[i], force); 
+      }
+    }
+    
+    LogRecord verify(int index) throws Exception {
+      log.get(lr, key[index]);
+      verifyLogRecord(lr, sVal[index], key[index]);
+      return lr;
+    }
+    
+    LogRecord verify(int index, LogRecord lr) throws Exception {
+      verifyLogRecord(lr, sVal[index], key[index]);
+      return lr;
+    }
+    
+  }
+  
   /**
    * Verify that Logger.get() method returns requested records.
-   * <p>We write three records to the journal than go through
+   * <p>We write records to the journal than go through
    * a series of Logger.get() requests to verify that Logger.get()
    * works as expected.
+   * 
+   * <p>We also verify that channel position is not affected
+   * by the Logger.get() methods.
+   * 
    * @throws Exception
    */
   public void testGetMethods() throws Exception {
-    String[] sVal = { "Record_1", "Record_2", "Record_3", "Record_4", "Record_5"};
-    byte[][] r1 = new byte[sVal.length][];
+    DataRecords dr = new DataRecords(5);
+    LogRecord lr = dr.lr;
     
-    // initialize test records
-    for (int i=0; i< sVal.length; ++i)
-      r1[i] = sVal[i].getBytes();
-    
-    long[] key = new long[sVal.length];
+    // make sure we are working from the beginning of a new file.
+    deleteLogFiles(); 
     
     log.open();
     
     // populate journal with test records
-    for (int i=0; i< sVal.length; ++i)
-      key[i] = log.put(r1[i],false);
+    dr.putAll(true);
     
-    // force the data to disk
-    log.put("EOB".getBytes(),true);
+    // remember file position for subsequent validations
+    long pos = log.lfmgr.currentLogFile.channel.position();
     
-    LogRecord lr = new LogRecord(sVal[0].length()+6);
     lr.setFilterCtrlRecords(true);
-    for (int i=0; i < sVal.length; ++i)
-    {
-      lr = log.get(lr,key[i]);
-      verifyLogRecord(lr, sVal[i], key[i]);
+    for (int i=0; i < dr.sVal.length; ++i) {
+      dr.verify(i);
     }
     
     // read backwards
-    for (int i = sVal.length-1; i >= 0; --i)
-    {
-      lr = log.get(lr, key[i]);
-      verifyLogRecord(lr, sVal[i], key[i]);
+    for (int i = dr.sVal.length-1; i >= 0; --i) {
+      dr.verify(i);
     }
+    long posNow = log.lfmgr.currentLogFile.channel.position();
+    assertEquals("File Position", pos, posNow);
     
     // check the Logger.getNext method
-    lr = log.get(lr, key[0]);
-    verifyLogRecord(lr, sVal[0], key[0]);
+    lr = dr.verify(0);
     
-    for (int i=1; i < sVal.length; ++i) {
+    for (int i=1; i < dr.count; ++i) {
       do {
         lr = log.getNext(lr);
       } while (lr.isCTRL()); // skip control records
-      verifyLogRecord(lr, sVal[i], key[i]);
+      dr.verify(i, lr);
     }
+    posNow = log.lfmgr.currentLogFile.channel.position();
+    assertEquals("File Position", pos, posNow);
     
     // now read to end of journal
     int recordCount = 0;
@@ -388,9 +466,50 @@ public class LogTest extends TestDriver
       if (lr.type == LogRecordType.END_OF_LOG) break;
       ++recordCount;
     }
+    posNow = log.lfmgr.currentLogFile.channel.position();
+    assertEquals("File Position", pos, posNow);
+    
+    // read backwards, and write a new record after each read
+    for (int j = 0, i = dr.count-1; i >= 0; --i, ++j)
+    {
+      lr = dr.verify(i);
+      log.put(dr.r1[j], true);
+    }
+    
+    // verify that we now have two sets of records
+    lr = dr.verify(0);
+
+    for (int i=1; i < dr.count; ++i) {
+      do {
+        lr = log.getNext(lr);
+      } while (lr.isCTRL()); // skip control records
+      dr.verify(i, lr);
+    }
+    
+    // make sure have a second set of records.
+    for (int i=0; i < dr.count; ++i) {
+      do {
+        lr = log.getNext(lr);
+      } while (lr.isCTRL()); // skip control records
+      verifyLogRecord(lr, dr.sVal[i], lr.key);
+    }
     
     log.close();
     
+  }
+  
+  /**
+   * Verify that Logger.get() method returns a record
+   * that was written with force = false.
+   * 
+   * @throws Exception
+   */
+  public void testGetMethods_UnforcedRecord() throws Exception {
+    DataRecords dr = new DataRecords(1);
+    log.open();
+    dr.putAll(false);
+    dr.verify(0);
+    log.close();
   }
   
   /**
@@ -402,9 +521,10 @@ public class LogTest extends TestDriver
   void verifyLogRecord(LogRecord lr, String eVal, long eKey) {
     byte[][] r2 = lr.getFields();
     String rVal = new String(r2[0]);
-    assertEquals("Field Count != 1", 1, r2.length);
+    assertEquals("Record Type: " + Long.toHexString(lr.type), 0, lr.type);
+    assertEquals("Record Key: " + Long.toHexString(eKey), eKey, lr.key);
     assertEquals("Record Data", eVal, rVal);
-    assertEquals("Record Key", eKey, lr.key);
+    assertEquals("Field Count != 1", 1, r2.length);
   }
   
 }
