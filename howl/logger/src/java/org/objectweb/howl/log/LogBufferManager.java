@@ -501,7 +501,9 @@ class LogBufferManager extends LogObject
 
   /**
    * decrements count of waiting threads and returns buffer
-   * to freeBuffer list if count goes to zero 
+   * to freeBuffer list if count goes to zero.
+   * <p>Threads waiting on this buffer are notified
+   * when count goes to zero. 
    * @param buffer LogBuffer to be released
    */
   private void releaseBuffer(LogBuffer buffer)
@@ -1053,10 +1055,11 @@ class LogBufferManager extends LogObject
               LogBuffer[] fq = new LogBuffer[fb.length + 1];
               synchronized(bufferManagerLock)
               {
-                // copy original buffers to new array
+                // copy current freeBuffer array to new array
                 for(int i=0; i<freeBuffer.length; ++i)
                   fb[i] = freeBuffer[i];
 
+                // then replace freeBuffer with new array
                 freeBuffer = fb;
 
                 synchronized(forceManagerLock)
