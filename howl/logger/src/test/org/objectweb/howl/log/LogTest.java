@@ -32,6 +32,8 @@
  */
 package org.objectweb.howl.log;
 
+import java.io.FileNotFoundException;
+
 public class LogTest extends TestDriver
 {
   /**
@@ -83,6 +85,108 @@ public class LogTest extends TestDriver
     prop.setProperty("msg.force.interval", "0");
     prop.setProperty("msg.count", "1000");
     runWorkers(LogTestWorker.class);
+  }
+  
+  public void testLogClosedException() throws Exception, LogException {
+    log.close();
+    try {
+      log.setAutoMark(false);
+      fail("expected LogClosedException");
+    } catch (LogClosedException e) {
+      // this is what we expected so ignore it
+    }
+  }
+  
+  public void testLoggerThroughput_checksumEnabled() throws Exception
+  {
+    log.close();
+    cfg.setChecksumEnabled(true);
+    log = new Logger(cfg);
+    log.open();
+    runWorkers(LogTestWorker.class);
+  }
+  
+  public void testLogConfigurationException_maxLogFiles() throws Exception
+  {
+    log.close();
+    
+    // increase number of log files for current set
+    cfg.setMaxLogFiles(cfg.getMaxLogFiles() + 1);
+    log = new Logger(cfg);
+    
+    // try to open the log -- we should get an error
+    try {
+      log.open();
+      fail("expected LogConfigurationException");
+    } catch (LogConfigurationException e) {
+      // this is what we expected so ignore it
+    }
+  }
+  
+  public void testFileNotFoundException() throws Exception
+  {
+    log.close();
+    
+    // set log dir to some invalid value
+    cfg.setLogFileDir(prop.getProperty("test.invalid.dir", "$:/logs"));
+    log = new Logger(cfg);
+    try {
+      log.open();
+      fail("expected FileNotFoundException");
+    } catch (FileNotFoundException e) {
+      // this is what we expected
+    }
+  }
+  
+  public void testInvalidFileSetException_1() throws Exception
+  {
+    log.close();
+    
+    // a single log file is not allowed
+    cfg.setMaxLogFiles(1);
+    log = new Logger(cfg);
+    
+    // open should catch this and get an error
+    try {
+      log.open();
+      fail("expected InvalidFileSetException");
+    } catch (InvalidFileSetException e) {
+      // this is what we expected so ignore it
+    }
+  }
+  
+  public void testLogRecordSizeException() throws Exception {
+    // record size == block size is guaranteed to fail
+    byte[] data = new byte[cfg.getBufferSize()];
+    
+    try {
+      log.put(data,false);
+      fail("expected LogRecordSizeException");
+    } catch (LogRecordSizeException e) {
+      // this is what we expected so ignore it
+    }
+ 
+  }
+  
+  public void testInvalidLogKeyException() throws Exception {
+    TestLogReader tlr = new TestLogReader();
+    
+    // try log key == -1
+    try {
+      log.replay(tlr, -1L);
+      fail("expected InvalidLogKeyException");
+    } catch (InvalidLogKeyException e) {
+      // this is what we expected
+    }
+    
+    // try a key that is invalid
+    try {
+      log.replay(tlr, (log.getActiveMark() + 1L));
+      fail("expected InvalidLogKeyException");
+    } catch (InvalidLogKeyException e) {
+      // this is what we expected
+    }
+
   }
 
 }
