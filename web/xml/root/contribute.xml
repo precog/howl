@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+
+<!DOCTYPE document PUBLIC "-//ObjectWeb//DTD ObjectWeb Project Web Site//EN"
+"../../common/dtd/objectweb.dtd">
+
+<document>
+  <properties>
+    <author email="michael.giroux@objectweb.org">Michael Giroux</author>
+    <title>Contributing to HOWL</title>
+    <filename>contribute.xml</filename>
+    <pathtoroot>.</pathtoroot>
+  </properties>
+  
+  <body>
+    <s1 name="Contributing to HOWL">
+      <p>
+        As an open source project, the HOWL team welcomes contributions.
+      </p>
+      <s2 name="What to contribute?">
+        <p>
+          You can contribute to HOWL by participating in discussions
+          on the <a href="http://forge.objectweb.org/mail/?group_id=92">mail lists</a>,
+          by submitting 
+          <a href="http://forge.objectweb.org/tracker/?atid=100092&amp;group_id=92&amp;func=browse">
+            bug reports
+          </a>
+          and
+          <a href="http://forge.objectweb.org/tracker/?atid=350092&amp;group_id=92&amp;func=browse">
+            feature requests
+          </a>.
+          <br/>
+          Developers who discover and report bugs in HOWL code are
+          encouraged to provide suggested corrections in the form of
+          <a href="http://forge.objectweb.org/tracker/?atid=300092&amp;group_id=92&amp;func=browse">
+            patches.
+          </a>
+          <br/>
+        </p>
+        <p>
+          All contributions are important and help improve the quality of C-JDBC.
+        </p>
+      </s2>
+    </s1>
+  </body>
+</document>

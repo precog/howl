@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+
+<!DOCTYPE document PUBLIC "-//ObjectWeb//DTD ObjectWeb Project Web Site//EN"
+"../../common/dtd/objectweb.dtd">
+
+<document>
+  <properties>
+    <author email="michael.giroux@objectweb.org">Michael Giroux</author>
+    <title>Download</title>
+    <filename>download.xml</filename>
+    <pathtoroot>.</pathtoroot>
+  </properties>
+  
+  <body>
+    <s1 name="Download">
+      <subtitle>HOWL Releases</subtitle>
+      <p>
+        Released versions of HOWL can be downloaded from the
+        <a href="http://forge.objectweb.org/project/showfiles.php?group_id=92">ObjectWeb Forge</a>.
+      </p>
+      <subtitle>HOWL CVS Repository</subtitle>
+      <p>
+        The HOWL project source files can be downloaded from the
+        <a href="http://forge.objectweb.org/scm/?group_id=92">CVS Repository</a>.
+      </p>
+      <s2 name="Modules">
+        <p>
+          HOWL contains multiple modules.  The <strong>logger</strong> module 
+          contains the actual implementation of the HOWL logger.  Other
+          modules were committed during the initial stages of the project
+          to serve as prototypes and to illustrate desired functionality.
+        </p>
+        <p>
+          Developers who wish to integrate the HOWL logger into their project
+          only need to download the <strong>logger</strong> module.  Developers
+          interested is reviewing the ideas that were presented during the 
+          initial requirements and design discussions can review the 
+          prototype modules.
+        </p>
+        <subtitle>Module List</subtitle>
+        <table border='0'>
+          <tr>
+            <td></td>
+            <td><strong>logger:</strong></td>
+            <td>
+              Code base for the HOWL logger implementation.
+            </td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><strong>journal-sm1:</strong></td>
+            <td>
+              Code base for the first HOWL journal prototype.
+            </td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><strong>trace-sm1:</strong></td>
+            <td>
+              Code base for a prototype HOWL trace facility.
+            </td>
+          </tr>
+        </table>
+      <subtitle>HOWL CVS Snapshot</subtitle>
+      <p>
+        The entire collection of HOWL sub-projects can be download as a single file
+        using the latest
+        <a href="http://forge.objectweb.org/cvssnapshots/howl-cvs-latest.tar.gz">CVS snapshot</a>.
+      </p>
+      </s2>
+    </s1>
+  </body>
+</document>

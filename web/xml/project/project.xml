@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!DOCTYPE project PUBLIC "-//ObjectWeb//DTD ObjectWeb Project Definition Web Site//EN"
+"../../common/dtd/project.dtd">
+
+<project>
+
+  <title>HOWL</title>
+
+  <description>
+    HOWL is a logger implementation providing features required by the JOTM project.
+    HOWL uses unformatted binary logs to maximize performance and specifies a
+    journalization API with methods necessary to support JOTM recovery operations.
+  </description>
+
+  <keywords>
+    Enter here a keyword list associated with your project.
+  </keywords>
+
+  <body>
+
+    <menu>
+      <legend>Project Links</legend>
+      <menuitem><a href="index.html">Home</a></menuitem>
+      <menuitem><a href="download.html">Download</a></menuitem>
+      <menuitem><a href="documentation.html">Documentation</a></menuitem>
+      <menuitem><a href="http://forge.objectweb.org/mail/?group_id=92">Mailing Lists</a></menuitem>
+      <menuitem><a href="license.html">License</a></menuitem>
+    </menu>
+
+    <menu>
+      <legend>Developers' Corner</legend>
+      <menuitem><a href="contribute.html">How to Contribute</a></menuitem>
+      <menuitem><a href="http://forge.objectweb.org/scm/?group_id=92">CVS Repository</a></menuitem>
+      <menuitem><a href="http://forge.objectweb.org/projects/howl/">ObjectWeb Forge Site</a></menuitem>
+    </menu>
+
+    <menu>
+      <legend>About</legend>
+      <menuitem><a href="index.html">Team</a></menuitem>
+      <menuitem><a href="mailto:howl@objectweb.org">Contact</a></menuitem>
+    </menu>
+
+  </body>
+</project>

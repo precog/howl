@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+
+<!DOCTYPE document PUBLIC "-//ObjectWeb//DTD ObjectWeb Project Web Site//EN"
+"../../common/dtd/objectweb.dtd">
+
+<document>
+  <properties>
+    <author email="michael.giroux@objectweb.org">Michael Giroux</author>
+    <title>Home Page</title>
+    <filename>index.xml</filename>
+    <pathtoroot>.</pathtoroot>
+  </properties>
+  
+  <body>
+    <s1 name="HOWL - Highspeed ObjectWeb Logger" anchor="sect1">
+      <p>
+        HOWL is a logger implementation providing features
+        required by the ObjectWeb JOTM
+        project, with a public API that is generally usable by
+        any Transaction Manager.
+        HOWL uses unformatted binary logs to maximize performance
+        and specifies a
+        journalization API with methods necessary to support JOTM
+        recovery operations.
+      </p>
+      <s2 name="">
+      <p>
+        <img src="images/latest.gif" alt="Latest news" border="0" 
+        height="50" width="150"/><br/>
+      </p>
+        <p>
+          <strong>Friday, August 27, 2004</strong>
+          WEB committed to CVS.
+        </p>
+        <p>
+          <strong>Friday, August 20, 2004</strong>
+          Updated test cases committed to CVS.
+          New TAG is HOWL_0_1_6.
+        </p>
+      </s2>
+      <p><br/><br/></p>
+      </s1>
+
+      <s1 name="Projects using HOWL">
+        <subtitle>ObjectWeb JOTM</subtitle>
+        <p>
+          The ObjectWeb <a href="http://jotm.objectweb.org">JOTM</a> project has
+          integrated the HOWL logger to record
+          XA 2-phase commit activity and support
+          recovery from system failures.
+        </p>
+        <p>
+          JOTM is the default transaction manager for the ObjectWeb
+          <a href="http://jonas.objectweb.org">JOnAS</a> project.
+        </p>
+        <subtitle>Apache Geronimo</subtitle>
+        <p>
+          The <a href="http://geronimo.apache.org/">Apache Geronimo</a> project has
+          plans to integrate JOTM, and has
+          integrated the HOWL logger with
+          an interim transaction manager
+          that is being used until JOTM
+          recovery functionality is available.
+        </p>
+        <subtitle>ActiveMQ</subtitle>
+        <p>
+          The <a href="http://activemq.codehaus.org/">ActiveMQ</a>
+          project is integrated with Apache Geronimo as the
+          default JMS provider.
+          The project is using the HOWL Logger to provide message
+          persistence.
+        </p>
+      </s1>
+  </body>
+</document>
