@@ -42,12 +42,7 @@ public class LogClosedException extends LogException
   /**
    * Constructs an instance of this class.
    */
-  public LogClosedException()
-  {
-  }
+  public LogClosedException() {}
 
-  public LogClosedException(String s)
-  {
-    super(s);
-  }
+  public LogClosedException(String s) { super(s); }
 }
