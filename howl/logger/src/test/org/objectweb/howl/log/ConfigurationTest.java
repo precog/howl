@@ -125,6 +125,11 @@ public class ConfigurationTest extends TestCase
     prop.setProperty("bufferSize", "1");
     cfg = new Configuration(prop);
     assertEquals("bufferSize", 1024, cfg.getBufferSize());
+    
+    // make sure values are trimmed
+    prop.setProperty("bufferSize", " 1");
+    cfg = new Configuration(prop);
+    assertEquals("bufferSize", 1024, cfg.getBufferSize());
   }
   
   public void testBufferSize_32()
@@ -168,6 +173,30 @@ public class ConfigurationTest extends TestCase
     } catch (LogConfigurationException e) {
       // ignore the exception
     }
+  }
+  
+  public void testChecksumEnabledTrue() throws Exception
+  {
+    prop.setProperty("checksumEnabled", "true");
+    cfg = new Configuration(prop);
+    assertTrue("checksumEnabled", cfg.isChecksumEnabled());
+
+    // check that values are trimmed
+    prop.setProperty("checksumEnabled", "true  ");
+    cfg = new Configuration(prop);
+    assertTrue("checksumEnabled", cfg.isChecksumEnabled());
+  }
+  
+  public void testChecksumEnabledFalse() throws Exception
+  {
+    prop.setProperty("checksumEnabled", "false");
+    cfg = new Configuration(prop);
+    assertFalse("checksumEnabled", cfg.isChecksumEnabled());
+    
+    // check that values are trimmed
+    prop.setProperty("checksumEnabled", "   false   ");
+    cfg = new Configuration(prop);
+    assertFalse("checksumEnabled", cfg.isChecksumEnabled());
   }
   
   public void testMinBuffers_GT_MaxBuffers()
