@@ -123,7 +123,7 @@ class LogFile
   
   /**
    * indicates the file was created during the call to open()
-   * @see #open()
+   * @see #open(String filemode)
    */
   boolean newFile = true;
   
