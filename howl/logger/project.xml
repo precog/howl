@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- $Id: project.xml,v 1.9 2004-09-14 18:10:19 djencks Exp $ -->
+<!-- $Id: project.xml,v 1.10 2004-09-14 19:27:24 girouxm Exp $ -->
 <project>
     <pomVersion>3</pomVersion>
     <name>HOWL :: Logger</name>
@@ -66,6 +66,7 @@
             </includes>
             <excludes>
                 <exclude>**/allTest.java</exclude>
+                <exclude>**/ExceptionTest.java</exclude>
             </excludes>
         </unitTest>
         <resources>
