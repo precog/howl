@@ -357,7 +357,7 @@ public class Logger extends LogObject
       bmgr.replay(listener, lfmgr.activeMark, false);
     } catch (InvalidLogKeyException e) {
       // should not happen -- use assert to catch during development
-      assert e == null : "Unhandled InvalidLogKeyException" + e.toString();
+      assert false : "Unhandled InvalidLogKeyException" + e.toString();
     }
   }
   

@@ -137,7 +137,7 @@ class LogFileManager extends LogObject
   LogFile[] fileSet = null;
   
   /**
-   * index to current entry in fileSet[]
+   * workerID to current entry in fileSet[]
    */
   int lfIndex = 0;
 
@@ -437,7 +437,7 @@ class LogFileManager extends LogObject
       } // synchronized(fileManagerLock)
     } catch (LogRecordSizeException e) {
       // will never happen but use assert to catch during development
-      assert e == null : "Unhandled LogRecordSizeException" + e;
+      assert false : "Unhandled LogRecordSizeException" + e;
     }
     
     return currentLogFile;
@@ -540,7 +540,7 @@ class LogFileManager extends LogObject
     }
     catch (LogRecordSizeException e) {
       // will never happen but use assert to catch during development
-      assert e == null : "Unhandled LogRecordSizeException" + e;
+      assert false : "Unhandled LogRecordSizeException" + e;
     }
     catch (LogFileOverflowException e) {
       // should not happen since we just gave back some space
@@ -701,7 +701,7 @@ class LogFileManager extends LogObject
       catch (FileNotFoundException e)
       {
         // TODO: output log message 
-        System.err.println(e + ":" + name);
+        System.err.println(this.getClass().getName() + ".open(); " + e);
         throw e;
       }
       
@@ -861,10 +861,10 @@ class LogFileManager extends LogObject
         throw e;
       } catch (LogException e) {
         // should not happen, but if it does, we just ignore it here
-        assert e == null : "unhandled LogException" + e.toString();
+        assert false : "unhandled LogException" + e.toString();
       } catch (IOException e) {
         // should not happen, but if it does, we just ignore it here
-        assert e == null : "unhandled IOException";
+        assert false : "unhandled IOException";
       }
 
     }
@@ -887,7 +887,6 @@ class LogFileManager extends LogObject
     if (lb.bsn == -1) return; // end of file or empty file
 
     LogRecord fh = new LogRecord(fileHeader[0].length);
-    assert fh != null : "LogRecord reference [fh] is null";
 
     fh.get(lb);
     if (fh.type != LogRecordType.FILE_HEADER)
@@ -969,7 +968,7 @@ class LogFileManager extends LogObject
       bmgr.put(LogRecordType.CLOSE, closeData, false);
     } catch (LogRecordSizeException e) {
       // will never happen but use assert to catch during development
-      assert e == null : "Unhandled LogRecordSizeException" + e;
+      assert false : "Unhandled LogRecordSizeException" + e;
     } catch (LogFileOverflowException e) {
       // ignore -- we will discover this the next time we open the logs
       // TODO: write message to system log

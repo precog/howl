@@ -50,11 +50,6 @@ public class XACommittingTx {
    * record has been logged.  Specifically, once the TM calls
    * XALogger.putCommit() it must not change the byte[][]
    * that was logged.
-   * 
-   * <p>An alternative is to make a copy of the byte[][],
-   * perhaps into a ByteBuffer, but this may cause performance issues.
-   * 
-   * TODO measure this alternative.
    */
   private byte[][] record = null;
   
@@ -79,21 +74,21 @@ public class XACommittingTx {
   
   
   /**
-   * index into the activeTx[] that this entry will be stored.
+   * workerID into the activeTx[] that this entry will be stored.
    * <p>Each XACommittingTx instance is assigned a fixed slot
    * in the activeTx[].  Entries in the activeTx[] are set
    * to null when not in use.
    * <p>When the XACommittingTx object is constructed, it
-   * is stored into the availableTx[] using <i> index </i>.
+   * is stored into the availableTx[] using <i> workerID </i>.
    * The entry is removed 
    */
   private final int index;
   
   /**
-   * returns an index into an array of XACommittingTx
+   * returns an workerID into an array of XACommittingTx
    * objects that holds a reference to this XACommittingTx.
    * 
-   * @return an integer used as an index into an array of XATransactions.
+   * @return an integer used as an workerID into an array of XATransactions.
    */
   final int getIndex() { return this.index; }
   

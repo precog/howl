@@ -98,13 +98,13 @@ public class XALogger extends Logger
   XACommittingTx[] availableTx = null;
   
   /**
-   * index into availableTx[] used to remove an
+   * workerID into availableTx[] used to remove an
    * entry.
    */
   int atxGet = 0;
   
   /**
-   * index into availableTx[] used to return (add)
+   * workerID into availableTx[] used to return (add)
    * an entry.
    */
   int atxPut = 0;
@@ -403,7 +403,7 @@ public class XALogger extends Logger
   }
   
   /**
-   * Used by putCommit() and by XAReplayListener#onRecord() 
+   * Used by putCommit() and by OpenReplayListener#onRecord() 
    * to add entries to the activeTx table.
    * 
    * @param key log key for the XACOMMIT record
@@ -422,7 +422,7 @@ public class XALogger extends Logger
       if (atxUsed == activeTx.length)
         growActiveTxArray();
       
-      // get an available entry index and save reference
+      // get an available entry workerID and save reference
       tx = availableTx[atxGet];
       assert tx != null : "availableTx[" + atxGet +"] is null";
       availableTx[atxGet] = null;
@@ -609,23 +609,27 @@ public class XALogger extends Logger
       
 
       try {
+        // get reference to original record
+        byte[][] record = tx.getRecord();
+
+        // construct an XACOMMITMOVED record
+        // with room for original log key.
+        //
+        // original log key is used during replay to locate and
+        // update the activeTx table that is maintained by this XALogger.
+        //
+        // NOTE: inserted key must be removed during replay
+        //       before returning record to TM.
+        byte[][] movedRecord = new byte[record.length + 1][];
+        
+        movedRecord[0] = tx.logKeyData[0];
+        System.arraycopy(record, 0, movedRecord, 1, record.length);
+
         // move the COMMIT record data
         // we force all the moved records later when we set the new mark.
         // NOTE: be careful not to use the put() methods that will
         //       cause this thread to wait in onpWait().
-        txKey = put(LogRecordType.XACOMMIT, tx.getRecord(), false);
-        
-        // during replay there is a slight chance that the
-        // the XACOMMIT record will be moved and recorded to the
-        // log, but the system fails before the new mark is written.
-        // In this case, replay will see two copies of the same
-        // XACOMMIT record.
-        // We write an XACOMMITMOVED control record so that replay can
-        // remove the original entry from the activeTx table if it 
-        // happens to be seen twice.
-        // The record data contains the log key of the original XACOMMIT
-        // record.
-        put(LogRecordType.XACOMMITMOVED, tx.logKeyData, false);
+        txKey = put(LogRecordType.XACOMMITMOVED, movedRecord, false);
         
         // keep track of the number of records moved.
         ++movedRecordCount;
@@ -704,11 +708,11 @@ public class XALogger extends Logger
         "'>number of times log overflow notification event was called." +
         "</overflowNotificationCount>" +
         
-        "\n<waitForThisCount value='" + waitForThisCount +
+        "\n<waitForThisCount value='" + getWaitForThisCount() +
         "'>Number of times threads waited for overflow processing to complete" +
         "</waitForThisCount>" +
         
-        "\n<totalWaitForThis value='" + totalWaitForThis +
+        "\n<totalWaitForThis value='" + getTotalWaitForThis() +
         "'>Total time (ms) threads waited for overflow processing to complete" +
         "</totalWaitForThis>"
         );
@@ -721,6 +725,24 @@ public class XALogger extends Logger
     return stats.toString();
   }
   
+  /**
+   * Provide synchronized access to waitForThisCount.
+   * @return waitForThisCount 
+   */
+  private final synchronized int getWaitForThisCount()
+  {
+    return waitForThisCount;
+  }
+  
+  /**
+   * Provide synchronized access to totalWaitForThis.
+   * @return totalWaitForThis 
+   */
+  private final synchronized long getTotalWaitForThis()
+  {
+    return totalWaitForThis;
+  }
+
   /**
    * Saves a reference to callers LogEventListener.
    * 
@@ -768,7 +790,7 @@ public class XALogger extends Logger
 
     super.open();
     
-    XAReplayListener xaListener = new XAReplayListener(listener);
+    OpenReplayListener xaListener = new OpenReplayListener(listener);
     try {
       super.replay(xaListener, getActiveMark(), true); // replay CTRL records also
     } catch (InvalidLogKeyException e) {
@@ -787,6 +809,20 @@ public class XALogger extends Logger
   }
   
   /**
+   * Used by TM and test cases to obtain the
+   * number of entries in the activeTx table.
+   * <p>TIP: if value does not agree with expected
+   * value in TM or test case, we probably have
+   * a bug somewhere.
+   * 
+   * @return current number of used entries in activeTx table
+   */
+  public int getActiveTxUsed()
+  {
+    return this.atxUsed;
+  }
+  
+  /**
    * displays entries in the activeTx table.
    * <p>useful for debug.
    */
@@ -798,13 +834,50 @@ public class XALogger extends Logger
       synchronized(activeTx)
       {
         XACommittingTx tx = activeTx[i];
-        System.out.println("activeTx[" + i + "] key=" + tx.getLogKey());
+        byte[][] record = tx.getRecord();
+        System.out.println("activeTx[" + i + "] key=" + Long.toHexString(tx.getLogKey()) +
+            "\n  Fields: " + record.length 
+            );
+        for (int j = 0; j < record.length; ++j)
+        {
+          byte[] field = record[j];
+          System.out.println("  [" + j + "] len=" + field.length + ": " + new String(field));
+        }
       }
     }
   }
   
   /**
-   * private class used by XALogger to replay the log.
+   * Wrapp Logger#replay(ReplayListener) so we can
+   * intercept onRecord() notifications to process
+   * XACOMMIT and XACOMMITMOVED records.
+   */
+  public void replay(ReplayListener listener)
+  throws LogConfigurationException
+  {
+    try {
+      this.replay(listener, getActiveMark());
+    } catch (InvalidLogKeyException e) {
+      // should not happen
+      assert false : "Unhandled InvalidLogKeyException" + e.toString();
+    }
+  }
+  
+  /**
+   * Wrapp Logger#replay(ReplayListener, long) so we can
+   * intercept onRecord() notifications to process
+   * XACOMMIT and XACOMMITMOVED records.
+   */
+  public void replay(ReplayListener listener, long key)
+  throws InvalidLogKeyException, LogConfigurationException
+  {
+    XAReplayListener replayListener = new XAReplayListener(listener);
+    super.replay(replayListener, key, true);
+  }
+  
+  /**
+   * private class used by XALogger to replay the log during
+   * log open processing.
    * 
    * <p>As log records are replayed through onRecord method,
    * the HashMap <i> activeTxHashMap </i> is updated.  XACOMMIT type
@@ -817,7 +890,7 @@ public class XALogger extends Logger
    * 
    * @author Michael Giroux
    */
-  private class XAReplayListener implements ReplayListener
+  private class OpenReplayListener implements ReplayListener
   {
     LogRecord lr = new XALogRecord(80);
     
@@ -843,7 +916,7 @@ public class XALogger extends Logger
      */
     final HashMap activeTxHashMap;
     
-    XAReplayListener(ReplayListener tmListener)
+    OpenReplayListener(ReplayListener tmListener)
     {
       assert tmListener != null: "ReplayListener must be non-null";
       
@@ -855,6 +928,8 @@ public class XALogger extends Logger
     public void onRecord(LogRecord lr)
     {
       XACommittingTx tx = null;
+      
+      long xacommitKey = 0L; // see XACOMMITMOVED and XADONE 
       
       ((XALogRecord)lr).setTx(tx);
 
@@ -881,6 +956,38 @@ public class XALogger extends Logger
           tmListener.onRecord(lr);
           break;
           
+        case LogRecordType.XACOMMITMOVED:
+          if (b.getShort() != 8)
+            throw new IllegalArgumentException();
+          // QUESTION: is there a better way to handle this here?
+          
+          // get log key for the record that was moved
+          xacommitKey = b.getLong();
+          
+          // get existing XACommitingTx entry from HashMap if it exists
+          tx = (XACommittingTx)activeTxHashMap.remove(new Long(xacommitKey));
+          if (tx != null)
+          {
+            // update existing entry
+            tx.setLogKey(lr.key); 
+
+            // TM already has seen this entry, so we do not pass this record
+            break;
+          }
+          
+          /*
+           * This is the first time we have seen this XACOMMIT
+           * record, so we remove the original xacommitKey
+           * from the data[] buffer and drop through into
+           * normal XACOMMIT processing.
+           */
+          int len = b.remaining();
+          int start = b.position();
+          System.arraycopy(lr.data, start, lr.data, 0, len);
+          b.rewind();
+          b.limit(len);
+          // FALL THROUGH and process as XACOMMIT
+          
         case LogRecordType.XACOMMIT:
           tx = activeTxAdd(lr.key, lr.getFields());
         
@@ -895,20 +1002,17 @@ public class XALogger extends Logger
           break;
           
         /*
-         * Processing for both XACOMMITMOVED and XADONE are
-         * the same.  We remove the corresponding XACOMMIT
-         * record from the activeTx table.
+         * Remove corresponding XACOMMIT from the activeTx
+         * table and return.
          * 
-         * Neither record is passed on to the TM. 
+         * The record is not passed on to the TM. 
          */  
-        case LogRecordType.XACOMMITMOVED:
-          tx = null; // breakpoint for XACOMMITMOVED record processing
         case LogRecordType.XADONE:
           if (b.getShort() != 8)
             throw new IllegalArgumentException();
           // QUESTION: is there a better way to handle this here?
           
-          long xacommitKey = b.getLong();
+          xacommitKey = b.getLong();
           assert b.remaining() == 0 : "Unexpected data in XADONE record";
           
           /*
@@ -955,4 +1059,100 @@ public class XALogger extends Logger
     }
   }
   
+  /**
+   * private class used by XALogger.replay() methods.
+   * 
+   * Used by replay(ReplayListener) and replay(ReplayListener, long) wrapper
+   * methods to intercept XACOMMIT and XACOMMITMOVED records
+   * so they can be passed to caller.
+   * 
+   * During TM invoked replay, log records are returned to the
+   * caller, but the activeTx table is not updated.
+   * 
+   * @author Michael Giroux
+   */
+  private static class XAReplayListener implements ReplayListener
+  {
+    final LogRecord lr;
+    
+    /**
+     * ReplayListener registered by TM that instantiated
+     * this XALogger.
+     * 
+     * <p>During replay, non-CTRL records are returned
+     * to the TM's replayListener. 
+     */
+    final ReplayListener tmListener;
+    
+    XAReplayListener(ReplayListener tmListener)
+    {
+      assert tmListener != null: "ReplayListener must be non-null";
+      
+      this.tmListener = tmListener;
+      lr = tmListener.getLogRecord();
+    }
+    
+    public void onRecord(LogRecord lr)
+    {
+      long xacommitKey = 0L; // see XACOMMITMOVED and XADONE 
+
+      // set LogRecord.tx = null for TM invoked replay. 
+      ((XALogRecord)lr).setTx(null);
+
+      // pass all non-CTRL records onto TM
+      if (! lr.isCTRL())
+      {
+        tmListener.onRecord(lr);
+        return;
+      }
+      
+      // process CTRL records
+      switch(lr.type)
+      {
+        case LogRecordType.END_OF_LOG:
+          tmListener.onRecord(lr);
+          break;
+          
+        case LogRecordType.XACOMMITMOVED:
+          ByteBuffer b = lr.dataBuffer;
+          if (b.getShort() != 8)
+            throw new IllegalArgumentException();
+          // QUESTION: is there a better way to handle this here?
+          
+          // discard the log key for the record that was moved
+          b.getLong(); 
+          
+          // during a TM invoked replay(), all XACOMMIT and XACOMMITMOVED
+          // records are returned to the TM after removing the xacommitKey
+          // that was inserted by logOverflowNotification.
+          int len = b.remaining();
+          int pos = b.position();
+          System.arraycopy(lr.data, pos, lr.data, 0, len);
+          b.rewind();
+          b.limit(len);
+          // FALL THROUGH and process as XACOMMIT
+          
+        case LogRecordType.XACOMMIT:
+          // pass commit record on to calling TM
+          tmListener.onRecord(lr);
+          break;
+          
+        // All other control records, including XADONE are discarded
+        default:
+          break;
+      }
+    }
+    
+    public void onError(LogException e)
+    {
+      // pass the error onto the TM
+      tmListener.onError(e);
+    }
+
+    public LogRecord getLogRecord()
+    {
+      return lr;
+    }
+    
+  }
 }

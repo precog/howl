@@ -78,7 +78,7 @@ class BlockLogBuffer extends LogBuffer
    * byte[]  CRLF                   [2] to make it easier to read buffers in an editor
    * </pre>
    */
-  private final int bufferHeaderSize = 30; 
+  private final static int bufferHeaderSize = 30; 
  
   /**
    * Offset within the block header of the bytes_used field.
@@ -88,7 +88,7 @@ class BlockLogBuffer extends LogBuffer
   /**
    * The number of bytes to reserve for block footer information.
    */
-  private final int bufferFooterSize = 18;
+  private final static int bufferFooterSize = 18;
   /* 
    * byte FOOTER_ID             [4] "LOWH"
    * int block_sequence_number  [4]
@@ -151,7 +151,7 @@ class BlockLogBuffer extends LogBuffer
    * room, and it is not accounted for in
    * the length field of the buffer header.  
    */
-  private final int EOB = 0x454F420A;  // "EOB\n" 
+  private final static int EOB = 0x454F420A;  // "EOB\n" 
   
   /**
    * default constructor calls super class constructor.
@@ -506,7 +506,7 @@ class BlockLogBuffer extends LogBuffer
   {
     String name = this.getClass().getName();
     
-    String result = "<LogBuffer class='" + name + "' index='" + index + "'>" +
+    String result = "<LogBuffer class='" + name + "' workerID='" + index + "'>" +
       "\n  <timesUsed value='" + initCounter + "'>Number of times this buffer was initialized for use</timesUsed>" +
       "\n  <physicalWrites value='" + doWrite + "'>Physical writes " + (doWrite ? "enabled" : "disabled" ) + "</physicalWrites>" +
       "\n  <checksums value='" + doChecksum + "'>Checksum Calculations " + (doChecksum ? "enabled" : "disabled" ) + "</checksums>" +
@@ -525,7 +525,7 @@ class BlockLogBuffer extends LogBuffer
     
     StringBuffer sb = new StringBuffer(
         "\nClass: " + getClass().getName() + 
-        "\n  index: " + Integer.toHexString(index) +
+        "\n  workerID: " + Integer.toHexString(index) +
         "\n  LogFile: " + lf.file.getPath() +
         "\n  HEADER" + 
         "\n    HEADER_ID: 0x" + Integer.toHexString(buffer.getInt()) +

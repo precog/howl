@@ -49,9 +49,9 @@ abstract class LogBuffer extends LogObject
   final ByteBuffer buffer;
 
   /**
-   * buffer number used by owner (LogBufferManager) to index into an array of buffers.
+   * buffer number used by owner (LogBufferManager) to workerID into an array of buffers.
    * 
-   * <p>Actual use of <i> index </i> is determined by the buffer manager implementation.
+   * <p>Actual use of <i> workerID </i> is determined by the buffer manager implementation.
    */
   int index = -1;
 

@@ -91,7 +91,7 @@ class LogBufferManager extends LogObject
   private LogBuffer[] freeBuffer = null;
 
   /**
-   * index into freeBuffer list maintained in getBuffer.
+   * workerID into freeBuffer list maintained in getBuffer.
    */
   short nextIndex = 0;
   
@@ -214,20 +214,20 @@ class LogBufferManager extends LogObject
   /**
    * queue of buffers waiting to be written.  The queue guarantees that 
    * buffers are written to disk in BSN order.  Buffers are placed into 
-   * the forceQueue using the fqPut index, and removed from the forceQueue
-   * using the fqGet index.  Access to these two index members is 
+   * the forceQueue using the fqPut workerID, and removed from the forceQueue
+   * using the fqGet workerID.  Access to these two workerID members is 
    * synchronized using separate objects to allow most threads to be
    * storing log records while a single thread is blocked waiting for
    * a physical force.
    * 
    * <p>Buffers are added to the queue when put() detects the buffer is full,
    * and when the FlushManager thread detects that a buffer has waited
-   * too long to be written.  The <i> fqPut </i> member is the index of
+   * too long to be written.  The <i> fqPut </i> member is the workerID of
    * the next location in forceQueue to put a LogBuffer that is to
    * be written.  <i> fqPut </i> is protected by <i> bufferManagerLock </i>.
    * 
    * <p>Buffers are removed from the queue in force() and written to disk.
-   * The <i> fqGet </i> member is an index to the next buffer to remove
+   * The <i> fqGet </i> member is an workerID to the next buffer to remove
    * from the forceQueue.  <i> fqGet </i> is protected by
    * <i> forceManagerLock </i>.
    * 
@@ -237,13 +237,13 @@ class LogBufferManager extends LogObject
   private LogBuffer[] forceQueue = null;
   
   /**
-   * next put index into <i> forceQueue </i>.
+   * next put workerID into <i> forceQueue </i>.
    * <p>synchronized by bufferManagerLock.
    */
   private int fqPut = 0;
 
   /**
-   * next get index from <i> forceQueue </i>.
+   * next get workerID from <i> forceQueue </i>.
    * <p>synchronized by forceManagerLock.
    */
   private int fqGet = 0;
@@ -649,8 +649,8 @@ class LogBufferManager extends LogObject
         if (record.key != mark) {
           String msg = "The initial mark [" + Long.toHexString(mark) + 
             "] requested for replay was not found in the log.";
-          listener.onError(new InvalidLogKeyException(msg));
-          return;
+          // BUG 300733 following line changed to throw an exception
+          throw new InvalidLogKeyException(msg);
         }
       }
     } catch (InvalidLogBufferException e) {

@@ -32,11 +32,16 @@
  */
 package org.objectweb.howl.log.xa;
 
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.Iterator;
+
 import org.objectweb.howl.log.LogException;
 import org.objectweb.howl.log.LogRecord;
+import org.objectweb.howl.log.LogRecordType;
 import org.objectweb.howl.log.ReplayListener;
 import org.objectweb.howl.log.TestDriver;
-import org.objectweb.howl.log.TestWorker;
 
 /**
  * 
@@ -46,25 +51,120 @@ public class XALoggerTest extends TestDriver
 {
   XALogger log = null;
   
+  XLTReplayListener openListener = null;
+  
+  final static int FAILEDRM = 9000;
+  
   public static void main(String[] args) {
     junit.textui.TestRunner.run(XALoggerTest.class);
   }
   
-  private class XLTReplayListener implements ReplayListener
+  /**
+   * Implementation of ReplayListener for test cases.
+   * 
+   * This nested class has reference to the outer class,
+   * so it could be in a separate .java source file.
+   * Rather than have a separate file, the class is declared
+   * static.
+   * 
+   * @author Michael Giroux
+   */
+  private static class XLTReplayListener implements ReplayListener
   {
+    public long count = 0L;
+    
+    public long commitCount = 0L;
+    
+    public long movedCount = 0L;
+    
+    public Exception exception = null;
+    
+    PrintStream out = null;
+    
+    XLTReplayListener()
+    {
+      out = null;
+    }
+    
+    void setPrintStream(PrintStream out)
+    {
+      this.out = out;
+    }
+    
+    /**
+     * When replay is complete, this HashMap should contain 
+     * an entry for each XACOMMIT record that did not have
+     * a corresponding XADONE record.
+     */
+    public final HashMap activeTx = new HashMap(64);
+    
+    /**
+     * Stores an XACOMMIT entry into the activeTx HashMap.
+     *
+     * @param lr LogRecord that was passed to onRecord() method.
+     */
+    private void activeTxPut(XALogRecord lr)
+    {
+      byte[] data = lr.getFields()[0];
+      String key = new String(data, 1, 9);
+      
+      Object o = activeTx.remove(key);
+      XACommittingTx tx = lr.getTx();
+      if (tx != null) activeTx.put(key, lr.getTx());
+      
+      if (out != null) out.print(new String(data));
+    }
+    
+    private void activeTxRemove(XALogRecord lr)
+    {
+      if (lr.getFields().length == 0) return;
+      
+      byte[] data = lr.getFields()[0];
+      String key = new String(data, 1, 9);
+      XACommittingTx tx = (XACommittingTx)activeTx.remove(key);
+
+      if (out != null) out.print(new String(data));
+    }
+    
+    public int getActiveTxUsed()
+    {
+      return activeTx.size();
+    }
+    
     /* (non-Javadoc)
      * @see org.objectweb.howl.log.ReplayListener#onRecord(org.objectweb.howl.log.LogRecord)
      */
     public void onRecord(LogRecord lr) {
-      // TODO Auto-generated method stub
       assertTrue("Expecting XALogRecord, found " + lr.getClass().getName(), (lr instanceof XALogRecord));
+      ++count;
+      
+      switch(lr.type)
+      {
+        case LogRecordType.END_OF_LOG:
+          --count;
+          break;
+        case LogRecordType.XACOMMIT:
+          assertTrue("lr.type", lr.isCTRL());
+          ++commitCount;
+          activeTxPut((XALogRecord)lr);
+          break;
+        case LogRecordType.XACOMMITMOVED:
+          assertTrue("lr.type", lr.isCTRL());
+          ++movedCount;
+          activeTxPut((XALogRecord)lr);
+          break;
+        default:
+          assertFalse("lr.type" + Long.toHexString(lr.type), lr.isCTRL());
+          activeTxRemove((XALogRecord)lr);
+          break;
+      }
     }
 
     /* (non-Javadoc)
      * @see org.objectweb.howl.log.ReplayListener#onError(org.objectweb.howl.log.LogException)
      */
     public void onError(LogException exception) {
-      // TODO Auto-generated method stub
+      this.exception = exception;
     }
 
     /* (non-Javadoc)
@@ -89,6 +189,8 @@ public class XALoggerTest extends TestDriver
 
     log = new XALogger(cfg);
     super.log = log;
+    
+    openListener = new XLTReplayListener();
   }
   
   /**
@@ -98,8 +200,7 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testUnsupportedOpen()
-  throws LogException, Exception
+  public void testUnsupportedOpen() throws Exception
   {
     log = new XALogger(cfg);
     try {
@@ -121,10 +222,9 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testSingleThread()
-  throws LogException, Exception
+  public void testSingleThread() throws Exception
   {
-    log.open(new XLTReplayListener());
+    log.open(openListener);
     log.setAutoMark(true);
     
     prop.setProperty("msg.count", "10");
@@ -141,13 +241,36 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testAutoMarkTrue()
-  throws LogException, Exception
+  public void testAutoMarkTrue() throws Exception
   {
-    log.open(new XLTReplayListener());
+    log.open(openListener);
     log.setAutoMark(true);
 
     runWorkers(XAWorker.class);
+  }
+  
+  /**
+   * Simulate a failed RM.
+   * <p>write a commit record to log, but do not write the corresponding done.
+   * This simulates an RM that never responds to the commit.
+   * The XACOMMIT record will (should) be in the log and discovered
+   * in the next test case.
+   * <p>This record will be moved several times during the course
+   * of subsequent tests until we finally run a test case
+   * that issues a call to putDone() for this record.
+   * 
+   * @throws LogException
+   * @throws Exception
+   */
+  public void testRMFailure() throws Exception
+  {
+    log.open(openListener);
+    log.setAutoMark(false);
+
+    XAWorker w = (XAWorker)getWorker(XAWorker.class);
+    w.setWorkerIndex(FAILEDRM);
+    w.logCommit(1);
+    log.close();
   }
   
   /**
@@ -158,11 +281,12 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testAutoMarkFalseOneDelayedWorker()
-  throws LogException, Exception
+  public void testAutoMarkFalseOneDelayedWorker() throws Exception
   {
-    log.open(new XLTReplayListener());
+    log.open(openListener);
     log.setAutoMark(false);
+    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
+    assertNull("openListener.exception", openListener.exception);
     
     delayedWorkers = 1;
     runWorkers(XAWorker.class);
@@ -179,46 +303,95 @@ public class XALoggerTest extends TestDriver
    * @throws LogException
    * @throws Exception
    */
-  public void testAutoMarkFalseFourDelayedWorker()
-  throws LogException, Exception
+  public void testAutoMarkFalseFourDelayedWorker() throws Exception
   {
-    log.open(new XLTReplayListener());
+    log.open(openListener);
     log.setAutoMark(false);
+    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
+    assertNull("openListener.exception", openListener.exception);
     
     delayedWorkers = 4;
     runWorkers(XAWorker.class);
   }
   
   /**
-   * Simulate a failed RM.
-   * <p>write a commit record to log, but do not write the corresponding done.
-   * This simulates an RM that never responds to the commit.
-   * The XACOMMIT record will (should) be in the log and discovered
-   * in the next test case.
-   * 
-   * @throws LogException
-   * @throws Exception
+   * Display the activeTx table following open.
    */
-  public void testRMFailure()
-  throws LogException, Exception
+  public void testActiveTxDisplay() throws Exception
   {
-    log.open(new XLTReplayListener());
-    log.setAutoMark(false);
-    
-    XAWorker w = (XAWorker)getWorker(XAWorker.class);
-    w.setWorkerIndex(workers + 1);
-    w.logCommit(1);
-    
+    log.open(openListener);
+    log.activeTxDisplay();
+    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
+    assertNull("openListener.exception", openListener.exception);
   }
   
   /**
-   * Display the activeTx table following open.
+   * Verify that number of records replayed during open()
+   * is the same as the number of records replayed by
+   * replay().
    */
-  public void testActiveTxDisplay()
-  throws LogException, Exception
+  public void testReplayFromAutoMark() throws Exception
   {
-    log.open(new XLTReplayListener());
+    openListener.setPrintStream(out.toString());
+    log.open(openListener);
+    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
+    assertNull("openListener.exception", openListener.exception);
+    
+    XLTReplayListener replayListener = new XLTReplayListener();
+    log.replay(replayListener);
+    assertNull("replayListener.exception", replayListener.exception);
+    assertEquals("records replayed", openListener.count, replayListener.count);
+    
+    assertEquals("activeTxUsed", openListener.getActiveTxUsed(), replayListener.getActiveTxUsed());
+    assertEquals("activeTxUsed", 1, replayListener.getActiveTxUsed());
+  }
+  
+  /**
+   * Verify that the XACommittingTx entry that is recovered during replay
+   * can be used to complete any open transactions.
+   * <p>Each entry 
+   * @throws Exception
+   */
+  public void testFinishIncompleteTx() throws Exception
+  {
+    log.open(openListener);
+    assertEquals("activeTxUsed", 1, log.getActiveTxUsed());
+    assertNull("openListener.exception", openListener.exception);
+    
+    Iterator txSet = openListener.activeTx.values().iterator();
+    /*
+     * we know there is only one entry (see assertEquals above)
+     * but we use a while loop as a further test to be sure
+     * the map is valid.
+     */
+    while(txSet.hasNext())
+    {
+      XACommittingTx tx = (XACommittingTx)txSet.next();
+      byte[] record = tx.getRecord()[0];
+      assertEquals("workerID", "[9000.0001]",new String(record, 0, 11));
+
+      byte[] doneRecord = "[9000.0001]DONE\n".getBytes();
+      log.putDone(new byte[][] { doneRecord }, tx);
+      System.out.println("putDone for " + new String(tx.getRecord()[0]));
+      System.out.println("key=" + Long.toHexString(tx.getLogKey()));
+    }
+    log.close();
+  }
+  
+  /**
+   * Verify that the previous test actually wrote the XADONE record.
+   * <p>After open() returns, there should be no entries in
+   * the activeTx table.
+   * 
+   * @throws Exception
+   */
+  public void testVerifyFinishIncompleteTx() throws Exception
+  {
+    log.open(openListener);
     log.activeTxDisplay();
+    assertEquals("activeTxUsed", 0, log.getActiveTxUsed());
+    assertNull("openListener.exception", openListener.exception);
+    log.close();
   }
   
 }

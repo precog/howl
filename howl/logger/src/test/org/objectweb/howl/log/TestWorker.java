@@ -87,10 +87,10 @@ public abstract class TestWorker extends Thread {
   
   /**
    * a unique value assigned to each worker within a test.
-   * probalby a simple index or counter of the number
+   * probalby a simple workerID or counter of the number
    * of workers that have been created.
    */
-  protected int index = 0;
+  protected int workerID = 0;
   
   /**
    * number of messages between calls to put() with force.
@@ -218,10 +218,10 @@ public abstract class TestWorker extends Thread {
   protected void updateRecordData(int id)
   {
 
-    // put worker index into data buffer on first call
+    // put worker workerID into data buffer on first call
     if (id == 1)
     {
-      int val = this.index; 
+      int val = this.workerID; 
       for (int j = 4; j > 0; --j)
       {
         commitData[j] = (byte)('0' + (val % 10));
@@ -304,12 +304,12 @@ public abstract class TestWorker extends Thread {
   }
   
   /**
-   * Set worker index used as prefix of log messages.
-   * @param index int to be set. 
+   * Set worker workerID used as prefix of log messages.
+   * @param workerID int to be set. 
    */
-  public void setWorkerIndex(int index)
+  public void setWorkerIndex(int workerID)
   {
-    this.index = index;
+    this.workerID = workerID;
   }
   
   /**
