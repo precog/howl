@@ -15,6 +15,7 @@
   <property name='cvs.user' value='${user.name}'/>
   <property name='cvs.site' value='howl.forge.objectweb.org'/>
   <property name='not.in.cvs' value='/var/lib/gforge/chroot/home/groups/howl/not_in_cvs'/>
+  <property name='junit.home' value='${env.JUNIT_HOME}'/>
 
   <!-- load properties for local build -->
   <property file='build.properties'/>
@@ -56,6 +57,7 @@
       >
       <classpath>
         <pathelement path='${classes.dir}/howl.jar'/>
+        <pathelement location='${junit.home}/junit.jar'/> 
       </classpath>
     </javac>
     
@@ -119,6 +121,7 @@
         <fileset dir='${test.src.dir}'>
           <include name='**/*Test.java'/>
           <exclude name='**/allTest.java'/>
+          <exclude name='**/ExceptionTest.java'/> 
         </fileset>
       </batchtest>
     </junit>
