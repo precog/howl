@@ -184,6 +184,7 @@ class BlockLogBuffer extends LogBuffer
    * <p>Each record consists of zero or more byte[] fields.
    * Each field is preceded by a short (2 bytes) containing the
    * length of the field to allow for subsequent unpacking.
+   * @see LogBuffer#put(short, byte[][], boolean)
    */
   long put(short type, byte[][] data, boolean sync) throws LogRecordSizeException
   {
@@ -196,6 +197,14 @@ class BlockLogBuffer extends LogBuffer
     
     recordSize += dataSize;
     
+    /*
+     * The following synchronized() statement might be unnecessary. 
+     * All calls to this put() method are synchronized by the
+     * LogBufferManager.bufferManagerLock.
+     * 
+     * It does not seem to degrade performance any, so we leave
+     * it to improve clarity of the code.
+     */ 
     synchronized(buffer)
     {
       if (recordSize > maxRecordSize)
@@ -242,15 +251,16 @@ class BlockLogBuffer extends LogBuffer
     synchronized(this)
     {
       // guard against gating errors that might allow
-      // multiple threads to be write this buffer.
+      // multiple threads to be writing this buffer.
       if (iostatus == LogBufferStatus.WRITING)
         throw new IOException();
 
-      // increment count of threads waiting for IO to complete
-      synchronized (waitingThreadsLock)
-      {
-        ++waitingThreads;
-      }
+    }
+
+    // increment count of threads waiting for IO to complete
+    synchronized (waitingThreadsLock)
+    {
+      ++waitingThreads;
     }
 
     // Update bytesUsed in the buffer header
@@ -276,9 +286,14 @@ class BlockLogBuffer extends LogBuffer
 
     try
     {
-      iostatus = LogBufferStatus.WRITING;
+      synchronized(this)
+      {
+        // BUG 300613 - update of iostatus needs to be synchronized
+        iostatus = LogBufferStatus.WRITING;
+      }
       buffer.clear();
       if (doWrite) lf.write(this);
+      // iostatus is updated to COMPLETE by the LogBufferManage after force() is done.
     }
     catch (IOException e)
     {
