@@ -1026,8 +1026,15 @@ class LogFileManager extends LogObject
           "number of times LogEventListener.logOverflowNotification was called" +
         "</overflowNotificationCount>"
         );
+    
+    long totalBytesWritten = 0L;
+    for (int i=0; i < fileSet.length; ++i)
+      totalBytesWritten += fileSet[i].bytesWritten;
 
-    stats.append("\n<LogFiles>");
+    stats.append("\n<LogFiles class='" + fileSet[0].getClass().getName() +
+        "' mode='" + fileSet[0].fileMode +
+        "' bytesWritten='" + totalBytesWritten +
+        "'>");
     for (int i = 0; i < fileSet.length; ++i)
       stats.append(fileSet[i].getStats());
     stats.append("\n</LogFiles>");

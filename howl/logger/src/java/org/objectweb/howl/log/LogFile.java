@@ -214,8 +214,7 @@ class LogFile
   {
     String clsname = this.getClass().getName();
 
-    StringBuffer result = new StringBuffer("\n<LogFile class='" + clsname + "' file='" + file + "'>" +
-    "\n  <fileMode value='" + fileMode + "'>RandomAccessFile open mode</fileMode>" +    
+    StringBuffer result = new StringBuffer("\n<LogFile file='" + file + "'>" +
     "\n  <rewindCount value='" + rewindCounter + "'>Number of times this file was rewind to position(0)</rewindCount>" +
     "\n  <bytesWritten value='" + bytesWritten + "'>Number of bytes written to the file</bytesWritten>" +
     "\n  <position value='" + position + "'>FileChannel.position()</position>" +
