@@ -45,7 +45,7 @@ import java.util.Properties;
  * @author girouxm
  */
 public class Configuration {
-
+  
   /**
    * Construct a Configuration object with default values.
    * <p>Caller will use setter methods to change the defaults.
@@ -64,8 +64,10 @@ public class Configuration {
     // perform default construction
     this();
     
+    this.prop = prop;
+    
     // apply settings from caller supplied Properties parameter
-    parseProperties(prop);
+    parseProperties();
   }
   
   /**
@@ -82,13 +84,15 @@ public class Configuration {
     
     // TODO: if File has xml extension then parse as xml
     
-    Properties prop = new Properties();
+    prop = new Properties();
     try {
       prop.load(new FileInputStream(propertyFile));
-      parseProperties(prop);
+      parseProperties();
     } catch (FileNotFoundException e)
     {
-      throw new LogConfigurationException(e.toString());
+      LogConfigurationException lce = new LogConfigurationException(e.toString());
+      lce.initCause(e);
+      throw lce;
     } catch (IOException e)
     {
       throw new LogConfigurationException(e.toString());
@@ -96,78 +100,157 @@ public class Configuration {
     
   }
   
-  private void showConfig(String key, String val)
+  /**
+   * maximum size of a LogBuffer (number of K bytes).
+   * <p>Good performance can be achieved with buffers between
+   * 2K and 6K when using a reasonably fast disk.  Larger
+   * sizes may help with slower disks, but large buffers
+   * may be mostly empty in lightly loaded systems.
+   */
+  private final int MAX_BUFFERS_SIZE = 32;
+  
+  /**
+   * The Properties used to construct this object.
+   */
+  private Properties prop = null;
+  
+  /**
+   * Display the value of an int configuration parameter to System.err
+   * if <var> listConfig </var> is true.
+   * <p>The <i> text </i> parameter allows the program to
+   * provide additional text that will be displayed following the
+   * value to explain the type of value.  For example, values that
+   * represent Milliseconds might be displayed with "Ms".
+   * 
+   * @param key name of the parameter being displaed
+   * @param val value for the parameter
+   * @param text additional text to be displayed such as "Kb" or "Ms".
+   */
+  private void showConfig(String key, int val, String text)
   {
-    if (listConfig) System.err.println(key + ": " + val);
+    if (listConfig) System.err.println(key + ": " + val + " " + text);
   }
   
-  private void showConfig(String key, int val)
+  /**
+   * called by parseProperties to obtain an int configuration
+   * property and optionally display the configured value.
+   * @param key name of the parameter to return
+   * @param val default value if the parameter is not configured
+   * @param text additional text to pass to showConfig(String, int, String)
+   * @return int value of requested parameter
+   * @see #showConfig(String, int, String)
+   */
+  private int getInteger(String key, int val, String text)
   {
-    if (listConfig) System.err.println(key + ": " + val);
+    val = Integer.parseInt(prop.getProperty(key, Integer.toString(val)));
+    showConfig(key, val, text);
+    return val;
   }
   
-  private void showConfig(String key, boolean val)
+  /**
+   * called by parseProperties to obtain an int configuration
+   * property and optionally display the configured value.
+   * <p>This routine calls getInteger(String, ing, String) passing
+   * a zero length string as the third parameter.
+   * 
+   * @param key name of parameter to return
+   * @param val default value if the parameter is not configured
+   * @return int value of requested parameter
+   * @see #getInteger(String, int, String)
+   */
+  private int getInteger(String key, int val)
   {
-    if (listConfig) System.err.println(key + ": " + val);
+    return getInteger(key, val, "");
   }
   
-  private void parseProperties(Properties prop) throws LogConfigurationException
+  /**
+   * called by parseProperties to obtain a boolean configuration
+   * property and optionally display the configured value.
+   * 
+   * @param key name of parameter to return
+   * @param val default value if the parameter is not configured
+   * @return boolean value of the requested parameter
+   * @throws LogConfigurationException
+   * if the configured value of the property is something other than
+   * 'true' or 'false'
+   */
+  private boolean getBoolean(String key, boolean val)
+  throws LogConfigurationException
+  {
+    String pval = prop.getProperty(key, Boolean.toString(val)).toLowerCase();
+    if (!pval.equals("true") && !pval.equals("false"))
+      throw new LogConfigurationException(key + "[" + pval +
+          "] must be true of false");
+    
+    val = Boolean.valueOf(pval).booleanValue();
+    if (listConfig) System.err.println(key + ": " + val);;
+    return val;
+  }
+  
+  /**
+   * called by parseProperties to obtain a String configuration
+   * property and optionally display the configured value.
+   * 
+   * @param key name of parameter to return
+   * @param val default value if the parameter is not configured
+   * @return String value of the requested parameter
+   */
+  private String getString(String key, String val)
+  {
+    val = prop.getProperty(key, val);
+    if (listConfig) System.err.println(key + ": " + val);;
+    return val;
+  }
+  
+  /**
+   * initialize member variables from property file.
+   * @throws LogConfigurationException
+   * with text explaining the reason for the exception.
+   */
+  private void parseProperties() throws LogConfigurationException
   {
     String  val = null;
-    String  key = null;
+    String  key = null; 
+    int     ival;
     
-    val = prop.getProperty(key = "listConfig", "true").toLowerCase();
-    listConfig = val.equals("true");
-    showConfig(key, listConfig);
+    listConfig = getBoolean("listConfig", listConfig);
 
-    bufferClassName = prop.getProperty(key = "bufferClassName", bufferClassName);
-    showConfig("bufferClassName", bufferClassName);
+    bufferClassName = getString("bufferClassName", bufferClassName);
     
-    val = prop.getProperty(key = "bufferSize");
-    if (val != null)
-    {
-      int ival = Integer.parseInt(val);
-      if (ival > 1024) ival = (ival + 512) / 1024; // number of 1K buffers
-      bufferSize = ival * 1024;
-    }
-    showConfig(key, bufferSize);
+    bufferSize = getInteger("bufferSize", (bufferSize / 1024), "Kb");
+    if (bufferSize < 1 || bufferSize > this.MAX_BUFFERS_SIZE)
+      throw new LogConfigurationException("bufferSize [" + bufferSize + "] must be" +
+          " between 1 and "+ this.MAX_BUFFERS_SIZE);
+    bufferSize *= 1024;
+    showConfig("bufferSize", bufferSize, "bytes");
     
-    val = prop.getProperty(key = "checksumEnabled", "true").toLowerCase();
-    checksumEnabled = val.equals("true");
-    showConfig(key, checksumEnabled);
+    checksumEnabled = getBoolean("checksumEnabled", checksumEnabled);
     
-    val = prop.getProperty(key = "flushSleepTime");
-    if (val != null) flushSleepTime = Integer.parseInt(val);
-    showConfig(key, flushSleepTime);
+    flushSleepTime = getInteger("flushSleepTime", flushSleepTime);
     
-    logFileDir = prop.getProperty(key = "logFileDir", logFileDir);
-    showConfig(key, logFileDir);
+    logFileDir = getString("logFileDir", logFileDir);
     
-    logFileExt = prop.getProperty(key = "logFileExt", logFileExt);
-    showConfig(key, logFileExt);
+    logFileExt = getString("logFileExt", logFileExt);
     
-    logFileName = prop.getProperty(key = "logFileName", logFileName);
-    showConfig(key, logFileName);
+    logFileName = getString("logFileName", logFileName);
 
-    val = prop.getProperty(key = "maxBlocksPerFile");
-    if (val != null) maxBlocksPerFile = Integer.parseInt(val);
-    showConfig(key, maxBlocksPerFile);
+    maxBlocksPerFile = getInteger("maxBlocksPerFile", maxBlocksPerFile);
     
-    val = prop.getProperty(key = "minBuffers");
-    if (val != null) minBuffers = Integer.parseInt(val);
-    showConfig(key, minBuffers);
+    minBuffers = getInteger("minBuffers", minBuffers);
 
-    val = prop.getProperty(key = "maxBuffers");
-    if (val != null) maxBuffers = Integer.parseInt(val);
-    showConfig(key, maxBuffers);
+    maxBuffers = getInteger("maxBuffers", maxBuffers);
     
-    val = prop.getProperty(key = "maxLogFiles");
-    if (val != null) maxLogFiles = Integer.parseInt(val);
-    showConfig(key, maxLogFiles);
+    maxLogFiles = getInteger("maxLogFiles", maxLogFiles);
     
-    val = prop.getProperty(key = "threadsWaitingForceThreshold");
-    if (val != null) threadsWaitingForceThreshold = Integer.parseInt(val);
-    showConfig(key, threadsWaitingForceThreshold);
+    threadsWaitingForceThreshold = getInteger("threadsWaitingForceThreshold", threadsWaitingForceThreshold);
+
+    if (maxBuffers > 0 && maxBuffers < minBuffers)
+      throw new LogConfigurationException("minBuffers [" + minBuffers +
+          "] must be <= than maxBuffers[" + maxBuffers +  "]");
+    
+    if (minBuffers <= 0)
+      throw new LogConfigurationException("minBuffers[" + minBuffers + 
+          "] must be > 0");
   }
   
   /* ---------------------------------------------------
@@ -195,10 +278,13 @@ public class Configuration {
    * slightly the amount of cpu time that is used by the
    * logger. 
    */
-  private boolean checksumEnabled = true;
+  private boolean checksumEnabled = false;
 
   /**
-   * Size (in bytes) of buffers used to write log blocks.
+   * Size (in K bytes) of buffers used to write log blocks.
+   * 
+   * <p>Specify values between 1 and 32 to allocate buffers
+   * between 1K and 32K in size. 
    * 
    * <p>The default size of 4K bytes should be suitable
    * for most applications.
@@ -220,6 +306,7 @@ public class Configuration {
    * <p>Default value is 0 (zero) -- no limit.
    */
   private int maxBuffers = 0;
+  
   /**
    * minimum number of buffers to be allocated by LogBufferManager.
    * <p>Default value is 4.
@@ -263,11 +350,10 @@ public class Configuration {
    * maximum number of blocks to store in each LogFile.
    * 
    * <p>controls when logging is switched to a new log file, and/or when a circular
-   *  log is reset to  seek address zero.
-   * 
-   * @see #getLogFileForWrite(LogBuffer)
+   * log is reset to  seek address zero.
    */
   int maxBlocksPerFile = Integer.MAX_VALUE;
+  
   /**
    * number of log files to configure.
    * <p>Default is 2 log files.
@@ -308,6 +394,7 @@ public class Configuration {
   public void setLogFileDir(String logDir) {
     this.logFileDir = logDir;
   }
+  
   /**
    * @return Returns the logFileExt.
    */
