@@ -32,7 +32,7 @@
         </p>
         <p>
           Developers who wish to integrate the HOWL logger into their project
-          only need to download the <strong>logger</strong> module.  Developers
+          only need to download the <strong>howl/logger</strong> module.  Developers
           interested is reviewing the ideas that were presented during the 
           initial requirements and design discussions can review the 
           prototype modules.
@@ -41,21 +41,30 @@
         <table border='0'>
           <tr>
             <td></td>
-            <td><strong>logger:</strong></td>
+            <td><strong>howl</strong></td>
+            <td>
+              The entire HOWL project including all sub-modules
+              can be downloaded by requesting the <strong>howl</strong>
+              module.
+            </td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><strong>howl/logger:</strong></td>
             <td>
               Code base for the HOWL logger implementation.
             </td>
           </tr>
           <tr>
             <td></td>
-            <td><strong>journal-sm1:</strong></td>
+            <td><strong>howl/journal-sm1:</strong></td>
             <td>
               Code base for the first HOWL journal prototype.
             </td>
           </tr>
           <tr>
             <td></td>
-            <td><strong>trace-sm1:</strong></td>
+            <td><strong>howl/trace-sm1:</strong></td>
             <td>
               Code base for a prototype HOWL trace facility.
             </td>
