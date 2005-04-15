@@ -25,7 +25,7 @@
       </p>
       <s2 name="Modules">
         <p>
-          HOWL contains multiple modules.  The <strong>logger</strong> module 
+          HOWL contains multiple modules.  The <strong>howl/logger</strong> module 
           contains the actual implementation of the HOWL logger.  Other
           modules were committed during the initial stages of the project
           to serve as prototypes and to illustrate desired functionality.
