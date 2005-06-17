@@ -61,6 +61,7 @@ class LogBufferManager extends LogObject
     
     flushManager = new FlushManager(flushManagerName);
     flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
+    flushManager.start(); // BUG 303659 
   }
   
   /**
@@ -244,7 +245,7 @@ class LogBufferManager extends LogObject
   /**
    * thread used to flush long waiting buffers
    */
-  final Thread flushManager;
+  final FlushManager flushManager; // BUG 303659 change type from Thread to FlushManager so we can access isClosed
   
   /**
    * name of flush manager thread
@@ -640,6 +641,7 @@ class LogBufferManager extends LogObject
         if (sync && buffersWaitingForce == 0)
         {
           forceNow = flushPartialBuffers;
+          // TODO: log  this event  level DEBUG
         }
         if (token == 0 || forceNow)
         {
@@ -880,9 +882,9 @@ class LogBufferManager extends LogObject
       forceQueue = new LogBuffer[bufferPoolSize + 1];
     }
 
-    // start a thread to flush buffers that have been waiting more than 50 ms.
+    // inform flushManager that LogBufferManager is ready for operation
     if (flushManager != null) {
-      flushManager.start();
+      flushManager.isClosed = false; // BUG 303659 
     }
   }
   
@@ -891,9 +893,9 @@ class LogBufferManager extends LogObject
    */
   void close()
   {
-    // shutdown the flush manager thread
+    // inform the flush manager thread
     if (flushManager != null)
-      flushManager.interrupt();
+      flushManager.isClosed = true; // BUG 303659
   }
   
   /**
@@ -923,8 +925,28 @@ class LogBufferManager extends LogObject
    */
   void flushAll() throws IOException
   {
+    LogBuffer buffer = null;
     try
     {
+      // BUG 303659 prevent hang if FlushManager thread has stopped
+      // move current fillBuffer to forceQueue
+      synchronized(bufferManagerLock)
+      {
+        buffer = fillBuffer;
+        if (buffer != null)
+        {
+          fillBuffer = null;
+          forceQueue[fqPut] = buffer;
+          fqPut = (fqPut + 1) % forceQueue.length;
+          ++buffersWaitingForce;
+        }
+      } // release bufferManagerLock before we issue a force.
+
+      if (buffer != null)
+      {
+          force(true);
+      }
+
       // wait until all buffers are returned to the freeBuffer pool
       for (int i=0; i < freeBuffer.length; ++i)
       {
@@ -936,7 +958,6 @@ class LogBufferManager extends LogObject
           }
         }
       }
-
     }
     catch (InterruptedException e)
     {
@@ -1160,6 +1181,14 @@ class LogBufferManager extends LogObject
    */
   class FlushManager extends Thread
   {
+    /**
+     * prevents FlushManager from flushing buffers when true.
+     * <p>Managed by setClosed() and tested by isClosed().</p>
+     * <p>Initially true to prevent flush manager thread
+     * from doing anything while open processing is going on.</p> 
+     */
+    boolean isClosed = true; // BUG 303659
+    
     FlushManager(String name)
     {
       super(name);
@@ -1181,6 +1210,8 @@ class LogBufferManager extends LogObject
         try
         {
           sleep(flushSleepTime); // check for timeout every 50 ms
+          
+          if (isClosed) continue;  // BUG 303659 - do nothing while LogBufferManager is closed
           
           /*
            * Dynamically grow buffer pool until number of waits
@@ -1242,9 +1273,11 @@ class LogBufferManager extends LogObject
               }
             }
           }
-          // end of resizing buffer pool
-          
           waitForBuffer = parent.getWaitForBuffer();
+
+          // end of resizing buffer pool logic
+          // TODO: refactor to a method
+          
 
           synchronized(bufferManagerLock)
           {
@@ -1255,6 +1288,7 @@ class LogBufferManager extends LogObject
               fillBuffer = null;
               forceQueue[fqPut] = buffer;
               fqPut = (fqPut + 1) % forceQueue.length;
+              ++buffersWaitingForce;  // BUG 303660
             }
             else
               buffer = null;
