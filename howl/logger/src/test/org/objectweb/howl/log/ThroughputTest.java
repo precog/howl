@@ -96,9 +96,38 @@ public class ThroughputTest extends TestDriver {
     // log.close(); called by runWorkers()
   }
   
+  /**
+   * Runs a single worker thread with flushPartialBuffers false.
+   * <p>This simulates the original implementation for journal forcing.
+   * @throws Exception
+   * @throws LogException
+   */
   public void testThroughput_1() throws Exception, LogException {
     cfg.setLogFileName("log_1k");
     cfg.setBufferSize(1);
+    cfg.setFlushPartialBuffers(false);
+    log = new Logger(cfg);
+    log.open();
+    log.setAutoMark(true);
+    prop.setProperty("msg.count", "250");
+    workers = 1;
+    runWorkers(LogTestWorker.class);
+    // log.close(); called by runWorkers()
+  }
+  
+  /**
+   * Runs a single worker thread with flushPartialBuffers true.
+   * <p>In this mode, buffers are flushed anytime the channel
+   * is available and no buffers are currently waiting to be
+   * written.
+   * @throws Exception
+   * @throws LogException
+   */
+  public void testThroughput_1_FPB() throws Exception, LogException {
+    cfg.setLogFileName("log_1k");
+    cfg.setBufferSize(1);
+    cfg.setFlushPartialBuffers(true);
+    log = new Logger(cfg);
     log.open();
     log.setAutoMark(true);
     prop.setProperty("msg.count", "250");
@@ -110,6 +139,20 @@ public class ThroughputTest extends TestDriver {
   public void testThroughput_25() throws Exception, LogException {
     cfg.setLogFileName("log_2k");
     cfg.setBufferSize(2);
+    cfg.setFlushPartialBuffers(false);
+    log = new Logger(cfg);
+    log.open();
+    log.setAutoMark(true);
+    workers = 25;
+    runWorkers(LogTestWorker.class);
+    // log.close(); called by runWorkers()
+  }
+  
+  public void testThroughput_25_FSB() throws Exception, LogException {
+    cfg.setLogFileName("log_2k");
+    cfg.setBufferSize(2);
+    cfg.setFlushPartialBuffers(true);
+    log = new Logger(cfg);
     log.open();
     log.setAutoMark(true);
     workers = 25;
@@ -134,6 +177,18 @@ public class ThroughputTest extends TestDriver {
   }
   
   public void testThroughput_200() throws Exception, LogException {
+    cfg.setFlushPartialBuffers(false);
+    log = new Logger(cfg);
+    log.open();
+    log.setAutoMark(true);
+    workers = 200;
+    runWorkers(LogTestWorker.class);
+    // log.close(); called by runWorkers()
+  }
+  
+  public void testThroughput_200_FSB() throws Exception, LogException {
+    cfg.setFlushPartialBuffers(true);
+    log = new Logger(cfg);
     log.open();
     log.setAutoMark(true);
     workers = 200;
