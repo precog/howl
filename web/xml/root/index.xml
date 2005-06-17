@@ -33,6 +33,11 @@
         <img src="images/latest.gif" alt="Latest news" border="0" 
         height="50" width="150"/><br/>
       </p>
+        <p>
+          <strong>Friday, June 17, 2005</strong>
+          TAG HOWL_0_1_9 committed to CVS.<br/>
+          Bugs fixed: 303659, 303660.
+        </p>
       <p>
         <strong>Friday, April 15, 2005</strong>
         HOWL web site download page updated. Module names
