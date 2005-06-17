@@ -171,15 +171,21 @@ class LogFile
     if (!newFile) newFile = file.length() == 0;
     
     channel = new RandomAccessFile(file, fileMode).getChannel();
+    assert channel != null : "RandomAccessFile() returns null";
     
     //  FEATURE 300922; lock file to prevent simultanious access
     try {
       lock = channel.tryLock();
+      // TODO log lock event
+      // if (lock != null) System.err.println(file.getName() + " locked");
     } catch (IOException e) {
       throw new LogConfigurationException(e);
     }
-    if (lock == null)
+    if (lock == null) {
+      // TODO: log lock failed
+      // System.err.println(file.getName() + " unable to lock");
       throw new LogConfigurationException("Unable to obtain lock on " + file.getAbsolutePath());
+    }
     // TODO: log lock acquired
     // System.err.println(file.getName() + " open");
     
@@ -203,9 +209,11 @@ class LogFile
       {
         lock.release();
         // TODO: log lock released
-        // System.err.println(file.getName() + " closed");
+        // System.err.println(file.getName() + " unlocked");
       }
       channel.close();
+      // TODO: log file closed
+      // System.err.println(file.getName() + " closed");
     }
     return this;
   }
