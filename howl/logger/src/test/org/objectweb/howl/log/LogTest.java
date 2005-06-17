@@ -513,6 +513,80 @@ public class LogTest extends TestDriver
   }
   
   /**
+   * BUG 303659 - Verify that single instance of log can be
+   * opened and closed multiple times.
+   * @throws Exception
+   */
+  public void testMultipleOpenClose() throws Exception
+  {
+    log.open();
+    log.setAutoMark(true);
+    
+    prop.setProperty("msg.count", "1");
+    workers = 1;
+    runWorkers(LogTestWorker.class);
+    // log.close(); called by runWorkers()
+    
+    // now see what happens when we open the log a second time
+    log.open();
+    runWorkers(LogTestWorker.class);
+    // log.close(); called by runWorkers()
+
+    // now see what happens when we open the log a third time
+    log.open();
+    runWorkers(LogTestWorker.class);
+    // log.close(); called by runWorkers()
+  }
+  
+  /**
+   * BUG: 303659 - Verify that log can shut down even if FlushManager is not
+   * running.
+   * <p>If there are unforced records waiting to be written
+   * to disk at the time the application closes the log,
+   * and if the FlushManager thread has failed for some
+   * reason, then the application will hang in LogBufferManager.flushAll()
+   * waiting for buffers to be returned to the free pool.
+   * <p>This test simulates failure of the FlushManager by
+   * seting FlushManager.isClosed = true to prevent it from running.
+   * @throws Exception
+   */
+  public void simulateFlushManagerFailure(boolean flushPartialBuffers) throws Exception
+  {
+    DataRecords dr = new DataRecords(10);
+
+    cfg.setFlushPartialBuffers(flushPartialBuffers);
+    log = new Logger(cfg);
+    log.open();
+    log.setAutoMark(true);
+    
+    // simulate FlushManager interrupt
+    log.bmgr.flushManager.isClosed = true;
+    
+    dr.putAll(false);
+    log.close();
+  }
+  
+  /**
+   * BUG: 303659 - Make sure log can be closed if FlushManager thread has
+   * stopped running.
+   * @throws Exception
+   */
+  public void testFlushManagerFailure_FPB_TRUE() throws Exception
+  {
+    simulateFlushManagerFailure(true);
+  }
+
+  /**
+   * BUG: 303659 - Make sure log can be closed if FlushManager thread has
+   * stopped running.
+   * @throws Exception
+   */
+  public void testFlushManagerFailure_FPB_FALSE() throws Exception
+  {
+    simulateFlushManagerFailure(false);
+  }
+  
+  /**
    * Verifies the content of the LogRecord is correct.
    * @param lr LogRecord to be verified
    * @param eVal expected value
