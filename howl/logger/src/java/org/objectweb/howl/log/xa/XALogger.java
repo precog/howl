@@ -29,6 +29,10 @@
  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * ------------------------------------------------------------------------------
+ * $Id: XALogger.java,v 1.16 2005-06-23 23:28:15 girouxm Exp $
+ * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log.xa;
 
@@ -563,6 +567,42 @@ public class XALogger extends Logger
     }
     
     return doneKey;
+  }
+  
+  /**
+   * implements LogEventListener#isLoggable().
+   * @param level a logging level defined by LogEventListener
+   */
+  public boolean isLoggable(int level)
+  {
+    boolean loggable = false;  // cannot log events if caller did not provide a listener
+    if (this.eventListener != null) 
+      loggable = eventListener.isLoggable(level);
+    
+    return loggable;
+  }
+  
+  /**
+   * delegates log request to the callers event listener.
+   * @param level log level
+   * @param message text to be logged
+   */
+  public void log(int level, String message)
+  {
+    if (this.eventListener != null)
+      eventListener.log(level, message);
+  }
+  
+  /**
+   * delegates log request to the callers event listener.
+   * @param level log level
+   * @param message text to be logged
+   * @param thrown Throwable related to event being logged
+   */
+  public void log(int level, String message, Throwable thrown)
+  {
+    if (this.eventListener != null)
+      eventListener.log(level, message, thrown);
   }
   
   /**

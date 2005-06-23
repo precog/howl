@@ -30,7 +30,9 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * $Id: BlockLogBufferSink.java,v 1.5 2005-06-23 23:10:22 girouxm Exp $
+ * ------------------------------------------------------------------------------
+ * $Id: BlockLogBufferSink.java,v 1.6 2005-06-23 23:28:14 girouxm Exp $
+ * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
 

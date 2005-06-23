@@ -1,4 +1,6 @@
 <project default="jar:install" xmlns:j="jelly:core" xmlns:ant="jelly:ant">
+  
+  <!-- $Id: maven.xml,v 1.4 2005-06-23 23:28:15 girouxm Exp $ -->
 
 
     <goal name="default">

@@ -29,6 +29,10 @@
  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * ------------------------------------------------------------------------------
+ * $Id: LogEventListener.java,v 1.4 2005-06-23 23:28:14 girouxm Exp $
+ * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
 
@@ -75,5 +79,66 @@ public interface LogEventListener
    * physical disk. 
    */
   void logOverflowNotification(long logkey);
+  
+  // --------------------------------------------------------------------
+  // Event Logging Interface Constants.
+  //
+  // Used with org.objectweb.monolog, java.util.logging, and other log kits.
+  // --------------------------------------------------------------------
+  
+  /**
+   * used to trace method entry/exit and other low level events.
+   */
+  public static final int TRACE = 0;
+  
+  /**
+   * used to log low level events.
+   */
+  public static final int DEBUG = 1000;
+  
+  /**
+   * used to log information messages such as file open/close.
+   */
+  public static final int INFO  = 2000;
+  
+  /**
+   * used to log warnings.
+   */
+  public static final int WARN  = 3000;
+  
+  /**
+   * used to log non-fatal error messages.
+   */
+  public static final int ERROR = 4000;
+  
+  /**
+   * used to log fatal error messages that should cause
+   * shutdown of the application using HOWL.
+   */
+  public static final int FATAL = 5000;
+  
+  /**
+   * determine if log messages for requested level will
+   * be written to the log.
+   * 
+   * @return true if the log level is being logged
+   * @see java.util.logging.Logger#isLoggable()
+   */
+  public boolean isLoggable(int level);
+  
+  /**
+   * write a log message to the event log.
+   * @param level log level
+   * @param message text to be logged
+   */
+  public void log(int level, String message);
+  
+  /**
+   * write a log message to the event log with exception information.
+   * @param level log level
+   * @param message text to be logged
+   * @param thrown Throwable related to the event being logged.
+   */
+  public void log(int level, String message, Throwable thrown);
   
 }

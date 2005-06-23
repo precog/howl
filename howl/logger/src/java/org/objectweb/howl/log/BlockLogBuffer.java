@@ -29,6 +29,10 @@
  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * ------------------------------------------------------------------------------
+ * $Id: BlockLogBuffer.java,v 1.10 2005-06-23 23:28:14 girouxm Exp $
+ * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
 
