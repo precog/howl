@@ -1,5 +1,5 @@
 @echo off
-:: $Id: test.cmd,v 1.18 2005-06-23 23:28:15 girouxm Exp $
+rem $Id: test.cmd,v 1.19 2005-06-24 14:29:25 girouxm Exp $
 setlocal
 
 set JUNIT_HOME=c:\java\junit3.8.1
