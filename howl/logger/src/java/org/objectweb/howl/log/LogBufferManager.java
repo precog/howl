@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogBufferManager.java,v 1.23 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: LogBufferManager.java,v 1.24 2005-07-08 22:53:46 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -540,7 +540,7 @@ class LogBufferManager extends LogObject
         freeBuffer[buffer.index] = buffer;
         bufferManagerLock.notifyAll();
         --buffersWaitingForce;
-        assert buffersWaitingForce >= 0 : "buffersWaitingForce < 0";
+        assert buffersWaitingForce >= 0 : "buffersWaitingForce (" + buffersWaitingForce + ") < 0";
       }
     }
   }
@@ -695,6 +695,7 @@ class LogBufferManager extends LogObject
         fillBuffer = null;
         forceQueue[fqPut] = buffer;
         fqPut = (fqPut + 1) % forceQueue.length;
+        ++buffersWaitingForce;  // BUG 303660
       }
       else
         buffer = null;
@@ -942,7 +943,7 @@ class LogBufferManager extends LogObject
           fillBuffer = null;
           forceQueue[fqPut] = buffer;
           fqPut = (fqPut + 1) % forceQueue.length;
-          ++buffersWaitingForce;
+          ++buffersWaitingForce;   // BUG 303660
         }
       } // release bufferManagerLock before we issue a force.
 
