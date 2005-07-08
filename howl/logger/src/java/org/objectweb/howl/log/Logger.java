@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Logger.java,v 1.12 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: Logger.java,v 1.13 2005-07-08 22:50:07 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -197,7 +197,10 @@ public class Logger extends LogObject
   throws LogClosedException, LogRecordSizeException, LogFileOverflowException,
   InterruptedException, IOException
   {
-    if (isClosed) throw new LogClosedException();
+    synchronized(this)
+    {
+      if (isClosed) throw new LogClosedException();
+    }
     
     // QUESTION: should we deal with exceptions here?
 
@@ -231,8 +234,11 @@ public class Logger extends LogObject
   public void mark(long key, boolean force)
     throws InvalidLogKeyException, LogClosedException, IOException, InterruptedException
   {
-    if (isClosed)
-      throw new LogClosedException("log is closed");
+    synchronized(this)
+    {
+      if (isClosed)
+        throw new LogClosedException("log is closed");
+    }
     
     lfmgr.mark(key, force);
   }
@@ -263,8 +269,10 @@ public class Logger extends LogObject
   public void setAutoMark(boolean autoMark)
     throws InvalidLogKeyException, LogClosedException, LogFileOverflowException, IOException, InterruptedException
   {
-    if (this.isClosed)
-      throw new LogClosedException();
+    synchronized(this)
+    {
+      if (this.isClosed) throw new LogClosedException();
+    }
     
     lfmgr.setAutoMark(autoMark);
   }
@@ -275,7 +283,7 @@ public class Logger extends LogObject
   public void close() throws IOException, InterruptedException
   {
     // prevent new threads from adding to the log
-    isClosed = true;
+    synchronized(this) { isClosed = true; }
     
     lfmgr.close();
   }
@@ -306,7 +314,7 @@ public class Logger extends LogObject
     lfmgr.init(bmgr);
     
     // indicate that Log is ready for use.
-    isClosed = false;
+    synchronized(this) { isClosed = false; }
   }
   
   /**
