@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: XACommittingTx.java,v 1.6 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: XACommittingTx.java,v 1.7 2005-08-18 22:29:55 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log.xa;
@@ -187,6 +187,10 @@ public class XACommittingTx {
   XACommittingTx(int index)
   {
     this.index = index;
+    
+    // BUG 303907 - add index to XADONE records to aid debugging journal problems.
+    ByteBuffer indexBB = ByteBuffer.wrap(this.indexBytes);
+    indexBB.putInt(index);
   }
   
   /**
@@ -202,9 +206,16 @@ public class XACommittingTx {
   private ByteBuffer LogKeyBB = ByteBuffer.wrap(logKeyBytes);
   
   /**
+   * byte[] representation of this.index.
+   * <p>Recorded to the log by XALogger#putDone
+   * as a diagnostic aid.
+   */
+  private byte[] indexBytes = new byte[4];
+  
+  /**
    * data record for XADONE record generated
    * by XALogger#putDone().
    */
-  byte[][] logKeyData = new byte[][] { logKeyBytes };
+  byte[][] logKeyData = new byte[][] { logKeyBytes, indexBytes };
   
 }
