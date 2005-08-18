@@ -31,14 +31,17 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Version.java,v 1.3 2005-08-18 22:20:10 girouxm Exp $
+ * $Id: Version.java,v 1.4 2005-08-18 22:38:06 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
 
+
 public class Version {
+  private static final String cvsId = "$Id: Version.java,v 1.4 2005-08-18 22:38:06 girouxm Exp $";
+  
   public static void main(String[] args) {
-    System.out.println("$Id: Version.java,v 1.3 2005-08-18 22:20:10 girouxm Exp $");
+    System.out.println(cvsId);
   }
 
 }
