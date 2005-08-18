@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogBufferManager.java,v 1.24 2005-07-08 22:53:46 girouxm Exp $
+ * $Id: LogBufferManager.java,v 1.25 2005-08-18 22:34:38 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -158,6 +158,14 @@ class LogBufferManager extends LogObject
    * <p>synchronized by forceManagerLock
    */
   int nextWriteBSN = 1;
+  
+  /**
+   * LogBuffer.tod from previous buffer written.
+   * <p>maintained in force() method.  Used to
+   * check against decrement in TOD field.
+   * Added to help investigate BUG 303907
+   */
+  long prevWriteTOD = 0;
   
   /**
    * number of buffers waiting to be forced.
@@ -353,6 +361,7 @@ class LogBufferManager extends LogObject
         // write the logBuffer to disk (hopefully non-blocking)
         try {
           assert logBuffer.bsn == nextWriteBSN : "BSN error expecting " + nextWriteBSN + " found " + logBuffer.bsn;
+          assert logBuffer.tod > prevWriteTOD : "TOD error at BSN: " + logBuffer.bsn; 
           long startWrite = System.currentTimeMillis();
           logBuffer.write();
           long writeTime = elapsedTime(startWrite);
