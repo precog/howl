@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.6 2005-08-12 21:22:05 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.7 2005-08-18 22:27:20 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -40,6 +40,7 @@
       srcdir='${lib.src.dir}'
       destdir='${lib.classes.dir}'
       source='${javac.source}'
+      debug="true"
       >
     </javac>
 
@@ -59,6 +60,7 @@
       destdir='${test.classes.dir}'
       source='${javac.source}'
       excludes='**/MBeanTest.java'
+      debug="true"
       >
       <classpath>
         <pathelement path='${classes.dir}/howl.jar'/>
