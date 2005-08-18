@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: XALogger.java,v 1.16 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: XALogger.java,v 1.17 2005-08-18 22:32:33 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log.xa;
@@ -559,6 +559,7 @@ public class XALogger extends Logger
     // make entry available for re-use.
     synchronized(activeTxLock)
     {
+      tx.setLogKey(0); // prevent duplicate entries in log BUG: 303907 
       availableTx[atxPut] = tx;
       atxPut = (atxPut + 1) % activeTx.length;
 
@@ -1123,6 +1124,7 @@ public class XALogger extends Logger
     public void onRecord(LogRecord lr)
     {
       XACommittingTx tx = null;
+      int fldSize = 0;
       
       long xacommitKey = 0L; // see XACOMMITMOVED and XADONE 
       
@@ -1152,8 +1154,10 @@ public class XALogger extends Logger
           
         case LogRecordType.XACOMMITMOVED:
           ++movedCount;
-          if (b.getShort() != 8)
-            throw new IllegalArgumentException();
+          int sz = b.getShort();
+          if (sz != 8) {
+            throw new IllegalArgumentException("Expected 8 found " + sz);
+          }
           // QUESTION: is there a better way to handle this here?
           
           // get log key for the record that was moved
@@ -1205,11 +1209,18 @@ public class XALogger extends Logger
          */  
         case LogRecordType.XADONE:
           ++doneCount;
-          if (b.getShort() != 8)
-            throw new IllegalArgumentException();
+          fldSize = b.getShort();
+          if (fldSize != 8)
+            throw new IllegalArgumentException("expected 8 found " + fldSize + " at record " + Long.toHexString(lr.key));
           // QUESTION: is there a better way to handle this here?
           
           xacommitKey = b.getLong();
+          
+          fldSize = b.getShort();  // BUG 303907 added index to XADON for diagnostics
+          if (fldSize != 4)
+            throw new IllegalArgumentException("expected 4 found " + fldSize + " at record " + Long.toHexString(lr.key));
+          b.getInt(); // discard index
+          
           assert b.remaining() == 0 : "Unexpected data in XADONE record";
           /*
            * If the XACOMMIT record was recorded to a different file
