@@ -1,115 +1,142 @@
 <?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
-
 <!DOCTYPE document PUBLIC "-//ObjectWeb//DTD ObjectWeb Project Web Site//EN"
 "../../common/dtd/objectweb.dtd">
-
 <document>
-  <properties>
-    <author email="michael.giroux@objectweb.org">Michael Giroux</author>
-    <title>Home Page</title>
-    <filename>index.xml</filename>
-    <pathtoroot>.</pathtoroot>
-  </properties>
-  
-  <body>
-    <s1 name="HOWL - High-speed ObjectWeb Logger" anchor="sect1">
-      <p>
-        HOWL is a logger implementation providing features
-        required by the ObjectWeb JOTM
-        project, with a public API that is generally usable by
-        any Transaction Manager.
-        HOWL uses unformatted binary logs to maximize performance
-        and specifies a
-        journalization API with methods necessary to support JOTM
-        recovery operations.
-      </p>
-      <p>
-        HOWL is intended to be used for logging of temporary data
-        such as XA transaction events.  HOWL is not a replacement
-        for traditional log kits such as LOG4J and J2SE Logging.
-      </p>
-      <s2 name="">
-      <p>
-        <img src="images/latest.gif" alt="Latest news" border="0" 
-        height="50" width="150"/><br/>
-      </p>
-        <p>
-          <strong>Friday, June 17, 2005</strong>
-          TAG HOWL_0_1_9 committed to CVS.<br/>
-          Bugs fixed: 303659, 303660.
-        </p>
-      <p>
-        <strong>Friday, April 15, 2005</strong>
-        HOWL web site download page updated. Module names
-        revised to include "howl/" prefix.
-      </p>
-      <p>
-        <strong>Wednesday, March 02, 2005</strong>
-        TAG HOWL_0_1_8 was created November 11, 2004.<br/>
-        Bugs fixed: 300934, 300953, 300955, 300957,
-        300969, 300970, 300986.<br/><br/>
-        The HOWL_0_1_8 TAG has been integrated with JOTM;
-        watch the JOTM site for an announcement for availability
-        of the updated version.<br/><br/>
-        The CVS BUG Tracker has been updated.  Any bug that is
-        closed has been updated to reflec the TAG the fix was
-        included in.  Browse by group to obtain a list of bugs
-        corrected in any HOWL TAG.
-      </p>
-      <p>
-        <strong>Wednesday, November 17, 2004</strong>
-        Michael Giroux presents HOWL at ApacheCon '2004 in Las Vegas.
-        <br/>
-        The complete presentation can be downloaded from the
-        HOWL <a href="documentation.html">documentation</a> page.
-      </p>
-      <p>
-        <strong>Friday, September 10, 2004</strong>
-        New TAG HOWL_0_1_7<br/>
-        Bugs fixed: 300791, 300803
-      </p>
-        <p>
-          <strong>Friday, August 27, 2004</strong>
-          WEB committed to CVS.
-        </p>
-        <p>
-          <strong>Friday, August 20, 2004</strong>
-          Updated test cases committed to CVS.
-          New TAG is HOWL_0_1_6.
-        </p>
-      </s2>
-      <p><br/><br/></p>
-      </s1>
-
-      <s1 name="Projects using HOWL">
-        <subtitle>ObjectWeb JOTM</subtitle>
-        <p>
-          The ObjectWeb <a href="http://jotm.objectweb.org">JOTM</a> project has
-          integrated the HOWL logger to record
-          XA 2-phase commit activity and support
-          recovery from system failures.
-        </p>
-        <p>
-          JOTM is the default transaction manager for the ObjectWeb
-          <a href="http://jonas.objectweb.org">JOnAS</a> project.
-        </p>
-        <subtitle>Apache Geronimo</subtitle>
-        <p>
-          The <a href="http://geronimo.apache.org/">Apache Geronimo</a> project has
-          plans to integrate JOTM, and has
-          integrated the HOWL logger with
-          an interim transaction manager
-          that is being used until JOTM
-          recovery functionality is available.
-        </p>
-        <subtitle>ActiveMQ</subtitle>
-        <p>
-          The <a href="http://activemq.codehaus.org/">ActiveMQ</a>
-          project is integrated with Apache Geronimo as the
-          default JMS provider.
-          The project is using the HOWL Logger to provide message
-          persistence.
-        </p>
-      </s1>
-  </body>
+	<properties>
+		<author email="michael.giroux@objectweb.org">
+			Michael Giroux
+		</author>
+		<title>Home Page</title>
+		<filename>index.xml</filename>
+		<pathtoroot>.</pathtoroot>
+	</properties>
+	<body>
+		<s1 name="HOWL - High-speed ObjectWeb Logger" anchor="sect1">
+			<p>
+				HOWL is a logger implementation providing features
+				required by the ObjectWeb JOTM project, with a public
+				API that is generally usable by any Transaction Manager.
+				HOWL uses unformatted binary logs to maximize
+				performance and specifies a journalization API with
+				methods necessary to support JOTM recovery operations.
+			</p>
+			<p>
+				HOWL is intended to be used for logging of temporary
+				data such as XA transaction events. HOWL is not a
+				replacement for traditional log kits such as LOG4J and
+				J2SE Logging.
+			</p>
+			<s2 name="">
+				<p>
+					<img src="images/latest.gif" alt="Latest news"
+						border="0" height="50" width="150" />
+					<br />
+				</p>
+				<p>
+					<strong>Friday, August 19, 2005</strong>
+					TAG HOWL_0_1_10 committed to CVS.
+					<br />
+					Modified IOException processing to catch the
+					exception and rethrow with a new IOException that
+					provides message text describing the HOWL function
+					that failed. This change was requested by JOTM
+					project to make JOTM error messages more
+					descriptive.
+				</p>
+				<p>
+					<strong>Friday, June 17, 2005</strong>
+					TAG HOWL_0_1_9 committed to CVS.
+					<br />
+					Bugs fixed: 303659, 303660.
+				</p>
+				<p>
+					<strong>Friday, April 15, 2005</strong>
+					HOWL web site download page updated. Module names
+					revised to include "howl/" prefix.
+				</p>
+				<p>
+					<strong>Wednesday, March 02, 2005</strong>
+					TAG HOWL_0_1_8 was created November 11, 2004.
+					<br />
+					Bugs fixed: 300934, 300953, 300955, 300957, 300969,
+					300970, 300986.
+					<br />
+					<br />
+					The HOWL_0_1_8 TAG has been integrated with JOTM;
+					watch the JOTM site for an announcement for
+					availability of the updated version.
+					<br />
+					<br />
+					The CVS BUG Tracker has been updated. Any bug that
+					is closed has been updated to reflec the TAG the fix
+					was included in. Browse by group to obtain a list of
+					bugs corrected in any HOWL TAG.
+				</p>
+				<p>
+					<strong>Wednesday, November 17, 2004</strong>
+					Michael Giroux presents HOWL at ApacheCon '2004 in
+					Las Vegas.
+					<br />
+					The complete presentation can be downloaded from the
+					HOWL
+					<a href="documentation.html">documentation</a>
+					page.
+				</p>
+				<p>
+					<strong>Friday, September 10, 2004</strong>
+					New TAG HOWL_0_1_7
+					<br />
+					Bugs fixed: 300791, 300803
+				</p>
+				<p>
+					<strong>Friday, August 27, 2004</strong>
+					WEB committed to CVS.
+				</p>
+				<p>
+					<strong>Friday, August 20, 2004</strong>
+					Updated test cases committed to CVS. New TAG is
+					HOWL_0_1_6.
+				</p>
+			</s2>
+			<p>
+				<br />
+				<br />
+			</p>
+		</s1>
+		<s1 name="Projects using HOWL">
+			<subtitle>ObjectWeb JOTM</subtitle>
+			<p>
+				The ObjectWeb
+				<a href="http://jotm.objectweb.org">JOTM</a>
+				project has integrated the HOWL logger to record XA
+				2-phase commit activity and support recovery from system
+				failures.
+			</p>
+			<p>
+				JOTM is the default transaction manager for the
+				ObjectWeb
+				<a href="http://jonas.objectweb.org">JOnAS</a>
+				project.
+			</p>
+			<subtitle>Apache Geronimo</subtitle>
+			<p>
+				The
+				<a href="http://geronimo.apache.org/">
+					Apache Geronimo
+				</a>
+				project has plans to integrate JOTM, and has integrated
+				the HOWL logger with an interim transaction manager that
+				is being used until JOTM recovery functionality is
+				available.
+			</p>
+			<subtitle>ActiveMQ</subtitle>
+			<p>
+				The
+				<a href="http://activemq.codehaus.org/">ActiveMQ</a>
+				project is integrated with Apache Geronimo as the
+				default JMS provider. The project is using the HOWL
+				Logger to provide message persistence.
+			</p>
+		</s1>
+	</body>
 </document>
