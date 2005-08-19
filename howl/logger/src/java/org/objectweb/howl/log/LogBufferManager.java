@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogBufferManager.java,v 1.25 2005-08-18 22:34:38 girouxm Exp $
+ * $Id: LogBufferManager.java,v 1.26 2005-08-19 20:46:56 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -372,7 +372,10 @@ class LogBufferManager extends LogObject
         }
         catch (IOException ioe) {
           // BUG 300803 - remember that we had an error
-          ioexception = ioe;
+          // BUG 303907 add a message to the IOException
+          ioexception = new IOException("LogBufferManager.force(): writing " + 
+              logBuffer.lf.file.getName() + "[" + ioe.getMessage() + "]");
+          ioexception.setStackTrace(ioe.getStackTrace());
           haveIOException = true;
         }
       }
@@ -447,7 +450,10 @@ class LogBufferManager extends LogObject
         try {
           logBuffer.lf.force(false);
         } catch (IOException ioe) {
-          ioexception = ioe;
+          // BUG 303907 add a message to the IOException
+          ioexception = new IOException("LogBufferManager.force(): error attempting to force " + 
+              logBuffer.lf.file.getName() + "[" + ioe.getMessage() + "]");
+          ioexception.setStackTrace(ioe.getStackTrace());
           haveIOException = true;
           logBuffer.ioexception = ioe;
         }

@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogBuffer.java,v 1.8 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: LogBuffer.java,v 1.9 2005-08-19 20:46:56 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -228,8 +228,10 @@ abstract class LogBuffer extends LogObject
     {
       while (iostatus != LogBufferStatus.COMPLETE)
       {
-        if (iostatus == LogBufferStatus.ERROR)
-          throw new IOException();
+        if (iostatus == LogBufferStatus.ERROR) {
+          // BUG 303907 add a message to the IOException
+          throw new IOException("LogBuffer.sync(): LogBufferStatus.ERROR");
+        }
         wait();
       }
     }

@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFile.java,v 1.10 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: LogFile.java,v 1.11 2005-08-19 20:46:56 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -204,20 +204,28 @@ class LogFile
    */
   LogFile close() throws IOException
   {
-    if (channel.isOpen())
-    {
-      // prevent multiple close
-      position = channel.position();     // remember postion at close
-      //  FEATURE 300922; unlock the file if we obtained a lock.
-      if (lock != null)
+    try {
+      if (channel.isOpen())
       {
-        lock.release();
-        // TODO: log lock released
-        // System.err.println(file.getName() + " unlocked");
+        // prevent multiple close
+        position = channel.position();     // remember postion at close
+        //  FEATURE 300922; unlock the file if we obtained a lock.
+        if (lock != null)
+        {
+          lock.release();
+          // TODO: log lock released
+          // System.err.println(file.getName() + " unlocked");
+        }
+        channel.close();
+        // TODO: log file closed
+        // System.err.println(file.getName() + " closed");
       }
-      channel.close();
-      // TODO: log file closed
-      // System.err.println(file.getName() + " closed");
+    } catch(IOException e) {
+      // BUG 303907 - add message to IOException
+      IOException ioe = new IOException("LogFile.close(): attempting to close " + 
+          file.getName() + " [" + e.getMessage() + "]");;
+      ioe.setStackTrace(e.getStackTrace());
+      throw ioe;
     }
     return this;
   }
@@ -230,15 +238,23 @@ class LogFile
    */
   void write(LogBuffer lb) throws IOException
   {
-    if (lb.rewind)
-    {
-      channel.position(0);
-      ++rewindCounter;
-      lb.rewind = false;
-    }
+    try {
+      if (lb.rewind)
+      {
+        channel.position(0);
+        ++rewindCounter;
+        lb.rewind = false;
+      }
 
-    bytesWritten += channel.write(lb.buffer);
-    position = channel.position();
+      bytesWritten += channel.write(lb.buffer);
+      position = channel.position();
+    } catch (IOException e) {
+      // BUG 303907 - add message to IOException
+      IOException ioe = new IOException("LogFile.write(): attempting to write " + 
+          file.getName() + " [" + e.getMessage() + "]");
+      ioe.setStackTrace(e.getStackTrace());
+      throw ioe;
+    }
   }
   
   /**
@@ -264,7 +280,15 @@ class LogFile
    */
   void force(boolean forceMetadata) throws IOException
   {
-    channel.force(forceMetadata);
+    try {
+      channel.force(forceMetadata);
+    } catch (IOException e) {
+      // BUG 303907 - add message to IOException
+      IOException ioe = new IOException("LogFile.force(): attempting to force" + 
+          file.getName() + " [" + e.getMessage() + "]");
+      ioe.setStackTrace(e.getStackTrace());
+      throw ioe;
+    }
   }
   
   /**

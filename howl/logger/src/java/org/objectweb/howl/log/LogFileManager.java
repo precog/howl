@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileManager.java,v 1.12 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: LogFileManager.java,v 1.13 2005-08-19 20:46:56 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -567,6 +567,12 @@ class LogFileManager extends LogObject
       // should not happen since we just gave back some space
       // TODO: handle possible overflow here
     }
+    catch (IOException e) {
+      IOException ioe = new IOException("LogFileManager.mark()" + 
+          " [" + e.getMessage() + "]");;
+      ioe.setStackTrace(e.getStackTrace());
+      throw ioe;
+    }
     
     return markKey;
   }
@@ -763,6 +769,13 @@ class LogFileManager extends LogObject
         System.err.println(this.getClass().getName() + ".open(); " + e);
         throw e;
       }
+      catch (IOException e) {
+        // BUG 303907 - add message to IOException
+        IOException ioe = new IOException("LogFileManager.open()"
+            + " [" + e.getMessage() + "]");
+        ioe.setStackTrace(e.getStackTrace());
+        throw ioe;
+      }
      
     }
     currentLogFile = null;
@@ -804,7 +817,15 @@ class LogFileManager extends LogObject
       // skip newly created files
       if (lf.newFile) continue;
       
-      lb.read(lf, 0L);
+      try {
+        lb.read(lf, 0L);
+      } catch (IOException e) {
+        // BUG 303907 -- add message to IOException
+        IOException ioe = new IOException("LogFileManager.init(): error reading block zero " + 
+            lf.file.getName() + " [" + e.getMessage() + "]");
+        ioe.setStackTrace(e.getStackTrace());
+        throw ioe;
+      }
       
       // save BSN of first block in file
       lf.firstBSN = lb.bsn;
@@ -860,8 +881,12 @@ class LogFileManager extends LogObject
          */
         System.err.println(e);
       } catch (IOException e) {
-        e.printStackTrace();
-        throw e;
+        IOException ioe = new IOException("LogFileManager.init(): " +
+            "Attempting to loacate last block of file " + lf.file.getName() +
+            " at position " + fpos + " [" + e.getMessage() + "]");
+        ioe.setStackTrace(e.getStackTrace());
+        ioe.printStackTrace();
+        throw ioe;
       }
     }
 
@@ -885,7 +910,17 @@ class LogFileManager extends LogObject
 
     if (bsn > 0)
     {
-      lb.read(lf, fpos-blockSize);
+      try {
+        lb.read(lf, fpos-blockSize);
+      } catch (IOException e) {
+        // BUG 303907 - add message to IOException
+        IOException ioe = new IOException("LogFileManager.init(): " +
+            "process MARK records in last block of file " +
+            lf.file.getName() +
+            " at position " + (fpos - blockSize) + " [" + e.getMessage() + "]");
+        ioe.setStackTrace(e.getStackTrace());
+        throw ioe;
+      }
       LogRecord record = new LogRecord(lb.buffer.capacity());
       ByteBuffer dataBuffer = record.dataBuffer;
 
@@ -908,7 +943,15 @@ class LogFileManager extends LogObject
     if (automark) activeMark = currentKey;
     
     // position current log file for writing
-    lf.channel.position(fpos);
+    try {
+      lf.channel.position(fpos);
+    } catch (IOException e) {
+      // BUG 303907 - add message text to IOException
+      IOException ioe = new IOException("LogFileManager.init(): position log file " +
+          lf.file.getName() + " for writing at position " + fpos + " [" + e.getMessage() + "]");
+      ioe.setStackTrace(e.getStackTrace());
+      throw ioe;
+    }
     
     // TODO: move code so it only gets executed for writeable logs 
     // Write a RESTART record for replay
@@ -922,8 +965,11 @@ class LogFileManager extends LogObject
         // should not happen, but if it does, we just ignore it here
         assert false : "unhandled LogException" + e.toString();
       } catch (IOException e) {
-        // should not happen, but if it does, we just ignore it here
-        assert false : "unhandled IOException";
+        // BUG 303907 - add error message to IOException and rethrow
+        IOException ioe = new IOException("LogFileManager.init(): error writing RESTART record to file" +
+            lf.file.getName() + " [" + e.getMessage() + "]");
+        ioe.setStackTrace(e.getStackTrace());
+        throw ioe;
       }
 
     }
@@ -1027,6 +1073,12 @@ class LogFileManager extends LogObject
     } catch (LogFileOverflowException e) {
       // ignore -- we will discover this the next time we open the logs
       // TODO: write message to system log
+    } catch (IOException e) {
+      // BUG 303907 - add message to IOException
+      IOException ioe = new IOException("LogFileManager.closeBufferManager(): error writing CLOSE record."
+          + " [" + e.getMessage() + "]");
+      ioe.setStackTrace(e.getStackTrace());
+      throw ioe;
     }
     
     // Wait for logger information to flush to disk

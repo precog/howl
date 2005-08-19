@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: BlockLogBuffer.java,v 1.10 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: BlockLogBuffer.java,v 1.11 2005-08-19 20:46:56 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -253,8 +253,10 @@ class BlockLogBuffer extends LogBuffer
     {
       // guard against gating errors that might allow
       // multiple threads to be writing this buffer.
-      if (iostatus == LogBufferStatus.WRITING)
-        throw new IOException();
+      if (iostatus == LogBufferStatus.WRITING) {
+        // BUG 303907
+        throw new IOException("BlockLogBuffer.write(): LogBufferStatus.WRITING");
+      }
 
     }
 
@@ -405,8 +407,17 @@ class BlockLogBuffer extends LogBuffer
     // NOTE: file position is not changed by following call
     buffer.clear();
     int bytesRead = -1;
-    if (lf.channel.size() > position) // BUG 300986 JRockit throws IOException
-      bytesRead = lf.channel.read(buffer, position);
+    try {
+      if (lf.channel.size() > position) // BUG 300986 JRockit throws IOException
+        bytesRead = lf.channel.read(buffer, position);
+    } catch (IOException e) {
+      // BUG 303907 add a message to the IOException
+      IOException ioe = new IOException("BlockLogBuffer.read(): file " + 
+          lf.file.getName() + " position " + position +
+          "[" + e.getMessage() + "]");
+      ioe.setStackTrace(e.getStackTrace());
+      throw ioe;
+    }
     if (bytesRead == -1)
     {
       // end of file

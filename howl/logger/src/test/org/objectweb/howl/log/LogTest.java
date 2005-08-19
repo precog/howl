@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.21 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: LogTest.java,v 1.22 2005-08-19 20:46:56 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -540,6 +540,31 @@ public class LogTest extends TestDriver
     log.open();
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
+  }
+  
+  /**
+   * Verify that a second attempt to open a log causes
+   * a LogConfigurationException.
+   * <p>BUG 303907 reported by JOTM is a result of
+   * multiple instances of Logger opening same
+   * set of files.  The bug resulted from JOTM
+   * running with HOWL_0_1_7 version.
+   * 
+   * @throws Exception
+   */
+  public void testMultipleOpen() throws Exception
+  {
+    log.open();
+    
+    Logger l2 = new Logger(cfg);
+    try {
+      l2.open();
+      fail("expected LogConfigurationException");
+    } catch (LogConfigurationException e) {
+      ; // expected result
+    }
+    
+    
   }
   
   /**

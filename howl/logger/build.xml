@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.7 2005-08-18 22:27:20 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.8 2005-08-19 20:46:56 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -30,6 +30,23 @@
   <property name='delete.verbose' value='false'/>
   <property name='temp.dir' value='target/temp'/>
   
+  <target name='changelog'>
+    <mkdir dir="${doc.dir}/cvs"/>
+    
+    <cvschangelog  destfile="${doc.dir}/cvs/changelog.xml" 
+      cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl">
+    </cvschangelog>
+
+    <style in="${doc.dir}/cvs/changelog.xml" 
+           out="${doc.dir}/cvs/changelog.html" 
+           style="${ant.home}/etc/changelog.xsl">
+      <param name="title" expression="HOWL ChangeLog"/>
+      <param name="module" expression="logger"/>
+      <param name="cvsweb" expression="http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/howl/"/>
+    </style>
+
+  </target>
+  
   <target name='compile-lib'
     depends='clean-lib'
     description='compile HOWL library classes'>
@@ -44,7 +61,9 @@
       >
     </javac>
 
-    <jar destfile='${classes.dir}/howl.jar'>
+    <jar destfile='${classes.dir}/howl.jar'
+      manifest="${src.dir}/manifest"
+      >
       <fileset dir='${lib.classes.dir}' includes='**/*.class'/>
     </jar>
   </target>
