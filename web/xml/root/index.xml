@@ -33,6 +33,22 @@
 					<br />
 				</p>
 				<p>
+				  <strong>Thursday, September 08, 2005</strong>
+				  TAG HOWL_0_1_11 committed to CVS.
+				  <br />
+				  Bugs fixed: 304047
+				  <br />
+				  The previous tagged version included a change
+				  to the format of the XADONE records to assist
+				  JOTM analysis of journal files.  As a result,
+				  HOWL_0_1_10 could not open journal files that
+				  had been created by previous versions.  This
+				  creates a potential migration issue for JOnAS
+				  and other applications using HOWL.  This version
+				  recognizes both the new and old format of XADONE
+				  records.
+				</p>
+				<p>
 					<strong>Friday, August 19, 2005</strong>
 					TAG HOWL_0_1_10 committed to CVS.
 					<br />
