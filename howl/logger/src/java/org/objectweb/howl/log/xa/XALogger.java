@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: XALogger.java,v 1.17 2005-08-18 22:32:33 girouxm Exp $
+ * $Id: XALogger.java,v 1.18 2005-09-08 14:54:34 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log.xa;
@@ -1216,10 +1216,14 @@ public class XALogger extends Logger
           
           xacommitKey = b.getLong();
           
-          fldSize = b.getShort();  // BUG 303907 added index to XADON for diagnostics
-          if (fldSize != 4)
-            throw new IllegalArgumentException("expected 4 found " + fldSize + " at record " + Long.toHexString(lr.key));
-          b.getInt(); // discard index
+          // HOWL_0_1_10 and later generate an extra bit of data for JOTM
+          // Journal files created by older versions will not have this field.
+          if (b.remaining() > 0) {
+            fldSize = b.getShort();  // BUG 303907 added index to XADONE for diagnostics
+            if (fldSize != 4)
+              throw new IllegalArgumentException("expected 4 found " + fldSize + " at record " + Long.toHexString(lr.key));
+            b.getInt(); // discard index
+          }
           
           assert b.remaining() == 0 : "Unexpected data in XADONE record";
           /*
