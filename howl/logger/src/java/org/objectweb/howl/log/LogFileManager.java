@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileManager.java,v 1.13 2005-08-19 20:46:56 girouxm Exp $
+ * $Id: LogFileManager.java,v 1.14 2005-11-14 21:22:28 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -769,14 +769,6 @@ class LogFileManager extends LogObject
         System.err.println(this.getClass().getName() + ".open(); " + e);
         throw e;
       }
-      catch (IOException e) {
-        // BUG 303907 - add message to IOException
-        IOException ioe = new IOException("LogFileManager.open()"
-            + " [" + e.getMessage() + "]");
-        ioe.setStackTrace(e.getStackTrace());
-        throw ioe;
-      }
-     
     }
     currentLogFile = null;
     
