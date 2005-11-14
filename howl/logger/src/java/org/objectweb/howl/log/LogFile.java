@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFile.java,v 1.11 2005-08-19 20:46:56 girouxm Exp $
+ * $Id: LogFile.java,v 1.12 2005-11-14 19:49:10 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -190,6 +190,11 @@ class LogFile
       // System.err.println(file.getName() + " unable to lock");
       throw new LogConfigurationException("Unable to obtain lock on " + file.getAbsolutePath());
     }
+    if (lock.isShared()) {
+      // TODO: log lock is shared
+      // System.err.println(file.getName() + " lock is shared");
+      throw new LogConfigurationException("Shared lock on " + file.getAbsolutePath());
+    }
     // TODO: log lock acquired
     // System.err.println(file.getName() + " open");
     
@@ -297,8 +302,6 @@ class LogFile
    */
   String getStats()
   {
-    String clsname = this.getClass().getName();
-
     StringBuffer result = new StringBuffer("\n<LogFile file='" + file + "'>" +
     "\n  <rewindCount value='" + rewindCounter + "'>Number of times this file was rewind to position(0)</rewindCount>" +
     "\n  <bytesWritten value='" + bytesWritten + "'>Number of bytes written to the file</bytesWritten>" +
