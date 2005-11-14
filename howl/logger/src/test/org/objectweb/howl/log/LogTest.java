@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.22 2005-08-19 20:46:56 girouxm Exp $
+ * $Id: LogTest.java,v 1.23 2005-11-14 21:13:48 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -550,6 +550,10 @@ public class LogTest extends TestDriver
    * set of files.  The bug resulted from JOTM
    * running with HOWL_0_1_7 version.
    * 
+   * Multiple openings are also possible
+   * on non-Windows platforms such as
+   * Linux and OS/X.
+   * 
    * @throws Exception
    */
   public void testMultipleOpen() throws Exception
@@ -559,12 +563,20 @@ public class LogTest extends TestDriver
     Logger l2 = new Logger(cfg);
     try {
       l2.open();
-      fail("expected LogConfigurationException");
+      String osName = System.getProperty("os.name");
+      if (osName.matches("^Windows.*"))
+      {
+        // So far, only Windows platforms enforce file locks within a JVM.
+        fail("expected LogConfigurationException");
+      }
+      else
+      {
+        // for all other platforms, just put a warning to System.err
+        System.err.println("Warning: platform allows multiple file locks within application.");
+      }
     } catch (LogConfigurationException e) {
       ; // expected result
     }
-    
-    
   }
   
   /**
