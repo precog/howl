@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: ConfigurationTest.java,v 1.10 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: ConfigurationTest.java,v 1.11 2005-11-15 19:39:25 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -86,6 +86,30 @@ public class ConfigurationTest extends TestCase
     System.setErr(systemErr);
   }
 
+  
+  /**
+   * Delete log files for tests that verify behaviour
+   * against newly created files.
+   */
+  protected void deleteLogFiles()
+  {
+    String logDir = cfg.getLogFileDir();
+    File dir = new File(logDir);
+    File[] logs = dir.listFiles();
+    
+    String logFileName = cfg.getLogFileName();
+    String logFileExt = cfg.getLogFileExt();
+    
+    // file name pattern for current test
+    String pattern = "^" + logFileName + "_" + "\\d+\\." + logFileExt;
+
+    for (int i=0; i<logs.length; ++i)
+    {
+      File f = logs[i];
+      if (f.getName().matches(pattern))
+        f.delete();
+    }
+  }
   
   /**
    * Constructor for XALoggerTest.
@@ -173,6 +197,62 @@ public class ConfigurationTest extends TestCase
     } catch (LogConfigurationException e) {
       // we expected it
     }
+  }
+  
+  public void testAdler32ChecksumError()
+  {
+    prop.setProperty("adler32Checksum", "yes");
+    try {
+      cfg = new Configuration(prop);
+      fail("Expected LogConfigurationException");
+    } catch (LogConfigurationException e) {
+      // ignore the exception
+    }
+  }
+  
+  public void testAdler32ChecksumTrue() throws Exception
+  {
+    prop.setProperty("adler32Checksum", "true");
+    prop.setProperty("checksumEnabled", "true");
+    cfg = new Configuration(prop);
+    assertTrue("adler32Checksum", cfg.isAdler32ChecksumEnabled());
+
+    // check that values are trimmed
+    prop.setProperty("adler32Checksum", "true  ");
+    cfg = new Configuration(prop);
+    assertTrue("adler32Checksum", cfg.isAdler32ChecksumEnabled());
+    
+    deleteLogFiles();  // start with fresh log files
+    Logger log = new Logger(cfg);
+    log.open();
+    LogBuffer lb = log.bmgr.getLogBuffer(-1);
+    // verify that the Adler32 checksum option will be used
+    assertFalse("checksum method ", lb.checksum == null);
+    assertTrue("checksum method ", (lb.checksum instanceof java.util.zip.Adler32));
+    log.close();
+    deleteLogFiles(); 
+  }
+  
+  public void testAdler32ChecksumFalse() throws Exception
+  {
+    prop.setProperty("adler32Checksum", "false");
+    cfg = new Configuration(prop);
+    assertFalse("adler32Checksum", cfg.isAdler32ChecksumEnabled());
+
+    // check that values are trimmed
+    prop.setProperty("adler32Checksum", "false  ");
+    cfg = new Configuration(prop);
+    assertFalse("adler32Checksum", cfg.isAdler32ChecksumEnabled());
+
+    // start with fresh log files to avoid checksum failures during restart
+    deleteLogFiles();  
+    Logger log = new Logger(cfg);
+    log.open();
+    LogBuffer lb = log.bmgr.getLogBuffer(-1);
+    // verify that the default ByteBuffer.hashCode() will be used
+    assertTrue("checksum method ", lb.checksum == null);
+    log.close();
+    deleteLogFiles();
   }
   
   public void testChecksumEnabledError()
