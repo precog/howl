@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Configuration.java,v 1.13 2005-08-19 20:46:56 girouxm Exp $
+ * $Id: Configuration.java,v 1.14 2005-11-15 22:43:54 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -244,6 +244,8 @@ public class Configuration implements ConfigurationMBean {
     
     setBufferSize(getInteger("bufferSize", (bufferSize / 1024), "Kb")); // BUG 300791
     
+    adler32Checksum = getBoolean("adler32Checksum", adler32Checksum);
+    
     checksumEnabled = getBoolean("checksumEnabled", checksumEnabled);
     
     flushPartialBuffers = getBoolean("flushPartialBuffers", flushPartialBuffers);
@@ -281,6 +283,14 @@ public class Configuration implements ConfigurationMBean {
    * <p>Default is false --> config is not displayed
    */
   private boolean listConfig = false;
+  
+  /**
+   * When set to <b> true </b> and
+   * checksumEnabled is also <b> true </b> 
+   * checksums are computed
+   * using java.util.zip.Adler32.
+   */
+  private boolean adler32Checksum = false;
   
   /**
    * When set to <b> true </b> checksums are computed on the contents
@@ -472,6 +482,14 @@ public class Configuration implements ConfigurationMBean {
     this.logFileName = logFileName;
     prop.setProperty("logFileName", logFileName);
   }
+  
+  /**
+   * @return the adler32Checksum option.
+   */
+  public boolean isAdler32ChecksumEnabled() {
+    return adler32Checksum;
+  }
+  
   /**
    * @return Returns the checksumEnabled option.
    */
@@ -520,6 +538,16 @@ public class Configuration implements ConfigurationMBean {
   public String getBufferClassName() {
     return bufferClassName;
   }
+  
+  /**
+   * @param adler32Checksum <b>true</b> if application
+   * wishes to use java.util.zip.Adler32 checksum method.
+   */
+  public void setAdler32Checksum(boolean adler32Checksum)
+  {
+    this.adler32Checksum = adler32Checksum;
+  }
+  
   /**
    * @param bufferClassName The bufferClassName to set.
    */

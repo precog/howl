@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: BlockLogBuffer.java,v 1.11 2005-08-19 20:46:56 girouxm Exp $
+ * $Id: BlockLogBuffer.java,v 1.12 2005-11-15 22:43:54 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -284,11 +284,11 @@ class BlockLogBuffer extends LogBuffer
     }
     
     
-    // update checksum -- hashCode
+    // update checksum
     int checksumOffset = bytesUsedOffset + 4;
     buffer.putInt(checksumOffset, 0);
     if (doChecksum) {
-      int checksum = buffer.clear().hashCode();
+      int checksum = checksum();
       buffer.putInt(checksumOffset, checksum);
     }
 
@@ -453,11 +453,11 @@ class BlockLogBuffer extends LogBuffer
     if (checkSum != 0)
     {
       buffer.putInt(checksumOffset, 0);
-      int expectedChecksum = buffer.clear().hashCode();
+      int expectedChecksum = checksum();
       buffer.clear().position(checksumOffset);
       buffer.putInt(checkSum);      // put the original value back
       if (checkSum != expectedChecksum)
-        throw new InvalidLogBufferException("CHECKSUM" + bufferInfo());
+        throw new InvalidLogBufferException("CHECKSUM expected: " + Integer.toHexString(expectedChecksum) + bufferInfo());
     }
     
     // get tod

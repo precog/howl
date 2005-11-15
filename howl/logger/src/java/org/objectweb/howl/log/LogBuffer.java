@@ -31,14 +31,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogBuffer.java,v 1.9 2005-08-19 20:46:56 girouxm Exp $
+ * $Id: LogBuffer.java,v 1.10 2005-11-15 22:43:54 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
+
+import java.util.zip.Adler32;
+
 
 /**
  * Classes used as buffers in LogBufferManager must implement this interface.
@@ -175,6 +177,28 @@ abstract class LogBuffer extends LogObject
   int bytesUsed = 0;
   
   /**
+   * Local buffer used to compute checksums.
+   * 
+   * The initial implementation of HOWL used the ByteBuffer.hashCode()
+   * method to compute a checksum.  Since each vendor's implementation
+   * of the JVM is not guaranteed to generate the same value for hashCode,
+   * this approach is not portable, and could result in journal files
+   * that appear to be invalid if restarted using a JVM by a vendor
+   * that is different than the JVM that was used to write the journal
+   * initially.
+   * 
+   * The problem is solved by implementing our own checksum method.
+   * The checksumBuffer member is used to obtain a local copy of
+   * the ByteBuffer contents for purposses of computing the checksum.
+   * Instead of obtaining each byte individually, the entire buffer
+   * is retrieved into checksumBuffer for computing the checksum.
+   * 
+   */
+  byte[] checksumBuffer = null; // BUG 304291
+  
+  final Adler32 checksum; // BUG 304291
+  
+  /**
    * default constructor.
    * <p>after creating a new instance of LogBuffer the caller must
    * invoke config().
@@ -185,6 +209,7 @@ abstract class LogBuffer extends LogObject
     name = this.getClass().getName();
     doChecksum = config.isChecksumEnabled();
     buffer = ByteBuffer.allocateDirect(config.getBufferSize() * 1024); // BUG 300957
+    checksum = (doChecksum && config.isAdler32ChecksumEnabled()) ? new Adler32(): null;
   }
 
   /**
@@ -237,6 +262,42 @@ abstract class LogBuffer extends LogObject
     }
   }
 
+  /**
+   * Computes a checksum over the the entire byte buffer
+   * backing this LogBuffer object.
+   * 
+   * @return the computed checksum.
+   */
+  int checksum()
+  {
+    int result = 0;
+    buffer.clear();
+    
+    if (checksum == null)
+    {
+      result = buffer.hashCode();
+    }
+    else
+    {
+      byte[] checksumBuffer;
+      if (buffer.hasArray())
+        checksumBuffer = buffer.array();
+      else {
+        // allocate a local buffer once to avoid excessive garbage collection
+        if (this.checksumBuffer == null)
+          this.checksumBuffer = new byte[buffer.capacity()];
+        checksumBuffer = this.checksumBuffer;
+        buffer.get(checksumBuffer);
+      }
+      
+      checksum.reset();
+      checksum.update(checksumBuffer, 0, checksumBuffer.length);
+      result = (int) (checksum.getValue() & 0xFFFFFFFF);
+    }
+
+    return result;
+  }
+  
   /**
    * May be used in traces or other purposes for debugging.
    * 

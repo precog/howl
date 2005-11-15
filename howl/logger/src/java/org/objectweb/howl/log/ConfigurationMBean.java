@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: ConfigurationMBean.java,v 1.2 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: ConfigurationMBean.java,v 1.3 2005-11-15 22:43:54 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -52,6 +52,10 @@ public interface ConfigurationMBean {
    * @return Returns the logFileName.
    */
   public String getLogFileName();
+  /**
+   * @return the adler32Checksum option.
+   */
+  public boolean isAdler32ChecksumEnabled();
   /**
    * @return Returns the checksumEnabled option.
    */
