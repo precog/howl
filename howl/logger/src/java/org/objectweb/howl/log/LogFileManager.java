@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileManager.java,v 1.14 2005-11-14 21:22:28 girouxm Exp $
+ * $Id: LogFileManager.java,v 1.15 2005-11-16 02:46:07 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.FileNotFoundException;
 
 import java.nio.ByteBuffer;
+import java.util.zip.CRC32;
 
 /**
  * Manage a set of log files.
@@ -703,6 +704,42 @@ class LogFileManager extends LogObject
     
     // TODO: if current log file position is > 50% then notify NOW
   }
+  
+  /**
+   * Create a JVM wide lock on a File.
+   * <p>Feature 30922
+   * <p>
+   * The java.nio.channel.tryLock method is not guaranteed to
+   * respect locks that are set within the JVM by multiple
+   * threads.  Consequently, it is possible for an application
+   * to create multiple instances of Logger resulting in 
+   * corrupted log files as two separate instances of Logger
+   * write to the log.
+   * <p>
+   * To prevent multiple instances of Logger from allocating
+   * the same files within a JVM, we create a system property 
+   * @param name File object to be locked
+   * @returns true if requested lock operation is successful.
+   */
+  private boolean setLockOnFile(File name, boolean lock)
+  {
+    // reduce file name to a hex value to guarantee that property name is valid
+    CRC32 crc = new CRC32();
+    crc.reset();
+    crc.update(name.getAbsolutePath().getBytes());
+    String checksum = Long.toHexString(crc.getValue());
+    String property = "org.objectweb.howl." + checksum + ".locked";
+    synchronized(System.class)
+    {
+      if (lock && Boolean.getBoolean(property))
+      {
+        return false;
+      }
+      
+      System.setProperty(property, Boolean.toString(lock));
+      return true;
+    }
+  }
 
   /**
    * open pool of LogFile(s).
@@ -742,6 +779,9 @@ class LogFileManager extends LogObject
       File name = new File(logDir + "/" + logFileName + "_" + (i+1) + "." + logFileExt);
       try
       {
+        if (! setLockOnFile(name, true))
+          throw new LogConfigurationException("LogFileManager.open: unable to obtain lock on file " + name.getAbsolutePath());
+          
         fileSet[i] = new LogFile(name).open(config.getLogFileMode());
         if (!fileSet[i].newFile)
         {
@@ -1121,7 +1161,10 @@ class LogFileManager extends LogObject
     for (int i=0; i < fileSet.length; ++i)
     {
       if (fileSet[i] != null)
+      {
         fileSet[i].close();
+        setLockOnFile(fileSet[i].file, false);
+      }
     }
     
     if (interrupted) throw exception;
