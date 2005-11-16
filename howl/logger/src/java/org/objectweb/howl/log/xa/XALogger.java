@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: XALogger.java,v 1.18 2005-09-08 14:54:34 girouxm Exp $
+ * $Id: XALogger.java,v 1.19 2005-11-16 23:09:59 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log.xa;
@@ -1308,8 +1308,6 @@ public class XALogger extends Logger
     
     public void onRecord(LogRecord lr)
     {
-      long xacommitKey = 0L; // see XACOMMITMOVED and XADONE 
-
       // set LogRecord.tx = null for TM invoked replay. 
       ((XALogRecord)lr).setTx(null);
 

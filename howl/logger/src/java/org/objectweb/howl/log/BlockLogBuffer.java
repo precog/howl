@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: BlockLogBuffer.java,v 1.12 2005-11-15 22:43:54 girouxm Exp $
+ * $Id: BlockLogBuffer.java,v 1.13 2005-11-16 23:09:59 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -82,7 +82,7 @@ class BlockLogBuffer extends LogBuffer
    * byte[]  CRLF                   [2] to make it easier to read buffers in an editor
    * </pre>
    */
-  private final static int bufferHeaderSize = 30; 
+  // private final static int bufferHeaderSize = 30; 
  
   /**
    * Offset within the block header of the bytes_used field.
