@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.23 2005-11-14 21:13:48 girouxm Exp $
+ * $Id: LogTest.java,v 1.24 2005-11-16 02:44:39 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -42,6 +42,8 @@ import java.io.FileNotFoundException;
 import junit.extensions.RepeatedTest;
 import junit.framework.Test;
 import junit.framework.TestSuite;
+import org.objectweb.howl.log.LogEventListener;
+import org.objectweb.howl.log.LogFileOverflowException;
 
 public class LogTest extends TestDriver
 {
@@ -126,16 +128,23 @@ public class LogTest extends TestDriver
   }
   
   public void testLoggerReplay() throws Exception {
+    // populate log with some records
+    log.open();
+    log.setAutoMark(true);
+    runWorkers(LogTestWorker.class);
+    log.close();
+    
+    // verify that all records are marked processed
     log.open();
     TestLogReader reader = new TestLogReader();
     reader.run(log);
-    System.err.println(getName() + "; total records processed: " + reader.recordCount);
+    assertEquals(getName(), 0L, reader.recordCount);
     // log.close(); called by reader.run()
   }
   
   /**
    * Verifies that replay can begin with a log key that
-   * has not been forced to the journal.
+   * has <b>NOT</b> been forced to the journal.
    * <p>puts a record to the journal with sync == false, then
    * trys to replay from the log key for that record.
    * @throws Exception
@@ -150,6 +159,13 @@ public class LogTest extends TestDriver
     log.close();
   }
   
+  /**
+   * Verifies that replay can begin with a log key that
+   * <b>HAS</b> been forced to the journal.
+   * <p>puts a record to the journal with sync == false, then
+   * trys to replay from the log key for that record.
+   * @throws Exception
+   */
   public void testLoggerReplay_forcedRecord() throws Exception {
     log.open();
     long key = log.put("".getBytes(), true);
@@ -174,9 +190,51 @@ public class LogTest extends TestDriver
     deleteLogFiles();
     log.open();
     TestLogReader reader = new TestLogReader();
-    reader.run(log);
+    reader.run(log, 0L);
     assertEquals("unexpected records found in new log files", 0L, reader.recordCount);    
     // log.close(); called by reader.run()
+  }
+  
+  /**
+   * Verifies that replay does not return records that have
+   * been marked.
+   * 
+   * @throws Exception
+   */
+  public void testLoggerReplay_MarkedRecords() throws Exception {
+    long key = 0L;
+    deleteLogFiles(); // so we know exactly how many records to expect
+    log.open();
+    // 1. write two records.
+    for (int i=1; i < 10; ++i)
+    {
+      key = log.put(("Record_" + i).getBytes(), false);
+    }
+    key = log.put("Mark; replay should start here".getBytes(), false);
+    
+    // 2. mark
+    log.mark(key, true);
+    
+    // 3. write another record
+    key = log.put("Record_X".getBytes(), true);
+
+    // 4. replay should get 2 records, the record we just wrote, and the record at the mark.
+    TestLogReader reader = new TestLogReader();
+    reader.printRecord = true;
+    reader.run(log);
+    long recordCount = reader.recordCount; 
+    assertEquals(getName() + ": expected record count:", 2L, recordCount);
+    
+    // 5. verify we get same two records if log is closed and reopened
+    log.close();
+    log.open();
+    reader = new TestLogReader();
+    reader.printRecord = true;
+    reader.run(log);
+    recordCount = reader.recordCount;
+    assertEquals(getName() + ": expected record count:", 2L, recordCount);
+    
+    // log.close(); called by reader.run
   }
   
   public void testLogClosedException() throws Exception, LogException {
@@ -641,5 +699,5 @@ public class LogTest extends TestDriver
     assertEquals("Record Data", eVal, rVal);
     assertEquals("Field Count != 1", 1, r2.length);
   }
-  
+
 }

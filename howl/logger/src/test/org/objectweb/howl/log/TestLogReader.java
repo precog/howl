@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: TestLogReader.java,v 1.9 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: TestLogReader.java,v 1.10 2005-11-16 02:44:39 girouxm Exp $
  * ------------------------------------------------------------------------------
 */
 package org.objectweb.howl.log;
@@ -46,24 +46,30 @@ class TestLogReader implements ReplayListener
   long previousKey = 0;
   boolean done = false;
   Exception exception = null;
+  boolean printRecord = false;
   
   public void onRecord(LogRecord lr)
   {
+    byte[][] fields = lr.getFields();
     if (lr.type == LogRecordType.END_OF_LOG)
     {
       synchronized(this) {
         done = true;
         notifyAll();
       }
+      return;
     }
-    else {
-      ++recordCount;
-      if (lr.key <= previousKey) {
-        System.err.println("Key Out of Sequence; total/prev/this: " + recordCount + " / " +
-            Long.toHexString(previousKey) + " / " + Long.toHexString(lr.key));
-      }
+    
+    ++recordCount;
+    if (lr.key <= previousKey) {
+      System.err.println("Key Out of Sequence; total/prev/this: " + recordCount + " / " +
+          Long.toHexString(previousKey) + " / " + Long.toHexString(lr.key));
     }
+    
+    if (printRecord)
+      System.out.println(new String(fields[0]));
   }
+  
   public void onError(LogException e)
   {
     exception = e;
@@ -75,9 +81,16 @@ class TestLogReader implements ReplayListener
     return logrec;
   }
   
-  void run(Logger log) throws Exception, LogException
+  /**
+   * replays journal from specified mark.
+   * @param log
+   * @param mark
+   * @throws Exception
+   * @throws LogException
+   */
+  void run(Logger log, long mark) throws Exception, LogException
   {
-    log.replay(this, 0L);
+    log.replay(this, mark);
     log.close();
     
     synchronized (this)
@@ -87,6 +100,17 @@ class TestLogReader implements ReplayListener
         wait();
       }
     }
+  }
+  
+  /**
+   * replays journal from the log's active mark.
+   * @param log
+   * @throws Exception
+   * @throws LogException
+   */
+  void run(Logger log) throws Exception, LogException
+  {
+    run(log, log.getActiveMark());
   }
   
 }

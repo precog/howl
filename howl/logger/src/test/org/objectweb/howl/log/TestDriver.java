@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: TestDriver.java,v 1.15 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: TestDriver.java,v 1.16 2005-11-16 02:44:39 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -96,6 +96,8 @@ public class TestDriver extends TestCase {
   
   public final Logger getLogger() { return log; }
   
+  TestWorker[] worker = null;
+  
   public class TestException extends Exception
   {
     public TestException() { super(); }
@@ -104,6 +106,11 @@ public class TestDriver extends TestCase {
     public TestException(String s, Throwable cause) { super(s, cause); }
   }
   
+  /**
+   * Will be non-null if an exception occurs during the test.
+   */
+  TestException exception = null;
+
   /**
    * process properties for this test case
    * @throws FileNotFoundException
@@ -273,11 +280,10 @@ public class TestDriver extends TestCase {
   protected void runWorkers(Class workerClass)
   throws LogException, Exception
   {
-    TestException exception = null;
     
     if (workers <=0) throw new IllegalArgumentException();
     
-    TestWorker[] worker = new TestWorker[workers];
+    worker = new TestWorker[workers];
     
     startBarrier.setCount(workers + 1);
     stopBarrier.setCount(workers + 1);
@@ -337,7 +343,6 @@ public class TestDriver extends TestCase {
     
     saveStats();
 
-    if (exception != null) throw exception;
   }
 
 }

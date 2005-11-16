@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTestWorker.java,v 1.5 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: LogTestWorker.java,v 1.6 2005-11-16 02:44:39 girouxm Exp $
  * ------------------------------------------------------------------------------
 */
 package org.objectweb.howl.log;
@@ -80,6 +80,7 @@ public class LogTestWorker extends TestWorker {
     bytesLogged += doneData.length;
     ++transactions;
   }
+  
   public void run()
   {
     // recuce count if this worker is doing delays between COMMIT and DONE 
@@ -94,6 +95,8 @@ public class LogTestWorker extends TestWorker {
       // generate the log records
       for (int i = 1; i <= count; ++i)
       {
+        if (exception != null) throw exception;
+        
         long startTime = System.currentTimeMillis();
         long logkey = logCommit(i);
         

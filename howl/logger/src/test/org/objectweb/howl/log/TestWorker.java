@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: TestWorker.java,v 1.5 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: TestWorker.java,v 1.6 2005-11-16 02:44:39 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -158,6 +158,14 @@ public abstract class TestWorker extends Thread {
    * <p>Set using setDelayBeforeDone(int)
    */
   protected long delayBeforeDone = 0;
+  
+  /**
+   * called by test driver to shut down workers when log errors occur.
+   */
+  void setException(Exception e)
+  {
+   exception = e; 
+  }
   
   /**
    * parse the configuration properties.
