@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: ExceptionTest.java,v 1.3 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: ExceptionTest.java,v 1.4 2005-11-16 02:54:18 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -45,9 +45,16 @@ import java.io.IOException;
  * remove drives, power off devices, ... should
  * be placed in this file.
  * 
+ * <p>These tests may not execute properly on
+ * all platforms.  This testcase should not
+ * be included in standard build scripts
+ * to avoid unexpected failures.
+ * 
  * @author Michael Giroux
  */
-public class ExceptionTest extends TestDriver {
+public class ExceptionTest extends TestDriver
+  implements LogEventListener
+{
 
   /**
    * Constructor for ExceptionTest.
@@ -109,6 +116,52 @@ public class ExceptionTest extends TestDriver {
    */
   public void testVerifyMode_rw() throws Exception
   {
+  }
+
+  /**
+   * Verify that putting records into the journal without moving the mark
+   * will result in a LogFileOverflowException.
+   * 
+   * <b>TODO: </b>We need to figure out how to examine the log files
+   * to confirm that nothing was overwritten.  We also need to figure
+   * out how to restart using this set of files once the overflow condition
+   * has occurred.
+   * @throws Exception
+   */
+  public void testLogFileOverflowException() throws Exception {
+    log.open();
+    log.setLogEventListener(this);
+    log.setAutoMark(false);
+    prop.setProperty("msg.count", "1000");
+    workers = 20;
+    try {
+      runWorkers(LogTestWorker.class);
+      assertFalse(getName() + ": LogFileOverflowException expected.", this.exception == null);
+    } catch (LogFileOverflowException e) {
+      System.err.println(getName() + ": ignoring LogFileOverflowException");
+      // ignore -- we expected it to occur
+    }
+    finally {
+      deleteLogFiles(); // clean up the mess for next test
+    }
+    // log.close(); called by runWorkers
+  }
+  
+  public void logOverflowNotification(long logkey) {
+    System.err.println(getName() + ": logOverflowNotification received");
+    for (int i = 0; i < workers; ++i)
+      worker[i].setException(new LogFileOverflowException());
+    
+  }
+
+  public boolean isLoggable(int level) {
+    return false;
+  }
+
+  public void log(int level, String message) {
+  }
+
+  public void log(int level, String message, Throwable thrown) {
   }
   
 }
