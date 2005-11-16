@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: XALoggerTest.java,v 1.20 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: XALoggerTest.java,v 1.21 2005-11-16 02:47:31 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log.xa;
@@ -246,7 +246,7 @@ public class XALoggerTest extends TestDriver
   }
   
   /**
-   * Verify that XALogger.open() throwss
+   * Verify that XALogger.open() throws
    * an UnsupportedOperationException.
    * 
    * @throws LogException
