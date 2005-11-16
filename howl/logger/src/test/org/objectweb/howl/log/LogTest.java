@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.24 2005-11-16 02:44:39 girouxm Exp $
+ * $Id: LogTest.java,v 1.25 2005-11-16 02:59:22 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -621,17 +621,7 @@ public class LogTest extends TestDriver
     Logger l2 = new Logger(cfg);
     try {
       l2.open();
-      String osName = System.getProperty("os.name");
-      if (osName.matches("^Windows.*"))
-      {
-        // So far, only Windows platforms enforce file locks within a JVM.
-        fail("expected LogConfigurationException");
-      }
-      else
-      {
-        // for all other platforms, just put a warning to System.err
-        System.err.println("Warning: platform allows multiple file locks within application.");
-      }
+      fail("expected LogConfigurationException");
     } catch (LogConfigurationException e) {
       ; // expected result
     }
