@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.25 2005-11-16 02:59:22 girouxm Exp $
+ * $Id: LogTest.java,v 1.26 2005-11-16 16:19:39 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -138,8 +138,8 @@ public class LogTest extends TestDriver
     log.open();
     TestLogReader reader = new TestLogReader();
     reader.run(log);
+    log.close();
     assertEquals(getName(), 0L, reader.recordCount);
-    // log.close(); called by reader.run()
   }
   
   /**
@@ -154,9 +154,9 @@ public class LogTest extends TestDriver
     long key = log.put("".getBytes(), false);
     TestLogReader reader = new TestLogReader();
     log.replay(reader, key);
+    log.close();
     if (reader.exception != null)
       throw reader.exception;
-    log.close();
   }
   
   /**
@@ -171,9 +171,9 @@ public class LogTest extends TestDriver
     long key = log.put("".getBytes(), true);
     TestLogReader reader = new TestLogReader();
     log.replay(reader, key);
+    log.close();
     if (reader.exception != null)
       throw reader.exception;
-    log.close();
   }
   
   public void testMultipleClose() throws Exception {
@@ -191,8 +191,8 @@ public class LogTest extends TestDriver
     log.open();
     TestLogReader reader = new TestLogReader();
     reader.run(log, 0L);
+    log.close();
     assertEquals("unexpected records found in new log files", 0L, reader.recordCount);    
-    // log.close(); called by reader.run()
   }
   
   /**
@@ -203,13 +203,26 @@ public class LogTest extends TestDriver
    */
   public void testLoggerReplay_MarkedRecords() throws Exception {
     long key = 0L;
+    int  count = 0;
+    
     deleteLogFiles(); // so we know exactly how many records to expect
     log.open();
     // 1. write two records.
     for (int i=1; i < 10; ++i)
     {
       key = log.put(("Record_" + i).getBytes(), false);
+      ++count;
     }
+    
+    // 1a. replay the records we have so far.
+    //     there is no mark yet, so we should ge all of the records
+    TestLogReader reader = new TestLogReader();
+    reader.printRecord = false;
+    reader.activeMark = log.getActiveMark();  // NOTE - there is no mark yet
+    reader.run(log);
+    assertEquals(getName() + ": unexpected record count:", count, reader.recordCount);
+    
+    
     key = log.put("Mark; replay should start here".getBytes(), false);
     
     // 2. mark
@@ -219,22 +232,28 @@ public class LogTest extends TestDriver
     key = log.put("Record_X".getBytes(), true);
 
     // 4. replay should get 2 records, the record we just wrote, and the record at the mark.
-    TestLogReader reader = new TestLogReader();
-    reader.printRecord = true;
+    reader = new TestLogReader();
+    reader.printRecord = false; // true causes reader to print records
+    reader.activeMark = 0L; // replay all records given to onRecord event
     reader.run(log);
-    long recordCount = reader.recordCount; 
-    assertEquals(getName() + ": expected record count:", 2L, recordCount);
+    assertEquals(getName() + ": unexpected record count:", 2L, reader.recordCount);
     
     // 5. verify we get same two records if log is closed and reopened
     log.close();
     log.open();
     reader = new TestLogReader();
-    reader.printRecord = true;
+    reader.printRecord = false; // true causes reader to print records
     reader.run(log);
-    recordCount = reader.recordCount;
-    assertEquals(getName() + ": expected record count:", 2L, recordCount);
+    assertEquals(getName() + ": unexpected record count:", 2L, reader.recordCount);
     
-    // log.close(); called by reader.run
+    // 6. verify we get only 1 record if we skip the marked record
+    reader = new TestLogReader();
+    reader.printRecord = false; // true causes reader to print records
+    reader.activeMark = log.getActiveMark();
+    reader.run(log);
+    assertEquals(getName() + ": unexpected record count:", 1L, reader.recordCount);
+    
+    log.close();
   }
   
   public void testLogClosedException() throws Exception, LogException {

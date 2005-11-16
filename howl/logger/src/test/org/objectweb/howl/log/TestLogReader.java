@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: TestLogReader.java,v 1.10 2005-11-16 02:44:39 girouxm Exp $
+ * $Id: TestLogReader.java,v 1.11 2005-11-16 16:19:39 girouxm Exp $
  * ------------------------------------------------------------------------------
 */
 package org.objectweb.howl.log;
@@ -47,6 +47,7 @@ class TestLogReader implements ReplayListener
   boolean done = false;
   Exception exception = null;
   boolean printRecord = false;
+  long activeMark = 0L;
   
   public void onRecord(LogRecord lr)
   {
@@ -60,13 +61,15 @@ class TestLogReader implements ReplayListener
       return;
     }
     
-    ++recordCount;
+    if (lr.key > activeMark)
+      ++recordCount;
+
     if (lr.key <= previousKey) {
       System.err.println("Key Out of Sequence; total/prev/this: " + recordCount + " / " +
           Long.toHexString(previousKey) + " / " + Long.toHexString(lr.key));
     }
     
-    if (printRecord)
+    if (printRecord && lr.key > activeMark)
       System.out.println(new String(fields[0]));
   }
   
@@ -91,7 +94,6 @@ class TestLogReader implements ReplayListener
   void run(Logger log, long mark) throws Exception, LogException
   {
     log.replay(this, mark);
-    log.close();
     
     synchronized (this)
     {
