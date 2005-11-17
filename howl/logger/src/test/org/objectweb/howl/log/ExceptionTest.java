@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: ExceptionTest.java,v 1.4 2005-11-16 02:54:18 girouxm Exp $
+ * $Id: ExceptionTest.java,v 1.5 2005-11-17 22:42:54 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -129,11 +129,12 @@ public class ExceptionTest extends TestDriver
    * @throws Exception
    */
   public void testLogFileOverflowException() throws Exception {
+    deleteLogFiles(); // start with fresh files.
     log.open();
     log.setLogEventListener(this);
     log.setAutoMark(false);
     prop.setProperty("msg.count", "1000");
-    workers = 20;
+    workers = 10;
     try {
       runWorkers(LogTestWorker.class);
       assertFalse(getName() + ": LogFileOverflowException expected.", this.exception == null);
@@ -148,7 +149,9 @@ public class ExceptionTest extends TestDriver
   }
   
   public void logOverflowNotification(long logkey) {
-    System.err.println(getName() + ": logOverflowNotification received");
+    System.err.println(getName() + ": logOverflowNotification received" +
+        "\n  activeMark: " + log.getActiveMark() +
+        "\n  logkey: " + Long.toHexString(logkey));
     for (int i = 0; i < workers; ++i)
       worker[i].setException(new LogFileOverflowException());
     
