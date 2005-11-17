@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.8 2005-08-19 20:46:56 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.9 2005-11-17 22:03:28 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -186,6 +186,7 @@
     depends='cvs.pwd.not.defined,clean-all,test-all,junitreport'
     description='Generate JUnit Test Reports for distribution'>
     <echo>***
+      Remember to run ANT all-docs to generate up to date javadocs. 
       Remember to run ANT publish to push the new reports to the HOWL web site.
     </echo>
   </target>
@@ -291,30 +292,6 @@
       command='cd ${not.in.cvs} &amp;&amp; rm -fr jdoc junitreport &amp;&amp; tar -xzf docs.tar.gz &amp;&amp; rm -f docs.tar.gz'
     />
 
-  </target>
-  
-  <target name='wdtest' 
-    depends='set.cvs.pwd'
-    description='test webdav'>
-    <dav:lock
-	    url="${dav.site}/jdoc"
-	    userid='${cvs.user}'
-	    password='${cvs.pwd}'
-      property='locktoken'/>
-    <dav:get
-      url="${dav.site}"
-      userid='${cvs.user}'
-      password='${cvs.pwd}'
-      todir="e:/tmp">
-      <davfileset dir='jdoc'>
-        <include name='**/*.html'/>
-      </davfileset>
-    </dav:get>
-    <dav:unlock
-      url="${dav.site}/jdoc"
-      userid='${cvs.user}'
-      password='${cvs.pwd}'
-      property='${locktoken}'/>
   </target>
   
 </project>
