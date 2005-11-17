@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileOverflowException.java,v 1.3 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: LogFileOverflowException.java,v 1.4 2005-11-17 20:50:11 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -46,10 +46,24 @@ import java.io.File;
  */
 public class LogFileOverflowException extends LogException
 {
-    /**
-     * Constructs an instance of this class.
-     */
-    public LogFileOverflowException() { }
+  /**
+   * Determines if a de-serialized file is compatible with this class.
+   *
+   * Maintainers must change this value if and only if the new version
+   * of this class is not compatible with old versions. See Sun docs
+   * for
+   * <a href=http://java.sun.com/j2se/1.5.0/docs/guide/serialization/spec/class.html>
+   * details. </a>
+   *
+   * Not necessary to include in first version of the class, but
+   * included here as a reminder of its importance.
+   */
+  static final long serialVersionUID = -7955598809372627369L;
+  
+  /**
+   * Constructs an instance of this class.
+   */
+  public LogFileOverflowException() { }
     
     /**
      * Construct an exception with message describing the problem

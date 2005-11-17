@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogConfigurationException.java,v 1.5 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: LogConfigurationException.java,v 1.6 2005-11-17 20:50:11 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -40,6 +40,20 @@ package org.objectweb.howl.log;
  * @author Michael Giroux
  */
 public class LogConfigurationException extends LogException {
+  /**
+   * Determines if a de-serialized file is compatible with this class.
+   *
+   * Maintainers must change this value if and only if the new version
+   * of this class is not compatible with old versions. See Sun docs
+   * for
+   * <a href=http://java.sun.com/j2se/1.5.0/docs/guide/serialization/spec/class.html>
+   * details. </a>
+   *
+   * Not necessary to include in first version of the class, but
+   * included here as a reminder of its importance.
+   */
+  static final long serialVersionUID = 7892938747362236420L;
+  
   public LogConfigurationException() {}
 
   public LogConfigurationException(String s) {

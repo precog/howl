@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogException.java,v 1.4 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: LogException.java,v 1.5 2005-11-17 20:50:11 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -40,6 +40,20 @@ package org.objectweb.howl.log;
  * Base exception class for HOWL exceptions.
  */
 public class LogException extends Exception {
+  /**
+   * Determines if a de-serialized file is compatible with this class.
+   *
+   * Maintainers must change this value if and only if the new version
+   * of this class is not compatible with old versions. See Sun docs
+   * for
+   * <a href=http://java.sun.com/j2se/1.5.0/docs/guide/serialization/spec/class.html>
+   * details. </a>
+   *
+   * Not necessary to include in first version of the class, but
+   * included here as a reminder of its importance.
+   */
+  static final long serialVersionUID = -7955598809372627369L;
+
   public LogException() {}
 
   public LogException(String s) {

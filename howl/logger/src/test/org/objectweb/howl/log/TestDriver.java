@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: TestDriver.java,v 1.16 2005-11-16 02:44:39 girouxm Exp $
+ * $Id: TestDriver.java,v 1.17 2005-11-17 20:50:11 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -100,6 +100,19 @@ public class TestDriver extends TestCase {
   
   public class TestException extends Exception
   {
+    /**
+     * Determines if a de-serialized file is compatible with this class.
+     *
+     * Maintainers must change this value if and only if the new version
+     * of this class is not compatible with old versions. See Sun docs
+     * for
+     * <a href=http://java.sun.com/j2se/1.5.0/docs/guide/serialization/spec/class.html>
+     * details. </a>
+     *
+     * Not necessary to include in first version of the class, but
+     * included here as a reminder of its importance.
+     */
+    static final long serialVersionUID = -5949290021561802864L;
     public TestException() { super(); }
     public TestException(String s) { super(s); }
     public TestException(Throwable cause) { super(cause); }
