@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: XALoggerTest.java,v 1.21 2005-11-16 02:47:31 girouxm Exp $
+ * $Id: XALoggerTest.java,v 1.22 2005-11-17 22:34:40 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log.xa;
@@ -119,7 +119,7 @@ public class XALoggerTest extends TestDriver
       String key = new String(data, 1, 9);
       
       // remove any existing entry
-      Object o = activeTx.remove(key);
+      activeTx.remove(key);
       
       activeTx.put(key, lr.getTx());
     }
@@ -138,7 +138,7 @@ public class XALoggerTest extends TestDriver
         return;
       
       String key = new String(data, 1, 9);
-      XACommittingTx tx = (XACommittingTx)activeTx.remove(key);
+      activeTx.remove(key);
     }
     
     public int getActiveTxUsed()
