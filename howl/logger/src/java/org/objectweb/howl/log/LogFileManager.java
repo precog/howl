@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileManager.java,v 1.15 2005-11-16 02:46:07 girouxm Exp $
+ * $Id: LogFileManager.java,v 1.16 2005-11-17 21:00:05 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.io.FileNotFoundException;
 
 import java.nio.ByteBuffer;
-import java.util.zip.CRC32;
 
 /**
  * Manage a set of log files.
@@ -723,12 +722,7 @@ class LogFileManager extends LogObject
    */
   private boolean setLockOnFile(File name, boolean lock)
   {
-    // reduce file name to a hex value to guarantee that property name is valid
-    CRC32 crc = new CRC32();
-    crc.reset();
-    crc.update(name.getAbsolutePath().getBytes());
-    String checksum = Long.toHexString(crc.getValue());
-    String property = "org.objectweb.howl." + checksum + ".locked";
+    String property = "org.objectweb.howl." + name.getAbsolutePath() + ".locked";
     synchronized(System.class)
     {
       if (lock && Boolean.getBoolean(property))
@@ -802,6 +796,7 @@ class LogFileManager extends LogObject
         while (--i >= 0)
         {
           fileSet[i].close();
+          setLockOnFile(fileSet[i].file, false);
           fileSet[i] = null;
         }
 
@@ -1046,8 +1041,8 @@ class LogFileManager extends LogObject
     dataBuffer.getShort(); // field length not used
     automark = dataBuffer.get() == 1 ? true : false;
     activeMark = dataBuffer.getLong();
-    long highMark = dataBuffer.getLong();
-    long switchTod = dataBuffer.getLong();
+    dataBuffer.getLong(); // long highMark -- avoid unreferenced field warning
+    dataBuffer.getLong(); // long switchTod -- avoid unreferenced field warning
     
     /*
      * Mak sure we have at least as many files as we had
