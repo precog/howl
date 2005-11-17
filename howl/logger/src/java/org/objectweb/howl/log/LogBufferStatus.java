@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogBufferStatus.java,v 1.3 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: LogBufferStatus.java,v 1.4 2005-11-17 21:00:50 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -44,17 +44,17 @@ interface LogBufferStatus
 {
   /**
    * IO Status of LogBuffer while it is being filled with
-   * new records.
+   * new records (0).
    */
   final static int FILLING  = 0;
   
   /**
-   * IO Status of LogBuffer while it is being forced.
+   * IO Status of LogBuffer while it is being forced (1).
    */
   final static int WRITING  = 1;
   
   /**
-   * IO Status of LogBuffer when force is complete.
+   * IO Status of LogBuffer when force is complete (2).
    * <p>Threads waiting for a force may be notified
    * when status is COMPLETE.
    */
@@ -62,7 +62,7 @@ interface LogBufferStatus
   
   /**
    * IO Status of LogBuffer if an IOException occurs
-   * during the force.
+   * during the force (3).
    * <p>Threads waiting for a force must receive
    * an IOException if an error occurs during force.
    */
