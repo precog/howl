@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogBufferManager.java,v 1.26 2005-08-19 20:46:56 girouxm Exp $
+ * $Id: LogBufferManager.java,v 1.27 2005-11-17 22:12:43 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -122,6 +122,14 @@ class LogBufferManager extends LogObject
    * array of LogBuffer objects available for filling
    */
   private LogBuffer[] freeBuffer = null;
+  
+  /**
+   * array of all LogBuffer objects allocated.
+   * <p>Used to find and debug buffers that are not in the
+   * freeBuffer list if logger hangs waiting
+   * for buffers to be returned to the freeBuffer pool.
+   */
+  private LogBuffer[] bufferList = null;
 
   /**
    * workerID into freeBuffer list maintained in getBuffer.
@@ -619,6 +627,24 @@ class LogBufferManager extends LogObject
   }
   
   /**
+   * Add a buffer to the forceQueue.
+   * <p>PRECONDITION: bufferManagerLock owned by caller
+   * @param buffer LogBuffer to be added to the forceQueue
+   */
+  void fqAdd(LogBuffer buffer)
+  {
+    fillBuffer = null;
+    try {
+      forceQueue[fqPut] = buffer;
+    } catch (ArrayIndexOutOfBoundsException e) {
+      e.printStackTrace();
+      throw e;
+    }
+    fqPut = (fqPut + 1) % forceQueue.length;
+    ++buffersWaitingForce;  // BUG 303660
+  }
+  
+  /**
    * writes <i> data </i> byte[][] to log and returns a log key.
    * <p>waits for IO to complete if sync is true.
    * 
@@ -664,11 +690,7 @@ class LogBufferManager extends LogObject
         }
         if (token == 0 || forceNow)
         {
-          // buffer is full -- make it unavailable to other threads until force() completes
-          fillBuffer = null;
-          forceQueue[fqPut] = currentBuffer;
-          fqPut = (fqPut + 1) % forceQueue.length;
-          ++buffersWaitingForce;
+          fqAdd(currentBuffer);
         }
       }
 
@@ -703,17 +725,11 @@ class LogBufferManager extends LogObject
     
     synchronized(bufferManagerLock)
     {
-
-      buffer = fillBuffer;
-      if (buffer != null)
+      if (fillBuffer != null)
       {
-        fillBuffer = null;
-        forceQueue[fqPut] = buffer;
-        fqPut = (fqPut + 1) % forceQueue.length;
-        ++buffersWaitingForce;  // BUG 303660
+        buffer = fillBuffer;
+        fqAdd(buffer);
       }
-      else
-        buffer = null;
     } // release bufferManagerLock before we issue a force.
 
     if (buffer != null)
@@ -891,15 +907,19 @@ class LogBufferManager extends LogObject
   {
     int bufferPoolSize = config.getMinBuffers();
     freeBuffer = new LogBuffer[bufferPoolSize];
+    bufferList = new LogBuffer[bufferPoolSize];
     for (short i=0; i< bufferPoolSize; ++i)
     {
       freeBuffer[i] = getLogBuffer(i);
+      bufferList[i] = freeBuffer[i]; // bufferList used to debug
     }
     
     synchronized(forceManagerLock)
     {
       // one larger than bufferPoolSize to guarantee we never overrun this queue
       forceQueue = new LogBuffer[bufferPoolSize + 1];
+      fqPut = 0;  // BUG 304299
+      fqGet = 0;  // BUG 304299
     }
 
     // inform flushManager that LogBufferManager is ready for operation
@@ -952,13 +972,10 @@ class LogBufferManager extends LogObject
       // move current fillBuffer to forceQueue
       synchronized(bufferManagerLock)
       {
-        buffer = fillBuffer;
-        if (buffer != null)
+        if (fillBuffer != null)
         {
-          fillBuffer = null;
-          forceQueue[fqPut] = buffer;
-          fqPut = (fqPut + 1) % forceQueue.length;
-          ++buffersWaitingForce;   // BUG 303660
+          buffer = fillBuffer;
+          fqAdd(buffer);
         }
       } // release bufferManagerLock before we issue a force.
 
@@ -974,7 +991,7 @@ class LogBufferManager extends LogObject
         {
           while(freeBuffer[i] == null)
           {
-            bufferManagerLock.wait();
+            bufferManagerLock.wait(100);  // wait 100 ms at a time to avoid risk of missing a notify
           }
         }
       }
@@ -983,7 +1000,6 @@ class LogBufferManager extends LogObject
     {
       // ignore it
     }
-
   }
   
   /**
@@ -1251,6 +1267,7 @@ class LogBufferManager extends LogObject
           {
             // increase size of buffer pool if number of waits > 1/2 buffer pool size
             LogBuffer[] fb = new LogBuffer[freeBuffer.length + increment];
+            LogBuffer[] bl = new LogBuffer[fb.length]; // increase size of bufferList also.
             
             ++growPoolCounter;
 
@@ -1260,6 +1277,7 @@ class LogBufferManager extends LogObject
             {
               try {
                 fb[i] = getLogBuffer(i);
+                bl[i] = fb[i];
               } catch (ClassNotFoundException e) {
                 haveNewArray = false;
                 break;
@@ -1267,9 +1285,16 @@ class LogBufferManager extends LogObject
             }
             if (haveNewArray)
             {
-              LogBuffer[] fq = new LogBuffer[fb.length + 1];
+              LogBuffer[] fq = new LogBuffer[fb.length + 1]; // new forceQueue
               synchronized(bufferManagerLock)
               {
+                // copy bufferList to new array
+                for(int i=0; i<bufferList.length; ++i)
+                  bl[i] = bufferList[i];
+                
+                // replace bufferList with new array
+                bufferList = bl;
+
                 // copy current freeBuffer array to new array
                 for(int i=0; i<freeBuffer.length; ++i)
                   fb[i] = freeBuffer[i];
@@ -1288,7 +1313,7 @@ class LogBufferManager extends LogObject
                   }
                   forceQueue = fq;
                   fqGet = 0;
-                  fqPut = fqx;
+                  fqPut = fqx % forceQueue.length;  // guarantee value is valid
                 }
               }
             }
@@ -1297,18 +1322,13 @@ class LogBufferManager extends LogObject
 
           // end of resizing buffer pool logic
           // TODO: refactor to a method
-          
 
           synchronized(bufferManagerLock)
           {
-
             buffer = fillBuffer;
             if (buffer != null && buffer.shouldForce())
             {
-              fillBuffer = null;
-              forceQueue[fqPut] = buffer;
-              fqPut = (fqPut + 1) % forceQueue.length;
-              ++buffersWaitingForce;  // BUG 303660
+              fqAdd(buffer);
             }
             else
               buffer = null;
@@ -1319,7 +1339,6 @@ class LogBufferManager extends LogObject
               parent.forceOnTimeout++;
               force(true);
           }
-
         }
         catch (InterruptedException e)
         {
