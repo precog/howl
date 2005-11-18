@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.26 2005-11-16 16:19:39 girouxm Exp $
+ * $Id: LogTest.java,v 1.27 2005-11-18 14:36:59 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -42,8 +42,6 @@ import java.io.FileNotFoundException;
 import junit.extensions.RepeatedTest;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.objectweb.howl.log.LogEventListener;
-import org.objectweb.howl.log.LogFileOverflowException;
 
 public class LogTest extends TestDriver
 {
@@ -368,10 +366,22 @@ public class LogTest extends TestDriver
     cfg.setLogFileDir(invalid);
     try {
       log.open();
-      log.close();
       fail("expected FileNotFoundException");
     } catch (FileNotFoundException e) {
       // this is what we expected
+    } finally {
+      log.close();
+    }
+    
+    // one more time to make sure the file locks set via system properties are cleared
+    // FEATURE 300922
+    try {
+      log.open();
+      fail("expected FileNotFoundException");
+    } catch (FileNotFoundException e) {
+      // this is what we expected
+    } finally {
+      log.close();
     }
   }
 
