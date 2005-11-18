@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileManager.java,v 1.16 2005-11-17 21:00:05 girouxm Exp $
+ * $Id: LogFileManager.java,v 1.17 2005-11-18 14:31:36 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -792,6 +792,9 @@ class LogFileManager extends LogObject
       }
       catch (FileNotFoundException e)
       {
+        // if we got this far, we have set the lock, so we have to clear it here.
+        setLockOnFile(name, false);  // FEATURE 300922
+        
         // FEATURE 300922; unlock any files that we did manage to open
         while (--i >= 0)
         {
