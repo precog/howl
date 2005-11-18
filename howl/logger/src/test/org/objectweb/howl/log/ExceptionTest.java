@@ -31,10 +31,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: ExceptionTest.java,v 1.5 2005-11-17 22:42:54 girouxm Exp $
+ * $Id: ExceptionTest.java,v 1.6 2005-11-18 15:11:29 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
+
+import junit.extensions.RepeatedTest;
+import junit.framework.Test;
+import junit.framework.TestSuite;
 
 import java.io.IOException;
 
@@ -134,7 +138,7 @@ public class ExceptionTest extends TestDriver
     log.setLogEventListener(this);
     log.setAutoMark(false);
     prop.setProperty("msg.count", "1000");
-    workers = 10;
+    workers = 50;
     try {
       runWorkers(LogTestWorker.class);
       assertFalse(getName() + ": LogFileOverflowException expected.", this.exception == null);
@@ -165,6 +169,11 @@ public class ExceptionTest extends TestDriver
   }
 
   public void log(int level, String message, Throwable thrown) {
+  }
+
+  public static Test suite() {
+    TestSuite suite = new TestSuite(ExceptionTest.class);
+    return new RepeatedTest(suite, Integer.getInteger("ExceptionTest.repeatcount", 1).intValue());
   }
   
 }
