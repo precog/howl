@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileManager.java,v 1.17 2005-11-18 14:31:36 girouxm Exp $
+ * $Id: LogFileManager.java,v 1.18 2005-11-21 16:47:15 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -718,7 +718,7 @@ class LogFileManager extends LogObject
    * To prevent multiple instances of Logger from allocating
    * the same files within a JVM, we create a system property 
    * @param name File object to be locked
-   * @returns true if requested lock operation is successful.
+   * @return true if requested lock operation is successful.
    */
   private boolean setLockOnFile(File name, boolean lock)
   {
@@ -1264,7 +1264,12 @@ class LogFileManager extends LogObject
         {
           if (eventListener != null)
           {
-            eventListener.logOverflowNotification(lowestSafeLogKey);
+            try {
+              // protect HOWL from RuntimeExceptions in application code
+              eventListener.logOverflowNotification(lowestSafeLogKey);
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
             
             // update count of notifications
             parent.overflowNotificationCount += 1;
