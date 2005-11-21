@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: ExceptionTest.java,v 1.6 2005-11-18 15:11:29 girouxm Exp $
+ * $Id: ExceptionTest.java,v 1.7 2005-11-21 17:51:26 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -57,7 +57,6 @@ import java.io.IOException;
  * @author Michael Giroux
  */
 public class ExceptionTest extends TestDriver
-  implements LogEventListener
 {
 
   /**
@@ -89,6 +88,9 @@ public class ExceptionTest extends TestDriver
    * @throws Exception
    */
   public void testIOException() throws Exception {
+    // start with new files
+    deleteLogFiles();
+    
     String defDir = cfg.getLogFileDir(); // so test runs if test.ioexception.dir not defined
     String logDir = prop.getProperty("test.ioexception.dir", defDir);
     cfg.setLogFileDir(logDir);
@@ -135,7 +137,7 @@ public class ExceptionTest extends TestDriver
   public void testLogFileOverflowException() throws Exception {
     deleteLogFiles(); // start with fresh files.
     log.open();
-    log.setLogEventListener(this);
+    log.setLogEventListener(new LogEventListener_LFOE(log));
     log.setAutoMark(false);
     prop.setProperty("msg.count", "1000");
     workers = 50;
@@ -152,25 +154,103 @@ public class ExceptionTest extends TestDriver
     // log.close(); called by runWorkers
   }
   
-  public void logOverflowNotification(long logkey) {
-    System.err.println(getName() + ": logOverflowNotification received" +
-        "\n  activeMark: " + log.getActiveMark() +
-        "\n  logkey: " + Long.toHexString(logkey));
-    for (int i = 0; i < workers; ++i)
-      worker[i].setException(new LogFileOverflowException());
+  /**
+   * LogEventListener methods.
+   */
+  class LogEventListener_AIOOB implements LogEventListener
+  {
+    final Logger log;
     
+    LogEventListener_AIOOB(Logger log)
+    {
+      this.log = log;
+    }
+    
+    public void logOverflowNotification(long logkey) {
+      // move the mark 
+      try {
+        log.mark(logkey);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      // generate a RuntimeException ( ArrayIndexOutOfBounds ) to test the catch in EventManager thread
+      byte[] b = new byte[1];
+      b[1] = 0;
+    }
+    
+    public boolean isLoggable(int level) {
+      // TODO Auto-generated method stub
+      return false;
+    }
+
+    public void log(int level, String message) {
+      // TODO Auto-generated method stub
+      
+    }
+
+    public void log(int level, String message, Throwable thrown) {
+      // TODO Auto-generated method stub
+      
+    }
+
   }
 
-  public boolean isLoggable(int level) {
-    return false;
+  
+  /**
+   * Verify that LogFileManager.EventManager traps RuntimeExceptions in application code
+   */ 
+  public void testLogOverflowNotificationException() throws Exception
+  {
+    deleteLogFiles();  // start with fresh files
+    
+    // start the log with a lot of work to force an overflow notification.
+    log.open();
+    log.setLogEventListener(new LogEventListener_AIOOB(log));
+    prop.setProperty("msg.count", "1000");
+    workers = 50;
+    try {
+      runWorkers(LogTestWorker.class);
+    } catch (LogFileOverflowException e) {
+      System.err.println(getName() + ": ignoring LogFileOverflowException");
+      // ignore -- we expected it to occur
+    }
+    finally {
+      deleteLogFiles(); // clean up the mess for next test
+    }
   }
 
-  public void log(int level, String message) {
-  }
+  /**
+   * LogEventListener used by testLogFileOverflowNotification.
+   */
+  class LogEventListener_LFOE implements LogEventListener
+  {
+    final Logger log;
+    LogEventListener_LFOE(Logger log)
+    {
+     this.log = log; 
+    }
+    
+    public void logOverflowNotification(long logkey) {
+      System.err.println(getName() + ": logOverflowNotification received" +
+          "\n  activeMark: " + log.getActiveMark() +
+          "\n  logkey: " + Long.toHexString(logkey));
+      for (int i = 0; i < workers; ++i)
+        worker[i].setException(new LogFileOverflowException());
+      
+    }
 
-  public void log(int level, String message, Throwable thrown) {
-  }
+    public boolean isLoggable(int level) {
+      return false;
+    }
 
+    public void log(int level, String message) {
+    }
+
+    public void log(int level, String message, Throwable thrown) {
+    }
+
+  }
+  
   public static Test suite() {
     TestSuite suite = new TestSuite(ExceptionTest.class);
     return new RepeatedTest(suite, Integer.getInteger("ExceptionTest.repeatcount", 1).intValue());
