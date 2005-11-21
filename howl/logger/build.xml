@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.9 2005-11-17 22:03:28 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.10 2005-11-21 16:44:28 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -206,6 +206,8 @@
       <fileset dir='${lib.src.dir}'>
         <include name='**/*.java'/>
       </fileset>
+      
+      <link href="http://java.sun.com/j2se/1.4.2/docs/api/"/>
 
       <doctitle>
         <![CDATA[<h1>HOWL Logger Public API</h1>]]>
@@ -230,6 +232,8 @@
 			<fileset dir='${lib.src.dir}'>
         <include name='**/*.java'/>
 			</fileset>
+
+      <link href="http://java.sun.com/j2se/1.4.2/docs/api/"/>
 			
 			<doctitle>
   			<![CDATA[<h1>HOWL Logger Project API</h1>]]>
