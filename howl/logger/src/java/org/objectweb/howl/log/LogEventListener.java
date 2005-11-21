@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogEventListener.java,v 1.4 2005-06-23 23:28:14 girouxm Exp $
+ * $Id: LogEventListener.java,v 1.5 2005-11-21 16:45:44 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -122,7 +122,7 @@ public interface LogEventListener
    * be written to the log.
    * 
    * @return true if the log level is being logged
-   * @see java.util.logging.Logger#isLoggable()
+   * @see java.util.logging.Logger#isLoggable() java.util.logging.Logger#isLoggable()
    */
   public boolean isLoggable(int level);
   
