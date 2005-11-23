@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Version.java,v 1.5 2005-11-23 17:56:52 girouxm Exp $
+ * $Id: Version.java,v 1.6 2005-11-23 18:49:55 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -39,22 +39,33 @@ package org.objectweb.howl.log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Version {
-  private static final String cvsId = "$Id: Version.java,v 1.5 2005-11-23 17:56:52 girouxm Exp $";
-  
+
   void run()
   {
-    boolean verbose = Boolean.getBoolean("verbose");
-    InputStream is = this.getClass().getClassLoader().getResourceAsStream("cvs/status.txt");
-    if (is == null) 
+    ClassLoader myLoader = this.getClass().getClassLoader();
+    Properties vp = new Properties(); // version properties
+    InputStream vpis = myLoader.getResourceAsStream("resources/version.properties");
+    if (vpis != null)
     {
-      System.err.println("cvs/status.txt not found; version information not available.\n" + cvsId);
-      return;
+      try {
+        vp.load(vpis);
+      } catch (IOException e) {
+        // ignore it -- we will display a default message
+      } finally {
+        System.out.print("HOWL built: ");
+        System.out.println(vp.getProperty("build.time", "???"));
+      }
     }
     
+    boolean verbose = Boolean.getBoolean("verbose");
+    InputStream is = this.getClass().getClassLoader().getResourceAsStream("cvs/status.txt");
+    if (is == null) return;
+
     byte[] data = new byte[100];
     String residue = "";
     Pattern p = Pattern.compile("^.*Repository revision:[ \\t]+(.+)[ \\t]+.*src/java/((.+/)*)(.+\\.java),v");
