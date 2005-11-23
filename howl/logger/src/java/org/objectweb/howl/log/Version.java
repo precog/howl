@@ -31,17 +31,75 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Version.java,v 1.4 2005-08-18 22:38:06 girouxm Exp $
+ * $Id: Version.java,v 1.5 2005-11-23 17:56:52 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Version {
-  private static final String cvsId = "$Id: Version.java,v 1.4 2005-08-18 22:38:06 girouxm Exp $";
+  private static final String cvsId = "$Id: Version.java,v 1.5 2005-11-23 17:56:52 girouxm Exp $";
   
+  void run()
+  {
+    boolean verbose = Boolean.getBoolean("verbose");
+    InputStream is = this.getClass().getClassLoader().getResourceAsStream("cvs/status.txt");
+    if (is == null) 
+    {
+      System.err.println("cvs/status.txt not found; version information not available.\n" + cvsId);
+      return;
+    }
+    
+    byte[] data = new byte[100];
+    String residue = "";
+    Pattern p = Pattern.compile("^.*Repository revision:[ \\t]+(.+)[ \\t]+.*src/java/((.+/)*)(.+\\.java),v");
+    String currentPackage = "";
+    try {
+      while (is.available() > 0) {
+        int bytesread = is.read(data);
+        if (verbose) {
+          System.out.print(new String(data, 0, bytesread));
+        }
+        else {
+          String s = residue.concat(new String(data, 0, bytesread));
+          int fromIndex = 0;
+          for (int i = s.indexOf('\n', fromIndex); i >= 0; i = s.indexOf('\n', fromIndex)) {
+            String line = s.substring(fromIndex, i);
+            Matcher m = p.matcher(line);
+            if (m.matches())
+            {
+              String revision = m.group(1);
+              String pkg = m.group(2).replace('/','.');
+              if (! pkg.equals(currentPackage))
+              {
+                currentPackage = pkg;
+                int len = pkg.length() - 1;
+                System.out.println(pkg.substring(0,len));
+              }
+              String module = m.group(4);
+              int length = 40 - module.length();
+              if (length < 0) length = 0; 
+              char[] fill = new char[length];
+              Arrays.fill(fill, ' ');
+              System.out.println("    " + module + new String(fill) + revision);
+            }
+            fromIndex = i + 1;
+          }
+          residue = s.substring(fromIndex);
+        }
+      }
+    } catch (IOException e) {
+      System.err.println(e);
+    }
+  }
+
   public static void main(String[] args) {
-    System.out.println(cvsId);
+    new Version().run();
   }
 
 }
