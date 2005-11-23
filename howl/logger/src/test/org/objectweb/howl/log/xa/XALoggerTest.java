@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: XALoggerTest.java,v 1.22 2005-11-17 22:34:40 girouxm Exp $
+ * $Id: XALoggerTest.java,v 1.23 2005-11-23 18:15:02 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log.xa;
@@ -322,6 +322,8 @@ public class XALoggerTest extends TestDriver
    */
   public void test_010_RMFailure() throws Exception
   {
+    this.deleteLogFiles(); // start with a clean set of logs
+    
     log.open(openListener);
     assertEquals("activeTxUsed after open", 0, log.getActiveTxUsed());
     log.setAutoMark(false);
