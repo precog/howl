@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Version.java,v 1.6 2005-11-23 18:49:55 girouxm Exp $
+ * $Id: Version.java,v 1.7 2005-11-23 20:58:42 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -58,7 +58,7 @@ public class Version {
         // ignore it -- we will display a default message
       } finally {
         System.out.print("HOWL built: ");
-        System.out.println(vp.getProperty("build.time", "???"));
+        System.out.println(vp.getProperty("build.time", "build.time property not found"));
       }
     }
     
@@ -70,39 +70,42 @@ public class Version {
     String residue = "";
     Pattern p = Pattern.compile("^.*Repository revision:[ \\t]+(.+)[ \\t]+.*src/java/((.+/)*)(.+\\.java),v");
     String currentPackage = "";
+
+    final char[] fill = new char[40];
+    Arrays.fill(fill, ' ');
+    final int cFill = fill.length; // count of chars in fill
+
     try {
       while (is.available() > 0) {
         int bytesread = is.read(data);
         if (verbose) {
           System.out.print(new String(data, 0, bytesread));
+          continue;
         }
-        else {
-          String s = residue.concat(new String(data, 0, bytesread));
-          int fromIndex = 0;
-          for (int i = s.indexOf('\n', fromIndex); i >= 0; i = s.indexOf('\n', fromIndex)) {
-            String line = s.substring(fromIndex, i);
-            Matcher m = p.matcher(line);
-            if (m.matches())
+        
+        String s = residue.concat(new String(data, 0, bytesread));
+        int fromIndex = 0;
+        for (int i = s.indexOf('\n', fromIndex); i >= 0; i = s.indexOf('\n', fromIndex)) {
+          String line = s.substring(fromIndex, i);
+          Matcher m = p.matcher(line);
+          if (m.matches())
+          {
+            String revision = m.group(1);
+            String pkg = m.group(2).replace('/','.');
+            if (! pkg.equals(currentPackage))
             {
-              String revision = m.group(1);
-              String pkg = m.group(2).replace('/','.');
-              if (! pkg.equals(currentPackage))
-              {
-                currentPackage = pkg;
-                int len = pkg.length() - 1;
-                System.out.println(pkg.substring(0,len));
-              }
-              String module = m.group(4);
-              int length = 40 - module.length();
-              if (length < 0) length = 0; 
-              char[] fill = new char[length];
-              Arrays.fill(fill, ' ');
-              System.out.println("    " + module + new String(fill) + revision);
+              currentPackage = pkg;
+              int len = pkg.length() - 1;
+              System.out.println(pkg.substring(0,len));
             }
-            fromIndex = i + 1;
+            String module = m.group(4);
+            int length = cFill - module.length();
+            if (length < 0) length = 0; 
+            System.out.println("    " + module + new String(fill, 0, length) + revision);
           }
-          residue = s.substring(fromIndex);
+          fromIndex = i + 1;
         }
+        residue = s.substring(fromIndex);
       }
     } catch (IOException e) {
       System.err.println(e);

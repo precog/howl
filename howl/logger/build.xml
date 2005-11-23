@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.12 2005-11-23 18:53:17 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.13 2005-11-23 20:58:42 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -223,9 +223,10 @@
   <target name='test-report'
     depends='cvs.pwd.not.defined,clean-all,test-all,junitreport'
     description='Generate JUnit Test Reports for distribution'>
-    <echo>***
-      Remember to run ANT all-docs to generate up to date javadocs. 
-      Remember to run ANT publish to push the new reports to the HOWL web site.
+    <echo>*** Remember to
+      1) run ANT all-docs to generate up to date javadocs. 
+      2) run ANT publish to push the new reports to the HOWL web site.
+      3) run ANT cvsstatus to update howl.jar with cvs revision info.
     </echo>
   </target>
   
