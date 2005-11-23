@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.10 2005-11-21 16:44:28 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.11 2005-11-23 18:51:09 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -24,19 +24,24 @@
   <!-- load properties for local build -->
   <property file='build.properties'/>
   
+  <!-- load properties that describe the log files used for testing -->
+  <property file='src/test-resources/log.properties' />
+  
   <!-- define default values for properties not found in build.properties -->
   <property name='build.compiler' value='modern'/>
   <property name='javac.source' value='1.4'/>
   <property name='delete.verbose' value='false'/>
   <property name='temp.dir' value='target/temp'/>
+  <property name='logFileDir' value='target/logs'/>
   
   <target name='changelog'>
     <mkdir dir="${doc.dir}/cvs"/>
     
     <cvschangelog  destfile="${doc.dir}/cvs/changelog.xml" 
+      passfile='nul'
       cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl">
     </cvschangelog>
-
+    
     <style in="${doc.dir}/cvs/changelog.xml" 
            out="${doc.dir}/cvs/changelog.html" 
            style="${ant.home}/etc/changelog.xsl">
@@ -47,11 +52,43 @@
 
   </target>
   
+  <target name='cvsstatus'>
+    <mkdir dir="${temp.dir}/cvs"/>
+    <cvs output='${temp.dir}/cvs/status.txt'
+      cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
+      passfile='nul'>
+      
+      <commandline>
+        <argument value="status"/>
+      </commandline>
+    </cvs>
+    
+    <jar destfile='${classes.dir}/howl.jar' update='true' >
+      <fileset dir='${temp.dir}' includes='cvs/*.*'/>
+    </jar>
+  </target>
+  
+  <target name='orderedchangelog'>
+
+    <style in="${doc.dir}/cvs/changelog.xml"
+           out="${doc.dir}/cvs/orderedchangelog.xml"
+           style="${basedir}/version.xsl">
+    </style>
+
+  </target>
+  
   <target name='compile-lib'
     depends='clean-lib'
     description='compile HOWL library classes'>
 
     <mkdir dir='${lib.classes.dir}'/>
+    <mkdir dir='${temp.dir}/resources'/>
+    
+    <tstamp>
+      <format property="build.time" pattern="EEEE dd/MMM/yyyy 'at' hh:mm aa zzz" />
+    </tstamp>
+    
+    <echo file='${temp.dir}/resources/version.properties'>build.time=${build.time}</echo>
     
     <javac
       srcdir='${lib.src.dir}'
@@ -65,6 +102,7 @@
       manifest="${src.dir}/manifest"
       >
       <fileset dir='${lib.classes.dir}' includes='**/*.class'/>
+      <fileset dir='${temp.dir}' includes='resources/*.*'/>
     </jar>
   </target>
   
@@ -107,9 +145,17 @@
     </delete>
   </target>
   
+  <target name='clean-logs'
+    description='Remove HOWL journals from previous tests.' >
+    <delete failonerror='true' verbose='${delete.verbose}' dir='${logFileDir}'/>
+  </target>
+  
   <target name='clean-all'
-    depends='clean-lib,clean-test'
     description='Remove all generated files and directories for HOWL libarary and JUnit test cases.'>
+    <delete failonerror='false' verbose='${delete.verbose}' dir='${classes.dir}'/>
+    <delete failonerror='false' verbose='${delete.verbose}' dir='${doc.dir}'/>
+    <delete failonerror='false' verbose='${delete.verbose}' dir='${report.dir}'/>
+    <delete failonerror='false' verbose='${delete.verbose}' dir='target'/>
   </target>
 
   <target name='compile-all'
@@ -142,6 +188,7 @@
           <exclude name='**/allTest.java'/>
           <exclude name='**/ExceptionTest.java'/> 
           <exclude name='**/MBeanTest.java'/>
+          <exclude name='**/ThroughputTest.java'/>
         </fileset>
       </batchtest>
     </junit>
