@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.11 2005-11-23 18:51:09 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.12 2005-11-23 18:53:17 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -66,15 +66,6 @@
     <jar destfile='${classes.dir}/howl.jar' update='true' >
       <fileset dir='${temp.dir}' includes='cvs/*.*'/>
     </jar>
-  </target>
-  
-  <target name='orderedchangelog'>
-
-    <style in="${doc.dir}/cvs/changelog.xml"
-           out="${doc.dir}/cvs/orderedchangelog.xml"
-           style="${basedir}/version.xsl">
-    </style>
-
   </target>
   
   <target name='compile-lib'
