@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding="java/|test/" kind="src" path="src"/>
 	<classpathentry excluding="org/objectweb/howl/log/MBeanTest.java|org/objectweb/howl/log/MBeanTestMBean.java" kind="src" path="src/test"/>
 	<classpathentry kind="src" path="src/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
