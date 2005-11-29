@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileManager.java,v 1.18 2005-11-21 16:47:15 girouxm Exp $
+ * $Id: LogFileManager.java,v 1.19 2005-11-29 23:11:22 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -965,7 +965,9 @@ class LogFileManager extends LogObject
       currentKey = record.key;
     }
     else {
+      // new files
       fpos = 0L;
+      activeMark = bmgr.markFromBsn(1, 0); // BUG 304331
     }
     
     // update activeMark based on automark setting recovered from log
