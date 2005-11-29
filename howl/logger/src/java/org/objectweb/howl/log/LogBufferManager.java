@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogBufferManager.java,v 1.27 2005-11-17 22:12:43 girouxm Exp $
+ * $Id: LogBufferManager.java,v 1.28 2005-11-29 23:09:48 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -587,7 +587,13 @@ class LogBufferManager extends LogObject
         {
           LogBuffer b = freeBuffer[nextIndex];
           freeBuffer[nextIndex] = null;
-          fillBuffer = b.init(nextFillBSN, lfm);
+          try {
+            fillBuffer = b.init(nextFillBSN, lfm);
+          } catch (LogFileOverflowException e) {
+            // BUG 300956 - return buffer to free list to prevent hang in close.
+            freeBuffer[nextIndex] = b;
+            throw e;
+          }
           ++nextFillBSN;
         }
         ++nextIndex;
