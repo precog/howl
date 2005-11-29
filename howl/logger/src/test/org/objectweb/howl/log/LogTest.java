@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.27 2005-11-18 14:36:59 girouxm Exp $
+ * $Id: LogTest.java,v 1.28 2005-11-29 23:14:51 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -82,7 +82,7 @@ public class LogTest extends TestDriver
     } catch (UnsupportedOperationException e) {
       ; // expected this
     }
-    
+    this.deleteLogFiles();
     log.open();
     log.lfmgr.getHighMark();
     log.close();
@@ -717,6 +717,52 @@ public class LogTest extends TestDriver
     assertEquals("Record Key: " + Long.toHexString(eKey), eKey, lr.key);
     assertEquals("Record Data", eVal, rVal);
     assertEquals("Field Count != 1", 1, r2.length);
+  }
+  
+  public void testLogFileOverflow() throws Exception
+  {
+    this.deleteLogFiles();
+
+    int recCount = 1;
+    
+    cfg.setMaxLogFiles(2);
+    cfg.setMaxBlocksPerFile(5);
+    log.open();
+    
+    // display highmark for each log file
+    byte[][] record = new byte[][] {"record".getBytes(), "1".getBytes()};
+    
+    // keep reference to first log file
+    long initialKey = log.put(record, false);
+    
+    // write records until switch to second log file
+    LogFile firstLF = log.lfmgr.currentLogFile;
+    do {
+      record[1] = Integer.toString(++recCount).getBytes();
+      log.put(record, false);
+    } while (firstLF.equals(log.lfmgr.currentLogFile));
+
+    // write records until switch to first log file -- should get LogFileOverflowException
+    try {
+      LogFile currentLF = log.lfmgr.currentLogFile;
+      do {
+        record[1] = Integer.toString(++recCount).getBytes();
+        log.put(record, false);
+      } while(currentLF.equals(log.lfmgr.currentLogFile));
+      
+      fail("LogFileOverflowException expected");
+    } catch (LogFileOverflowException e) {
+      // expected
+    }
+    
+    // verify that first record in file has not been overwritten.
+    LogRecord lr = log.get(null, 0L);
+    while (lr.type != LogRecordType.USER) log.getNext(lr);
+    assertEquals("Unexpected log key: ", initialKey, lr.key);
+    byte[][] fields = lr.getFields();
+    assertTrue("record".equals(new String(fields[0])));
+    assertTrue("1".equals(new String(fields[1])));
+
   }
 
 }
