@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.28 2005-11-29 23:14:51 girouxm Exp $
+ * $Id: LogTest.java,v 1.29 2005-11-30 15:07:48 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -762,7 +762,22 @@ public class LogTest extends TestDriver
     byte[][] fields = lr.getFields();
     assertTrue("record".equals(new String(fields[0])));
     assertTrue("1".equals(new String(fields[1])));
-
+    
+    // close the log, reopen and write a record -- should get overflow
+    log.close();
+    
+    log = new Logger(cfg);
+    log.open();
+    System.out.println("activeMark: " + Long.toHexString(log.lfmgr.activeMark));
+    try {
+      record[1] = Integer.toString(++recCount).getBytes();
+      log.put(record, false);
+      fail("Expected LogFileOverflowException");
+    } catch (LogFileOverflowException e) {
+      // expected
+    }
+    
+    log.close(); 
   }
 
 }
