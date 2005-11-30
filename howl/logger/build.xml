@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.13 2005-11-23 20:58:42 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.14 2005-11-30 16:29:36 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -63,9 +63,38 @@
       </commandline>
     </cvs>
     
+  </target>
+  
+  <target name='checkCVS'>
+    <apply executable='grep'
+      resultproperty='isLocalyModified'
+      failonerror='false'>
+      <arg value='-E'/>
+      <arg value='Status: +Locally'/>
+      <fileset dir='${temp.dir}/cvs' includes='status.txt'/>
+    </apply>
+    
+    <fail>***
+      Commit Locally Modified files to CVS before building a release.
+      <condition>
+        <equals arg1='0' arg2='${isLocalyModified}'/>
+      </condition>
+    </fail>
+  </target>
+  
+  <target name='release'
+    depends='cvsstatus,checkCVS,test-report,all-docs'
+    description='Build jar files for HOWL release'>
+    
+    <!-- add version information to the howl.jar file -->
     <jar destfile='${classes.dir}/howl.jar' update='true' >
       <fileset dir='${temp.dir}' includes='cvs/*.*'/>
     </jar>
+    
+    <echo>*** Remember to
+      1) create a release using the updated howl.jar
+      2) run ANT publish to push the new reports to the HOWL web site.
+    </echo>
   </target>
   
   <target name='compile-lib'
