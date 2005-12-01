@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.29 2005-11-30 15:07:48 girouxm Exp $
+ * $Id: LogTest.java,v 1.30 2005-12-01 18:16:33 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -456,7 +456,7 @@ public class LogTest extends TestDriver
     // log.close(); called by runWorkers()
   }
   
-  class DataRecords {
+  final class DataRecords {  // make class final to clear findbugs warnings
     final int count;
     final String[] sVal;
     final byte[][] r1;
