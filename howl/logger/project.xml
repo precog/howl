@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- $Id: project.xml,v 1.15 2005-09-08 16:41:51 girouxm Exp $ -->
+<!-- $Id: project.xml,v 1.16 2005-12-07 19:08:02 girouxm Exp $ -->
 <project>
     <pomVersion>3</pomVersion>
     <name>HOWL :: Logger</name>
     <groupId>howl</groupId>
     <id>howl-logger</id>
-    <currentVersion>0.1.11</currentVersion>
+    <currentVersion>1.0.0</currentVersion>
     <organization>
         <name>HOWL Development Team</name>
         <url>http://forge.objectweb.org/projects/howl</url>

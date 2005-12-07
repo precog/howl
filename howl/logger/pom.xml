@@ -4,7 +4,7 @@
     <artifactId>howl-logger</artifactId>
     <name>HOWL logger</name>
     <packaging>jar</packaging>
-    <version>0.1.11</version>
+    <version>1.0.0</version>
 
     <issueManagement>
         <system>bugzilla</system>

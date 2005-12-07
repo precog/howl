@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.15 2005-12-07 17:49:49 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.16 2005-12-07 19:08:02 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -98,8 +98,8 @@
     <cvstagdiff destfile='${temp.dir}/tagdiff.xml'
       cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
       passfile='nul'
-      startTag='HOWL_0_1_9'
-      endTag='HOWL_0_1_11'
+      startTag='HOWL_0_1_11'
+      endTag='HOWL_1_0_0'
       package='howl/logger'
       >
       
@@ -108,9 +108,9 @@
     <mkdir dir='${doc.dir}/cvs'/>
       
     <style in="${temp.dir}/tagdiff.xml" 
-           out="${doc.dir}/cvs/HOWL_0_1_11.html" 
+           out="${doc.dir}/cvs/HOWL_1_0_0.html" 
            style="${ant.home}/etc/tagdiff.xsl">
-      <param name="title" expression="HOWL Version Diff"/>
+      <param name="title" expression="HOWL Version 1.0.0 Diff"/>
       <param name="module" expression="howl/logger"/>
       <param name="cvsweb" expression="http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/"/>      
     </style>
