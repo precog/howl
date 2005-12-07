@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding="org/objectweb/howl/log/MBeanTest.java|org/objectweb/howl/log/MBeanTestMBean.java" kind="src" path="src/test"/>
 	<classpathentry kind="src" path="src/java"/>
+	<classpathentry excluding="org/objectweb/howl/log/MBeanTest.java|org/objectweb/howl/log/MBeanTestMBean.java" kind="src" path="src/test"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="C:/java/junit3.8.1/junit.jar"/>
 	<classpathentry kind="output" path="bin"/>
