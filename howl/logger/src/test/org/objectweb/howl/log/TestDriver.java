@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: TestDriver.java,v 1.17 2005-11-17 20:50:11 girouxm Exp $
+ * $Id: TestDriver.java,v 1.18 2005-12-07 18:01:54 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -193,6 +193,8 @@ public class TestDriver extends TestCase {
     String logDir = cfg.getLogFileDir();
     File dir = new File(logDir);
     File[] logs = dir.listFiles();
+    
+    if (logs == null) return; // no files to delete
     
     String logFileName = cfg.getLogFileName();
     String logFileExt = cfg.getLogFileExt();
