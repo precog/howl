@@ -32,6 +32,17 @@
 						border="0" height="50" width="150" />
 					<br />
 				</p>
+        <p>
+          <strong>Wednesday, December 07, 2005</strong>
+          Release HOWL_1_0_0 published.
+          <br />
+          The TAG HOWL_1_0_0 has been applied to CVS head,
+          and the howl.jar file published to the forge.
+          <br />
+          Refer to the <a href="cvs/HOWL_1_0_0.html">CVS Difference</a>
+          report for a summary of changes since the previous tagged
+          version.
+        </p>
 				<p>
 				  <strong>Thursday, September 08, 2005</strong>
 				  TAG HOWL_0_1_11 committed to CVS.
