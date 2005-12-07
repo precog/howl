@@ -1,7 +1,7 @@
 <project default='test-report'
   xmlns:dav="antlib:org.apache.webdav.ant">
   
-  <!-- $Id: build.xml,v 1.14 2005-11-30 16:29:36 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.15 2005-12-07 17:49:49 girouxm Exp $ -->
   
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env"/>
@@ -28,6 +28,7 @@
   <property file='src/test-resources/log.properties' />
   
   <!-- define default values for properties not found in build.properties -->
+  <property name='release.force' value='false' />
   <property name='build.compiler' value='modern'/>
   <property name='javac.source' value='1.4'/>
   <property name='delete.verbose' value='false'/>
@@ -77,13 +78,16 @@
     <fail>***
       Commit Locally Modified files to CVS before building a release.
       <condition>
-        <equals arg1='0' arg2='${isLocalyModified}'/>
+        <and>
+          <isfalse value='${release.force}'/> <!-- use -Drelease.force to release with out of date files -->
+          <equals arg1='0' arg2='${isLocalyModified}'/>
+        </and>
       </condition>
     </fail>
   </target>
   
   <target name='release'
-    depends='cvsstatus,checkCVS,test-report,all-docs'
+    depends='clean-all,cvsstatus,checkCVS,test-report,all-docs'
     description='Build jar files for HOWL release'>
     
     <!-- add version information to the howl.jar file -->
@@ -91,6 +95,26 @@
       <fileset dir='${temp.dir}' includes='cvs/*.*'/>
     </jar>
     
+    <cvstagdiff destfile='${temp.dir}/tagdiff.xml'
+      cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
+      passfile='nul'
+      startTag='HOWL_0_1_9'
+      endTag='HOWL_0_1_11'
+      package='howl/logger'
+      >
+      
+    </cvstagdiff>
+    
+    <mkdir dir='${doc.dir}/cvs'/>
+      
+    <style in="${temp.dir}/tagdiff.xml" 
+           out="${doc.dir}/cvs/HOWL_0_1_11.html" 
+           style="${ant.home}/etc/tagdiff.xsl">
+      <param name="title" expression="HOWL Version Diff"/>
+      <param name="module" expression="howl/logger"/>
+      <param name="cvsweb" expression="http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/"/>      
+    </style>
+
     <echo>*** Remember to
       1) create a release using the updated howl.jar
       2) run ANT publish to push the new reports to the HOWL web site.
@@ -341,7 +365,11 @@
     <tar
       tarfile="${temp.dir}/docs.tar"
       basedir="${doc.dir}"
-      includes="jdoc/**, junitreport/**"
+      includes="
+        jdoc/**
+        junitreport/**
+        cvs/**
+      "
     />
     <gzip
       zipfile="${temp.dir}/docs.tar.gz"
