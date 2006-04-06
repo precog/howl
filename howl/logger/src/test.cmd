@@ -1,6 +1,11 @@
 @echo off
-rem $Id: test.cmd,v 1.19 2005-06-24 14:29:25 girouxm Exp $
+rem $Id: test.cmd,v 1.20 2006-04-06 21:29:05 girouxm Exp $
 setlocal
+
+if "%EMMA_HOME%"=="" (
+echo EMMA_HOME not set
+goto :EOF
+)
 
 set JUNIT_HOME=c:\java\junit3.8.1
 
@@ -8,7 +13,6 @@ set java_opts=%java_opts% -cp .\bin;%EMMA_HOME%\lib\emma.jar;%JUNIT_HOME%\bin
 set java_opts=%java_opts% -showversion -Xnoclassgc -da -dsa
 set server_opt= -server
 
-set JAVA_HOME=C:\java\j2sdk1.4.2_08
 set mode=1.4
 
 if "%1"=="tiger" (
@@ -37,7 +41,7 @@ set server_opt=
 
 set emma=
 if "%1"=="emma" (
-set emma=emmarun -r html -sp ./src/java;./src/test -ix -org.objectweb.howl.log.*Test* -ix -org.objectweb.howl.log.xa.*Worker* -ix -org.objectweb.howl.log.xa.*Test* -ix -junit.* -cp bin;%junit_home%/bin
+set emma=emmarun -r txt -sp ./src/java;./src/test -ix -org.objectweb.howl.log.*Test* -ix -org.objectweb.howl.log.xa.*Worker* -ix -org.objectweb.howl.log.xa.*Test* -ix -junit.* -cp bin;%junit_home%/bin
 )
 
 pushd ..
