@@ -13,3 +13,5 @@ TCPMON.launch
 jrarecording.xml.zip
 .fbprefs
 .fbwarnings
+coverage.txt
+coverage.xml
