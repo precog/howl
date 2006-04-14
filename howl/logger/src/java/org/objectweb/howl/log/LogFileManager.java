@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileManager.java,v 1.19 2005-11-29 23:11:22 girouxm Exp $
+ * $Id: LogFileManager.java,v 1.20 2006-04-14 21:13:23 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -541,11 +541,16 @@ class LogFileManager extends LogObject
   long mark(long key, boolean force)
     throws InvalidLogKeyException, IOException, InterruptedException
   {
-    if (key < activeMark || key > currentKey)
+    if (key < activeMark )
       throw new InvalidLogKeyException(
           " key: " + Long.toHexString(key) +
-          " activeMark: " + Long.toHexString(activeMark) +
-          " currentKey: " + Long.toHexString(currentKey)
+          " less than activeMark: " + Long.toHexString(activeMark)
+          );
+
+    if (key > currentKey)
+      throw new InvalidLogKeyException(
+          " key: " + Long.toHexString(key) +
+          " greater than currentKey: " + Long.toHexString(currentKey)
           );
 
     byte[][] markData = new byte[1][markRecord[0].length];
