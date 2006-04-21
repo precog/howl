@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Logger.java,v 1.13 2005-07-08 22:50:07 girouxm Exp $
+ * $Id: Logger.java,v 1.14 2006-04-21 15:03:36 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -506,6 +506,7 @@ public class Logger extends LogObject
     
     if (lr.isEOB())
     {
+      long bsn = buffer.bsn;  // so we can test for wraparound
       try {
         lfmgr.read(buffer, buffer.bsn+1);
       } catch (IOException e) {
@@ -514,7 +515,7 @@ public class Logger extends LogObject
         throw new LogException(msg, e);
       }
       
-      if (buffer.bsn == -1)
+      if (buffer.bsn == -1 || buffer.bsn < bsn) // BUG 304982
       {
         lr.type = LogRecordType.END_OF_LOG;
         return lr;

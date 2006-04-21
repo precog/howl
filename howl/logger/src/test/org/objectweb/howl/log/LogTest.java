@@ -31,13 +31,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.30 2005-12-01 18:16:33 girouxm Exp $
+ * $Id: LogTest.java,v 1.31 2006-04-21 15:03:36 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import junit.extensions.RepeatedTest;
 import junit.framework.Test;
@@ -601,6 +602,85 @@ public class LogTest extends TestDriver
     dr.putAll(false);
     dr.verify(0);
     log.close();
+  }
+  
+  
+  
+  /**
+   * Verify that getNext method will detect the logical end of
+   * journal by reading a block with bsn < current block.
+   * 
+   * @throws Exception
+   */
+  public void testGetNextMethod() throws Exception {
+    long keys[] = new long[20]; // array of last 10 keys
+    int  kx = 0;  // index into keys array
+    
+    byte[][] rec = new byte[2][];
+    rec[0] = "testGetNextMethod_".getBytes();
+        
+    // start with clean set of log files
+    cfg.setBufferSize(1);
+    cfg.setMaxBlocksPerFile(5);
+    cfg.setLogFileName("TestGetNext");
+    log = new Logger(cfg);
+    this.deleteLogFiles();
+    
+    log.open();
+    log.setAutoMark(true);  // to prevent LogOverflowException
+    
+    // write records until journal wraps around
+    int counter = 1;
+    while(true) {
+      rec[1] = Integer.toHexString(counter++).getBytes();
+      keys[kx++] = log.put(rec,false);
+      kx %= keys.length;
+      if (log.lfmgr.currentLogFile.rewindCounter > 1) break;
+    }
+
+    // Logger.get() will force the current buffer so we need
+    // to call it before the writer thread puts a new record.
+    counter = 0;
+    LogRecord lr = log.get(null, keys[kx]);
+
+    /*
+     * write another record in a separate thread to create
+     * a new high-water mark in the log file.
+     * The record is written with force=false to create the
+     * condition reported in BUG 304982
+     */
+    Writer writer = new Writer();
+    writer.run();
+    writer.join();
+    assertNull(getName() + ": Exception thrown in Writer thread", writer.exception);
+    
+    // read records until END_OF_LOG
+    long currentKey = lr.key;
+    while (true) {
+      log.getNext(lr);
+      assertFalse(getName() + ": END_OF_LOG not detected",lr.key < currentKey);
+      currentKey = lr.key;
+      if (lr.type == LogRecordType.END_OF_LOG) break;
+      ++counter;
+    }
+    
+    // we should have read back the number of records i
+    assertEquals(getName() + ": unexpected number of records processed", keys.length, counter);
+  }
+
+  /**
+   * Helper thread for testGetNextMethod
+   */
+  private class Writer extends Thread { 
+    public Exception exception = null;
+    public void run() {
+      try {
+        log.put("TestGetNextExtra".getBytes(),false); // DO NOT force this block to disk
+      } catch (Exception e) {
+        e.printStackTrace();
+        exception = e;
+      }
+    }
   }
   
   /**
