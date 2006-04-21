@@ -33,6 +33,16 @@
 					<br />
 				</p>
         <p>
+        <strong>Friday, April 21, 2006</strong>
+        Release HOWL_1_0_1 published.
+        <br />
+        This is a maintenance release containing a correction
+        for BUG 304982.
+        <br />
+        The TAG HOWL_1_0_1 has been applied to CVS head,
+        and the howl-1.0.1.jar file published to the forge.
+        </p>
+        <p>
           <strong>Wednesday, December 07, 2005</strong>
           Release HOWL_1_0_0 published.
           <br />
