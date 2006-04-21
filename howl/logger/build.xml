@@ -3,7 +3,7 @@
          xmlns:dav="antlib:org.apache.webdav.ant"
 >
 
-  <!-- $Id: build.xml,v 1.18 2006-04-21 17:09:22 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.19 2006-04-21 17:18:59 girouxm Exp $ -->
 
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env" />
@@ -91,7 +91,7 @@
         <and>
           <isfalse value='${release.force}' />
           <!-- use -Drelease.force to release with out of date files -->
-          <length string='${isLocalyModified}' when='greater' length='0' />
+          <isset property='isLocallyModified' />
         </and>
       </condition>
     </fail>
