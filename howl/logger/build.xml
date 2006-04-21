@@ -1,119 +1,133 @@
 <project default='test-report'
-  name="HOWL Logger"
-  xmlns:dav="antlib:org.apache.webdav.ant">
-  
-  <!-- $Id: build.xml,v 1.17 2006-04-21 15:00:44 girouxm Exp $ -->
-  
+         name="HOWL Logger"
+         xmlns:dav="antlib:org.apache.webdav.ant"
+>
+
+  <!-- $Id: build.xml,v 1.18 2006-04-21 17:09:22 girouxm Exp $ -->
+
   <!-- define properties that cannot be overridden by build.properties -->
-  <property environment="env"/>
-  
-  <property name='src.dir' value='src'/>
-  <property name='lib.src.dir' value='${src.dir}/java'/>
-  <property name='test.src.dir' value='${src.dir}/test'/>
-  <property name='classes.dir' value='bin'/>
-  <property name='lib.classes.dir' value='${classes.dir}/java'/>
-  <property name='test.classes.dir' value='${classes.dir}/test'/>
-  <property name='report.dir' value='reports'/>
-  <property name='doc.dir' value='doc'/>
-  <property name='jdoc.dir' value='${doc.dir}/jdoc'/>
-  <property name='cvs.user' value='${user.name}'/>
-  <property name='cvs.site' value='howl.forge.objectweb.org'/>
-  <property name='dav.site' value='https://howl.forge.objectweb.org:8002'/>
-  <property name='not.in.cvs' value='/var/lib/gforge/chroot/home/groups/howl/htdocs'/>
-  <property name='junit.home' value='${env.JUNIT_HOME}'/>
+  <property environment="env" />
+
+  <property name='src.dir' value='src' />
+  <property name='lib.src.dir' value='${src.dir}/java' />
+  <property name='test.src.dir' value='${src.dir}/test' />
+  <property name='classes.dir' value='bin' />
+  <property name='lib.classes.dir' value='${classes.dir}/java' />
+  <property name='test.classes.dir' value='${classes.dir}/test' />
+  <property name='report.dir' value='reports' />
+  <property name='doc.dir' value='doc' />
+  <property name='jdoc.dir' value='${doc.dir}/jdoc' />
+  <property name='cvs.user' value='${user.name}' />
+  <property name='cvs.site' value='howl.forge.objectweb.org' />
+  <property name='dav.site' value='https://howl.forge.objectweb.org:8002' />
+  <property name='not.in.cvs'
+            value='/var/lib/gforge/chroot/home/groups/howl/htdocs'
+  />
+  <property name='junit.home' value='${env.JUNIT_HOME}' />
 
   <!-- load properties for local build -->
-  <property file='build.properties'/>
-  
+  <property file='build.properties' />
+
   <!-- load properties that describe the log files used for testing -->
   <property file='src/test-resources/log.properties' />
-  
+
   <!-- define default values for properties not found in build.properties -->
   <property name='release.force' value='false' />
-  <property name='build.compiler' value='modern'/>
-  <property name='javac.source' value='1.4'/>
-  <property name='delete.verbose' value='false'/>
-  <property name='temp.dir' value='target/temp'/>
-  <property name='logFileDir' value='target/logs'/>
-  
+  <property name='build.compiler' value='modern' />
+  <property name='javac.source' value='1.4' />
+  <property name='delete.verbose' value='false' />
+  <property name='temp.dir' value='target/temp' />
+  <property name='logFileDir' value='target/logs' />
+
   <target name='changelog'>
-    <mkdir dir="${doc.dir}/cvs"/>
-    
-    <cvschangelog  destfile="${doc.dir}/cvs/changelog.xml" 
-      passfile='nul'
-      cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl">
+    <mkdir dir="${doc.dir}/cvs" />
+
+    <cvschangelog destfile="${doc.dir}/cvs/changelog.xml"
+                  passfile='nul'
+                  cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
+    >
     </cvschangelog>
-    
-    <style in="${doc.dir}/cvs/changelog.xml" 
-           out="${doc.dir}/cvs/changelog.html" 
-           style="${ant.home}/etc/changelog.xsl">
-      <param name="title" expression="HOWL ChangeLog"/>
-      <param name="module" expression="logger"/>
-      <param name="cvsweb" expression="http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/howl/"/>
+
+    <style in="${doc.dir}/cvs/changelog.xml"
+           out="${doc.dir}/cvs/changelog.html"
+           style="${ant.home}/etc/changelog.xsl"
+    >
+      <param name="title" expression="HOWL ChangeLog" />
+      <param name="module" expression="logger" />
+      <param name="cvsweb"
+             expression="http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/howl/"
+      />
     </style>
 
   </target>
-  
+
   <target name='cvsstatus'>
-    <mkdir dir="${temp.dir}/cvs"/>
+    <mkdir dir="${temp.dir}/cvs" />
     <cvs output='${temp.dir}/cvs/status.txt'
-      cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
-      passfile='nul'>
-      
+         cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
+         passfile='nul'
+    >
+
       <commandline>
-        <argument value="status"/>
+        <argument value="status" />
       </commandline>
     </cvs>
-    
+
   </target>
-  
+
   <target name='checkCVS'>
-    <apply executable='grep'
-      resultproperty='isLocalyModified'
-      failonerror='false'>
-      <arg value='-E'/>
-      <arg value='Status: +Locally'/>
-      <fileset dir='${temp.dir}/cvs' includes='status.txt'/>
-    </apply>
-    
+    <loadfile srcfile="${temp.dir}/cvs/status.txt" property="isLocallyModified">
+      <filterchain>
+        <linecontainsregexp>
+          <regexp pattern="Status: +Locally" />
+        </linecontainsregexp>
+      </filterchain>
+    </loadfile>
+
     <fail>***
       Commit Locally Modified files to CVS before building a release.
+      ${isLocallyModified}
       <condition>
         <and>
-          <isfalse value='${release.force}'/> <!-- use -Drelease.force to release with out of date files -->
-          <equals arg1='0' arg2='${isLocalyModified}'/>
+          <isfalse value='${release.force}' />
+          <!-- use -Drelease.force to release with out of date files -->
+          <length string='${isLocalyModified}' when='greater' length='0' />
         </and>
       </condition>
     </fail>
   </target>
-  
+
   <target name='release'
-    depends='clean-all,cvsstatus,checkCVS,test-report,all-docs'
-    description='Build jar files for HOWL release'>
-    
+          depends='clean-all,cvsstatus,checkCVS,test-report,all-docs'
+          description='Build jar files for HOWL release'
+  >
+
     <!-- add version information to the howl.jar file -->
-    <jar destfile='${classes.dir}/howl.jar' update='true' >
-      <fileset dir='${temp.dir}' includes='cvs/*.*'/>
+    <jar destfile='${classes.dir}/howl.jar' update='true'>
+      <fileset dir='${temp.dir}' includes='cvs/*.*' />
     </jar>
-    
+
     <cvstagdiff destfile='${temp.dir}/tagdiff.xml'
-      cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
-      passfile='nul'
-      startTag='HOWL_0_1_11'
-      endTag='HOWL_1_0_0'
-      package='howl/logger'
-      >
-      
+                cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
+                passfile='nul'
+                startTag='HOWL_0_1_11'
+                endTag='HOWL_1_0_0'
+                package='howl/logger'
+    >
+
     </cvstagdiff>
-    
-    <mkdir dir='${doc.dir}/cvs'/>
-      
-    <style in="${temp.dir}/tagdiff.xml" 
-           out="${doc.dir}/cvs/HOWL_1_0_0.html" 
-           style="${ant.home}/etc/tagdiff.xsl">
-      <param name="title" expression="HOWL Version 1.0.0 Diff"/>
-      <param name="module" expression="howl/logger"/>
-      <param name="cvsweb" expression="http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/"/>      
+
+    <mkdir dir='${doc.dir}/cvs' />
+
+    <style in="${temp.dir}/tagdiff.xml"
+           out="${doc.dir}/cvs/HOWL_1_0_0.html"
+           style="${ant.home}/etc/tagdiff.xsl"
+    >
+      <param name="title" expression="HOWL Version 1.0.0 Diff" />
+      <param name="module" expression="howl/logger" />
+      <param name="cvsweb"
+             expression="http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/"
+      />
     </style>
 
     <echo>*** Remember to
@@ -121,125 +135,137 @@
       2) run ANT publish to push the new reports to the HOWL web site.
     </echo>
   </target>
-  
-  <target name='compile-lib'
-    depends='clean-lib'
-    description='compile HOWL library classes'>
 
-    <mkdir dir='${lib.classes.dir}'/>
-    <mkdir dir='${temp.dir}/resources'/>
-    
+  <target name='compile-lib'
+          depends='clean-lib'
+          description='compile HOWL library classes'
+  >
+
+    <mkdir dir='${lib.classes.dir}' />
+    <mkdir dir='${temp.dir}/resources' />
+
     <tstamp>
-      <format property="build.time" pattern="EEEE dd/MMM/yyyy 'at' hh:mm aa zzz" />
+      <format property="build.time"
+              pattern="EEEE dd/MMM/yyyy 'at' hh:mm aa zzz"
+      />
     </tstamp>
-    
+
     <echo file='${temp.dir}/resources/version.properties'>build.time=${build.time}</echo>
-    
-    <javac
-      srcdir='${lib.src.dir}'
-      destdir='${lib.classes.dir}'
-      source='${javac.source}'
-      debug="true"
-      >
+
+    <javac srcdir='${lib.src.dir}'
+           destdir='${lib.classes.dir}'
+           source='${javac.source}'
+           debug="true"
+    >
     </javac>
 
-    <jar destfile='${classes.dir}/howl.jar'
-      manifest="${src.dir}/manifest"
-      >
-      <fileset dir='${lib.classes.dir}' includes='**/*.class'/>
-      <fileset dir='${temp.dir}' includes='resources/*.*'/>
+    <jar destfile='${classes.dir}/howl.jar' manifest="${src.dir}/manifest">
+      <fileset dir='${lib.classes.dir}' includes='**/*.class' />
+      <fileset dir='${temp.dir}' includes='resources/*.*' />
     </jar>
   </target>
-  
-  <target name='compile-test'
-    depends='clean-test,compile-lib'
-    description='compile HOWL library JUnit test classes'>
 
-    <mkdir dir='${test.classes.dir}'/>
-    
-    <javac
-      srcdir='${test.src.dir}'
-      destdir='${test.classes.dir}'
-      source='${javac.source}'
-      excludes='**/MBeanTest.java'
-      debug="true"
-      >
+  <target name='compile-test'
+          depends='clean-test,compile-lib'
+          description='compile HOWL library JUnit test classes'
+  >
+
+    <mkdir dir='${test.classes.dir}' />
+
+    <javac srcdir='${test.src.dir}'
+           destdir='${test.classes.dir}'
+           source='${javac.source}'
+           excludes='**/MBeanTest.java'
+           debug="true"
+    >
       <classpath>
-        <pathelement path='${classes.dir}/howl.jar'/>
-        <pathelement location='${junit.home}/junit.jar'/> 
+        <pathelement path='${classes.dir}/howl.jar' />
+        <pathelement location='${junit.home}/junit.jar' />
       </classpath>
     </javac>
-    
+
     <jar destfile='${classes.dir}/howl-test.jar'>
-      <fileset dir='${test.classes.dir}' includes='**/*.class'/>
+      <fileset dir='${test.classes.dir}' includes='**/*.class' />
     </jar>
   </target>
-  
+
   <target name='clean-lib'
-    description='Remove all generated files and directories for HOWL library'>
+          description='Remove all generated files and directories for HOWL library'
+  >
     <delete failonerror='false' verbose='${delete.verbose}'>
-      <fileset dir='${lib.classes.dir}' includes='**/*.class'/>
+      <fileset dir='${lib.classes.dir}' includes='**/*.class' />
     </delete>
   </target>
-  
+
   <target name='clean-test'
-    description='Remove all generated files and directories for JUnit test cases'>
+          description='Remove all generated files and directories for JUnit test cases'
+  >
     <delete failonerror='false' verbose='${delete.verbose}'>
-      <fileset dir='${test.classes.dir}' includes='**/*.class'/>
-      <fileset dir='${report.dir}' includes='**/*.*'/>
+      <fileset dir='${test.classes.dir}' includes='**/*.class' />
+      <fileset dir='${report.dir}' includes='**/*.*' />
     </delete>
   </target>
-  
+
   <target name='clean-logs'
-    description='Remove HOWL journals from previous tests.' >
-    <delete failonerror='true' verbose='${delete.verbose}' dir='${logFileDir}'/>
+          description='Remove HOWL journals from previous tests.'
+  >
+    <delete failonerror='true'
+            verbose='${delete.verbose}'
+            dir='${logFileDir}'
+    />
   </target>
-  
+
   <target name='clean-all'
-    description='Remove all generated files and directories for HOWL libarary and JUnit test cases.'>
-    <delete failonerror='false' verbose='${delete.verbose}' dir='${classes.dir}'/>
-    <delete failonerror='false' verbose='${delete.verbose}' dir='${doc.dir}'/>
-    <delete failonerror='false' verbose='${delete.verbose}' dir='${report.dir}'/>
-    <delete failonerror='false' verbose='${delete.verbose}' dir='target'/>
+          description='Remove all generated files and directories for HOWL libarary and JUnit test cases.'
+  >
+    <delete failonerror='false'
+            verbose='${delete.verbose}'
+            dir='${classes.dir}'
+    />
+    <delete failonerror='false' verbose='${delete.verbose}' dir='${doc.dir}' />
+    <delete failonerror='false'
+            verbose='${delete.verbose}'
+            dir='${report.dir}'
+    />
+    <delete failonerror='false' verbose='${delete.verbose}' dir='target' />
   </target>
 
   <target name='compile-all'
-    depends='compile-lib,compile-test'
-    description='Compile HOWL library and test classes'>
+          depends='compile-lib,compile-test'
+          description='Compile HOWL library and test classes'
+  >
   </target>
-  
+
   <target name='test-all'
-    depends='compile-all'
-    description='Execute all test cases and generate test report'>
+          depends='compile-all'
+          description='Execute all test cases and generate test report'
+  >
 
-    <mkdir dir='${report.dir}'/>
+    <mkdir dir='${report.dir}' />
 
-    <junit
-      printsummary='yes'
-      fork='yes'
-    >
+    <junit printsummary='yes' fork='yes'>
       <classpath>
-        <pathelement path='${classes.dir}/howl-test.jar'/>
-        <pathelement path='${classes.dir}/howl.jar'/>
+        <pathelement path='${classes.dir}/howl-test.jar' />
+        <pathelement path='${classes.dir}/howl.jar' />
       </classpath>
 
-      <sysproperty key="basedir" value="${basedir}"/>
-        
-      <formatter type='xml'/>
+      <sysproperty key="basedir" value="${basedir}" />
+
+      <formatter type='xml' />
 
       <batchtest fork='yes' todir='${report.dir}'>
         <fileset dir='${test.src.dir}'>
-          <include name='**/*Test.java'/>
-          <exclude name='**/allTest.java'/>
-          <exclude name='**/ExceptionTest.java'/> 
-          <exclude name='**/MBeanTest.java'/>
-          <exclude name='**/ThroughputTest.java'/>
+          <include name='**/*Test.java' />
+          <exclude name='**/allTest.java' />
+          <exclude name='**/ExceptionTest.java' />
+          <exclude name='**/MBeanTest.java' />
+          <exclude name='**/ThroughputTest.java' />
         </fileset>
       </batchtest>
     </junit>
-    
+
   </target>
-  
+
   <target name='cvs.pwd.not.defined'>
     <fail if='cvs.pwd'>***
       SECURITY WARNING!  cvs.pwd defined.
@@ -247,152 +273,142 @@
       Including cvs.pwd in the reports is a security breach.
     </fail>
   </target>
-  
+
   <target name='junitreport'
-    description='Generate Junit Test Reports for distribution'>
-    
-	  <delete failonerror='false' verbose='${delete.verbose}'>
-	    <fileset dir='${doc.dir}/junitreport' includes='**/*.*'/>
-	  </delete>
-	  
+          description='Generate Junit Test Reports for distribution'
+  >
+
+    <delete failonerror='false' verbose='${delete.verbose}'>
+      <fileset dir='${doc.dir}/junitreport' includes='**/*.*' />
+    </delete>
+
     <!-- remove cvs password from Junit Test reports -->
-	  <replaceregexp match='"(cvs.user|cvs.pwd)" +value="(.*)"'
-	                 replace='"\1" value=""'
-	                 byline="true">
+    <replaceregexp match='"(cvs.user|cvs.pwd)" +value="(.*)"'
+                   replace='"\1" value=""'
+                   byline="true"
+    >
       <fileset dir="${report.dir}">
-        <include name="TEST-*.xml"/>
+        <include name="TEST-*.xml" />
       </fileset>
-     </replaceregexp> 
-	  
-	  <junitreport todir="${report.dir}" tofile='TESTS-CombinedResults.xml'>
-	    <fileset dir="${report.dir}">
-	      <include name="TEST-*.xml" />
-	    </fileset>
-	    <report format="frames"
-	            todir="${doc.dir}/junitreport"
-	     />
-	  </junitreport>
+    </replaceregexp>
+
+    <junitreport todir="${report.dir}" tofile='TESTS-CombinedResults.xml'>
+      <fileset dir="${report.dir}">
+        <include name="TEST-*.xml" />
+      </fileset>
+      <report format="frames" todir="${doc.dir}/junitreport" />
+    </junitreport>
   </target>
-  
+
   <target name='test-report'
-    depends='cvs.pwd.not.defined,clean-all,test-all,junitreport'
-    description='Generate JUnit Test Reports for distribution'>
+          depends='cvs.pwd.not.defined,clean-all,test-all,junitreport'
+          description='Generate JUnit Test Reports for distribution'
+  >
     <echo>*** Remember to
       1) run ANT all-docs to generate up to date javadocs. 
       2) run ANT publish to push the new reports to the HOWL web site.
       3) run ANT cvsstatus to update howl.jar with cvs revision info.
     </echo>
   </target>
-  
+
   <target name='jdoc-public'
-    description='Generate JavaDocs for public classes and methods'>
+          description='Generate JavaDocs for public classes and methods'
+  >
 
     <delete failonerror='false' verbose='${delete.verbose}'>
-      <fileset dir='${doc.dir}/jdoc' includes='public/**/*.*'/>
+      <fileset dir='${doc.dir}/jdoc' includes='public/**/*.*' />
     </delete>
-    
-    <javadoc
-      source='1.4'
-      access='public'
-      destdir='${jdoc.dir}/public'>
-      
+
+    <javadoc source='1.4' access='public' destdir='${jdoc.dir}/public'>
+
       <fileset dir='${lib.src.dir}'>
-        <include name='**/*.java'/>
+        <include name='**/*.java' />
       </fileset>
-      
-      <link href="http://java.sun.com/j2se/1.4.2/docs/api/"/>
+
+      <link href="http://java.sun.com/j2se/1.4.2/docs/api/" />
 
       <doctitle>
         <![CDATA[<h1>HOWL Logger Public API</h1>]]>
       </doctitle>
-      
-    </javadoc>
-    
-  </target>
-    
-	<target name='jdoc-project'
-		description='Generate JavaDocs for public classes and methods'>
-		
-		<delete failonerror='false' verbose='${delete.verbose}'>
-  		<fileset dir='${jdoc.dir}' includes='project/**/*.*'/>
-		</delete>
-		  
-		<javadoc
-			source='1.4'
-      access='private'
-			destdir='${jdoc.dir}/project'>
-			
-			<fileset dir='${lib.src.dir}'>
-        <include name='**/*.java'/>
-			</fileset>
 
-      <link href="http://java.sun.com/j2se/1.4.2/docs/api/"/>
-			
-			<doctitle>
-  			<![CDATA[<h1>HOWL Logger Project API</h1>]]>
+  </javadoc>
+
+</target>
+
+<target name='jdoc-project'
+        description='Generate JavaDocs for public classes and methods'
+>
+
+  <delete failonerror='false' verbose='${delete.verbose}'>
+    <fileset dir='${jdoc.dir}' includes='project/**/*.*' />
+  </delete>
+
+  <javadoc source='1.4' access='private' destdir='${jdoc.dir}/project'>
+
+    <fileset dir='${lib.src.dir}'>
+      <include name='**/*.java' />
+    </fileset>
+
+    <link href="http://java.sun.com/j2se/1.4.2/docs/api/" />
+
+    <doctitle>
+      <![CDATA[<h1>HOWL Logger Project API</h1>]]>
 			</doctitle>
-    
-		</javadoc>
-	  
-	</target>
-  
-  <target name='jdoc-all'
-    depends='jdoc-public,jdoc-project'
-    description='Generate JavaDocs for public and project APIs'>
-  </target>
-  
-  <target name='all-docs'
-    depends='test-report,jdoc-all'
-    description='Generate all java docs and Junit test reports.'>
-  </target>
-  
-  <target name='set.cvs.pwd'>
-    <!-- use -Dcvs.pwd=something command line option to eliminate prompt. -->
-    <input
-      message="Enter CVS Password"
-      addproperty="cvs.pwd"
-    />
-  </target>
-  
-  <target name='publish'
-    depends='set.cvs.pwd'
-    description='Publish javadocs and test reports to the HOWL web site'
-    >
-    <mkdir dir='${temp.dir}'/>
-    
-    <delete file='${temp.dir}/**'/>
-    
-    <!-- collect the docs into a tar file so we only have to transfer one file -->
-    <tar
-      tarfile="${temp.dir}/docs.tar"
-      basedir="${doc.dir}"
-      includes="
+
+</javadoc>
+
+</target>
+
+<target name='jdoc-all'
+        depends='jdoc-public,jdoc-project'
+        description='Generate JavaDocs for public and project APIs'
+>
+</target>
+
+<target name='all-docs'
+        depends='test-report,jdoc-all'
+        description='Generate all java docs and Junit test reports.'
+>
+</target>
+
+<target name='set.cvs.pwd'>
+<!-- use -Dcvs.pwd=something command line option to eliminate prompt. -->
+<input message="Enter CVS Password" addproperty="cvs.pwd" />
+</target>
+
+<target name='publish'
+        depends='set.cvs.pwd'
+        description='Publish javadocs and test reports to the HOWL web site'
+>
+<mkdir dir='${temp.dir}' />
+
+<delete file='${temp.dir}/**' />
+
+<!-- collect the docs into a tar file so we only have to transfer one file -->
+<tar tarfile="${temp.dir}/docs.tar"
+     basedir="${doc.dir}"
+     includes="
         jdoc/**
         junitreport/**
         cvs/**
       "
-    />
-    <gzip
-      zipfile="${temp.dir}/docs.tar.gz"
-      src="${temp.dir}/docs.tar"
-    />
-    
-    <!-- copy new files -->
-    <scp
-      todir="${cvs.user}:${cvs.pwd}@${cvs.site}:${not.in.cvs}">
-      <fileset dir='${temp.dir}'>
-        <include name='docs.tar.gz'/>
-      </fileset>
-    </scp>
-    
-    <!-- extract the doc files from the jar after removing existing files. -->
-    <sshexec
-      host='${cvs.site}'
-      username='${cvs.user}'
-      password='${cvs.pwd}'
-      command='cd ${not.in.cvs} &amp;&amp; rm -fr jdoc junitreport &amp;&amp; tar -xzf docs.tar.gz &amp;&amp; rm -f docs.tar.gz'
-    />
+/>
+<gzip zipfile="${temp.dir}/docs.tar.gz" src="${temp.dir}/docs.tar" />
 
-  </target>
-  
+<!-- copy new files -->
+<scp todir="${cvs.user}:${cvs.pwd}@${cvs.site}:${not.in.cvs}">
+  <fileset dir='${temp.dir}'>
+    <include name='docs.tar.gz' />
+  </fileset>
+</scp>
+
+<!-- extract the doc files from the jar after removing existing files. -->
+<sshexec host='${cvs.site}'
+         username='${cvs.user}'
+         password='${cvs.pwd}'
+         command='cd ${not.in.cvs} &amp;&amp; rm -fr jdoc junitreport &amp;&amp; tar -xzf docs.tar.gz &amp;&amp; rm -f docs.tar.gz'
+/>
+
+</target>
+
 </project>
