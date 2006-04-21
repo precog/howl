@@ -3,7 +3,7 @@
          xmlns:dav="antlib:org.apache.webdav.ant"
 >
 
-  <!-- $Id: build.xml,v 1.20 2006-04-21 18:27:51 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.21 2006-04-21 19:50:52 girouxm Exp $ -->
 
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env" />
@@ -111,8 +111,8 @@
     <cvstagdiff destfile='${temp.dir}/tagdiff.xml'
                 cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
                 passfile='nul'
-                startTag='HOWL_0_1_11'
-                endTag='HOWL_1_0_0'
+                startTag='HOWL_1_0_0'
+                endTag='HOWL_1_0_1'
                 package='howl/logger'
     >
 
@@ -121,10 +121,10 @@
     <mkdir dir='${doc.dir}/cvs' />
 
     <style in="${temp.dir}/tagdiff.xml"
-           out="${doc.dir}/cvs/HOWL_1_0_0.html"
+           out="${doc.dir}/cvs/HOWL_1_0_1.html"
            style="${ant.home}/etc/tagdiff.xsl"
     >
-      <param name="title" expression="HOWL Version 1.0.0 Diff" />
+      <param name="title" expression="HOWL Version 1.0.1 Diff" />
       <param name="module" expression="howl/logger" />
       <param name="cvsweb"
              expression="http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/"
@@ -404,6 +404,8 @@
 </scp>
 
 <!-- extract the doc files from the jar after removing existing files. -->
+<!-- NOTE do not remove files in cvs directory as these are needed 
+     for cvstagdiff reports from previous releases -->
 <sshexec host='${cvs.site}'
          username='${cvs.user}'
          password='${cvs.pwd}'
