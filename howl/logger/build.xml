@@ -3,7 +3,7 @@
          xmlns:dav="antlib:org.apache.webdav.ant"
 >
 
-  <!-- $Id: build.xml,v 1.19 2006-04-21 17:18:59 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.20 2006-04-21 18:27:51 girouxm Exp $ -->
 
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env" />
@@ -38,6 +38,7 @@
   <property name='delete.verbose' value='false' />
   <property name='temp.dir' value='target/temp' />
   <property name='logFileDir' value='target/logs' />
+  <property name='ssh.knownhosts' value='${env.HOMEDRIVE}${env.HOMEPATH}/ssh/known_hosts' />
 
   <target name='changelog'>
     <mkdir dir="${doc.dir}/cvs" />
@@ -396,7 +397,7 @@
 <gzip zipfile="${temp.dir}/docs.tar.gz" src="${temp.dir}/docs.tar" />
 
 <!-- copy new files -->
-<scp todir="${cvs.user}:${cvs.pwd}@${cvs.site}:${not.in.cvs}">
+<scp todir="${cvs.user}:${cvs.pwd}@${cvs.site}:${not.in.cvs}" knownhosts='${ssh.knownhosts}'>
   <fileset dir='${temp.dir}'>
     <include name='docs.tar.gz' />
   </fileset>
@@ -406,6 +407,7 @@
 <sshexec host='${cvs.site}'
          username='${cvs.user}'
          password='${cvs.pwd}'
+         knownhosts='${ssh.knownhosts}'
          command='cd ${not.in.cvs} &amp;&amp; rm -fr jdoc junitreport &amp;&amp; tar -xzf docs.tar.gz &amp;&amp; rm -f docs.tar.gz'
 />
 
