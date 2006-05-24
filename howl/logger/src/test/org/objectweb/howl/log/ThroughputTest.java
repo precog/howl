@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: ThroughputTest.java,v 1.5 2005-06-23 23:28:15 girouxm Exp $
+ * $Id: ThroughputTest.java,v 1.6 2006-05-24 07:57:05 djencks Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -58,6 +58,7 @@ public class ThroughputTest extends TestDriver {
    */
   protected void setUp() throws Exception {
     super.setUp();
+    deleteLogFiles();
 
     log = new Logger(cfg);
     prop.setProperty("msg.count", "200");
