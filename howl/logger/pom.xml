@@ -1,29 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.objectweb.howl</groupId>
     <artifactId>howl-logger</artifactId>
     <name>HOWL logger</name>
     <packaging>jar</packaging>
-    <version>1.0.1</version>
+    <version>1.0.1-1</version>
+
+    <url>http://forge.objectweb.org/projects/howl/</url>
+    <description>HOWL is a logger implementation providing features required by the JOTM project. HOWL uses unformatted
+        binary logs to maximize performance and specifies a journalization API with methods necessary to support JOTM
+        recovery operations.</description>
 
     <issueManagement>
         <system>bugzilla</system>
         <url>http://forge.objectweb.org/tracker/?group_id=92</url>
     </issueManagement>
-
-    <!--
-        <ciManagement>
-          <system>continuum</system>
-          <notifiers>
-            <notifier>
-              <type>mail</type>
-              <sendOnError/>
-              <sendOnFailure/>
-              <address>dev@geronimo.org</address>
-            </notifier>
-          </notifiers>
-        </ciManagement>
-    -->
 
     <mailingLists>
         <mailingList>
@@ -57,8 +49,6 @@
     <licenses>
         <license>
             <name>BSD</name>
-<!--            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>-->
-<!--            <distribution>repo</distribution>-->
         </license>
     </licenses>
 
@@ -101,6 +91,7 @@
                     <target>1.4</target>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -114,28 +105,60 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.objectweb.howl.log.Version</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
-<!--
-this is completely wrong, I'm putting it in as a clue about what needs to be added
-    <distributionManagement>
-      <repository>
-        <id>apache-repo</id>
-        <name>Apache CVS Repository</name>
-        <url>scpexe://cvs.apache.org/www/cvs.apache.org/maven-snapshot-repository</url>
-      </repository>
-      <snapshotRepository>
-        <id>apache-snapshots</id>
-        <name>Apache CVS Development Repository</name>
-        <url>scpexe://cvs.apache.org/www/cvs.apache.org/maven-snapshot-repository</url>
-      </snapshotRepository>
-      <site>
-        <id>geronimo-website</id>
-        <url>scpexe://minotaur.apache.org/www/geronimo.apache.org/maven/</url>
-      </site>
-    </distributionManagement>
--->
+    <profiles>
+        <profile>
+            <id>release</id>
+            <!-- this adds resources/version.properties  (containing build timestamp)
+            and cvs/status.txt (containing cvs status info from the build) to match the ant build output -->
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>compile</phase>
+                                <configuration>
+                                    <tasks>
 
+                                        <mkdir dir="${project.build.directory}/classes/cvs"/>
+                                        <cvs output='${project.build.directory}/classes/cvs/status.txt'
+                                             cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
+                                             passfile='nul'
+                                                >
+                                            <commandline>
+                                                <argument value="status"/>
+                                            </commandline>
+                                        </cvs>
+                                        <mkdir dir="${project.build.directory}/classes/resources"/>
+                                        <echo file='${project.build.directory}/classes/resources/version.properties'>
+                                            build.time=${build.time}</echo>
+
+                                    </tasks>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+
+        </profile>
+    </profiles>
 
 </project>
