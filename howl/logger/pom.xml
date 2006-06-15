@@ -130,6 +130,9 @@
 
     <profiles>
         <profile>
+<!-- to release use this command line
+mvn  clean  source:jar javadoc:jar deploy -Dsource=1.4 -Dmaven.test.skip=true   -Prelease 
+-->
             <id>release</id>
             <!-- this adds resources/version.properties  (containing build timestamp)
             and cvs/status.txt (containing cvs status info from the build) to match the ant build output -->
@@ -169,5 +172,25 @@
 
         </profile>
     </profiles>
+
+    <distributionManagement>
+        <!-- After deploy, you need to go to http://forge.objectweb.org/projects/maven/ and hit the Push button -->
+        <repository>
+            <id>objectweb</id>
+            <name>ObjectWeb Maven Repository</name>
+            <url>scp://jupiter.objectweb.org/var/lib/gforge/chroot/home/groups/maven/htdocs/maven2</url>
+            <!--url>file:/tmp/repo</url-->
+        </repository>
+        <snapshotRepository>
+            <id>objectweb-snapshot</id>
+            <name>ObjectWeb Maven Snapshot Repository</name>
+            <url>scp://jupiter.objectweb.org/var/lib/gforge/chroot/home/groups/maven/htdocs/maven2-snapshot</url>
+        </snapshotRepository>
+        <site>
+            <id>howl.website</id>
+            <url>file:/tmp/site</url>
+        </site>
+
+    </distributionManagement>
 
 </project>
