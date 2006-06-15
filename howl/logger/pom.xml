@@ -2,7 +2,7 @@
 <project>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.objectweb.howl</groupId>
-    <artifactId>howl-logger</artifactId>
+    <artifactId>howl</artifactId>
     <name>HOWL logger</name>
     <packaging>jar</packaging>
     <version>1.0.1-1</version>
@@ -77,6 +77,15 @@
         <sourceDirectory>src/java</sourceDirectory>
         <scriptSourceDirectory>src/scripts</scriptSourceDirectory>
         <testSourceDirectory>src/test</testSourceDirectory>
+        <resources>
+            <resource>
+               <directory>.</directory>
+               <includes>
+                   <include>LICENSE.txt</include>
+               </includes>
+               <targetPath>META-INF</targetPath>
+            </resource>
+        </resources>
         <testResources>
             <testResource>
                 <directory>src/test-resources</directory>
