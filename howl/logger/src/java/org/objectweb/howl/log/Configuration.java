@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Configuration.java,v 1.14 2005-11-15 22:43:54 girouxm Exp $
+ * $Id: Configuration.java,v 1.15 2006-12-05 13:51:54 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -114,8 +114,11 @@ public class Configuration implements ConfigurationMBean {
    * 2K and 6K when using a reasonably fast disk.  Larger
    * sizes may help with slower disks, but large buffers
    * may be mostly empty in lightly loaded systems.
+   * 
+   * MG 20060508 remove private qualifier so test case can
+   * access the constant.
    */
-  private static final int MAX_BUFFER_SIZE = 32;
+  static final int MAX_BUFFER_SIZE = 32; 
   
   /**
    * The Properties used to construct this object.
