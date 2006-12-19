@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: ConfigurationTest.java,v 1.11 2005-11-15 19:39:25 girouxm Exp $
+ * $Id: ConfigurationTest.java,v 1.12 2006-12-19 17:09:28 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -96,6 +96,7 @@ public class ConfigurationTest extends TestCase
     String logDir = cfg.getLogFileDir();
     File dir = new File(logDir);
     File[] logs = dir.listFiles();
+    if (logs == null || logs.length == 0) return; // nothing to delete
     
     String logFileName = cfg.getLogFileName();
     String logFileExt = cfg.getLogFileExt();
