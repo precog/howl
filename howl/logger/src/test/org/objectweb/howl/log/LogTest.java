@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.31 2006-04-21 15:03:36 girouxm Exp $
+ * $Id: LogTest.java,v 1.32 2006-12-21 15:43:04 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -44,8 +44,7 @@ import junit.extensions.RepeatedTest;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-public class LogTest extends TestDriver
-{
+public class LogTest extends TestDriver {
 
   /**
    * Constructor for LogTest.
@@ -55,27 +54,28 @@ public class LogTest extends TestDriver
   public LogTest(String name) {
     super(name);
   }
-  
+
   protected void setUp() throws Exception {
     super.setUp();
 
     log = new Logger(cfg);
 
   }
-  
+
   protected void tearDown() throws Exception {
     super.tearDown();
   }
-  
+
   public static void main(String[] args) throws Exception {
     junit.textui.TestRunner.run(suite());
   }
-  
+
   public static Test suite() {
     TestSuite suite = new TestSuite(LogTest.class);
-    return new RepeatedTest(suite, Integer.getInteger("LogTest.repeatcount", 1).intValue());
+    return new RepeatedTest(suite, Integer.getInteger("LogTest.repeatcount", 1)
+        .intValue());
   }
-  
+
   public void testGetHighMark() throws Exception {
     try {
       log.lfmgr.getHighMark();
@@ -88,7 +88,7 @@ public class LogTest extends TestDriver
     log.lfmgr.getHighMark();
     log.close();
   }
-  
+
   public void testGetHighMark_NewFiles() throws Exception {
     deleteLogFiles();
     try {
@@ -97,42 +97,38 @@ public class LogTest extends TestDriver
     } catch (UnsupportedOperationException e) {
       ; // expected this
     }
-    
+
     log.open();
     log.lfmgr.getHighMark();
     log.close();
   }
-  
-  public void testLoggerSingleThread()
-    throws LogException, Exception
-  {
+
+  public void testLoggerSingleThread() throws LogException, Exception {
     log.open();
     log.setAutoMark(true);
-    
+
     prop.setProperty("msg.count", "10");
     workers = 1;
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
 
   }
-  
-  public void testLoggerAutomarkTrue()
-    throws LogException, Exception
-  {
+
+  public void testLoggerAutomarkTrue() throws LogException, Exception {
     log.open();
     log.setAutoMark(true);
 
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   public void testLoggerReplay() throws Exception {
     // populate log with some records
     log.open();
     log.setAutoMark(true);
     runWorkers(LogTestWorker.class);
     log.close();
-    
+
     // verify that all records are marked processed
     log.open();
     TestLogReader reader = new TestLogReader();
@@ -140,12 +136,14 @@ public class LogTest extends TestDriver
     log.close();
     assertEquals(getName(), 0L, reader.recordCount);
   }
-  
+
   /**
-   * Verifies that replay can begin with a log key that
-   * has <b>NOT</b> been forced to the journal.
-   * <p>puts a record to the journal with sync == false, then
-   * trys to replay from the log key for that record.
+   * Verifies that replay can begin with a log key that has <b>NOT</b> been
+   * forced to the journal.
+   * <p>
+   * puts a record to the journal with sync == false, then trys to replay from
+   * the log key for that record.
+   * 
    * @throws Exception
    */
   public void testLoggerReplay_unforcedRecord() throws Exception {
@@ -157,12 +155,14 @@ public class LogTest extends TestDriver
     if (reader.exception != null)
       throw reader.exception;
   }
-  
+
   /**
-   * Verifies that replay can begin with a log key that
-   * <b>HAS</b> been forced to the journal.
-   * <p>puts a record to the journal with sync == false, then
-   * trys to replay from the log key for that record.
+   * Verifies that replay can begin with a log key that <b>HAS</b> been forced
+   * to the journal.
+   * <p>
+   * puts a record to the journal with sync == false, then trys to replay from
+   * the log key for that record.
+   * 
    * @throws Exception
    */
   public void testLoggerReplay_forcedRecord() throws Exception {
@@ -174,15 +174,16 @@ public class LogTest extends TestDriver
     if (reader.exception != null)
       throw reader.exception;
   }
-  
+
   public void testMultipleClose() throws Exception {
     log.open();
     log.close();
     log.close();
   }
-  
+
   /**
-   * Verify that replay works with newly created files. 
+   * Verify that replay works with newly created files.
+   * 
    * @throws Exception
    */
   public void testLoggerReplay_NewFiles() throws Exception {
@@ -191,70 +192,73 @@ public class LogTest extends TestDriver
     TestLogReader reader = new TestLogReader();
     reader.run(log, 0L);
     log.close();
-    assertEquals("unexpected records found in new log files", 0L, reader.recordCount);    
+    assertEquals("unexpected records found in new log files", 0L,
+        reader.recordCount);
   }
-  
+
   /**
-   * Verifies that replay does not return records that have
-   * been marked.
+   * Verifies that replay does not return records that have been marked.
    * 
    * @throws Exception
    */
   public void testLoggerReplay_MarkedRecords() throws Exception {
     long key = 0L;
-    int  count = 0;
-    
+    int count = 0;
+
     deleteLogFiles(); // so we know exactly how many records to expect
     log.open();
-    // 1. write two records.
-    for (int i=1; i < 10; ++i)
-    {
+    // 1. write a few records.
+    for (int i = 1; i < 10; ++i) {
       key = log.put(("Record_" + i).getBytes(), false);
       ++count;
     }
-    
+
     // 1a. replay the records we have so far.
-    //     there is no mark yet, so we should ge all of the records
+    // there is no mark yet, so we should ge all of the records
     TestLogReader reader = new TestLogReader();
     reader.printRecord = false;
-    reader.activeMark = log.getActiveMark();  // NOTE - there is no mark yet
+    reader.activeMark = log.getActiveMark(); // NOTE - there is no mark yet
     reader.run(log);
-    assertEquals(getName() + ": unexpected record count:", count, reader.recordCount);
-    
-    
+    assertEquals(getName() + ": unexpected record count:", count,
+        reader.recordCount);
+
     key = log.put("Mark; replay should start here".getBytes(), false);
-    
+
     // 2. mark
     log.mark(key, true);
-    
+
     // 3. write another record
     key = log.put("Record_X".getBytes(), true);
 
-    // 4. replay should get 2 records, the record we just wrote, and the record at the mark.
+    // 4. replay should get 2 records, the record we just wrote, and the record
+    // at the mark.
     reader = new TestLogReader();
     reader.printRecord = false; // true causes reader to print records
     reader.activeMark = 0L; // replay all records given to onRecord event
     reader.run(log);
-    assertEquals(getName() + ": unexpected record count:", 2L, reader.recordCount);
-    
+    assertEquals(getName() + ": unexpected record count:", 2L,
+        reader.recordCount);
+
     // 5. verify we get same two records if log is closed and reopened
     log.close();
     log.open();
     reader = new TestLogReader();
     reader.printRecord = false; // true causes reader to print records
     reader.run(log);
-    assertEquals(getName() + ": unexpected record count:", 2L, reader.recordCount);
-    
+    assertEquals(getName() + ": unexpected record count:", 2L,
+        reader.recordCount);
+
     // 6. verify we get only 1 record if we skip the marked record
     reader = new TestLogReader();
     reader.printRecord = false; // true causes reader to print records
     reader.activeMark = log.getActiveMark();
     reader.run(log);
-    assertEquals(getName() + ": unexpected record count:", 1L, reader.recordCount);
-    
+    assertEquals(getName() + ": unexpected record count:", 1L,
+        reader.recordCount);
+
     log.close();
   }
-  
+
   public void testLogClosedException() throws Exception, LogException {
     log.open();
     log.close();
@@ -265,16 +269,14 @@ public class LogTest extends TestDriver
       // this is what we expected so ignore it
     }
   }
-  
+
   /**
-   * FEATURE 300922
-   * Verify that LogConfigurationException is thrown if multiple
+   * FEATURE 300922 Verify that LogConfigurationException is thrown if multiple
    * openings on the log are attempted.
    * 
    * @throws Exception
    */
-  public void testLogConfigurationException_Lock() throws Exception
-  {
+  public void testLogConfigurationException_Lock() throws Exception {
     log.open();
     Logger log2 = new Logger(cfg);
 
@@ -284,21 +286,22 @@ public class LogTest extends TestDriver
       // this is what we expected so ignore it
       log2.close();
     }
-    
+
     log.close();
-    
+
   }
+
   /**
    * Verify that an invalid buffer class name throws LogConfigurationException.
-   * <p>The LogConfigurationException occurs after the log files have been
-   * opened and locked.  As a result, it is necessary to call close to 
-   * unlock the files.
+   * <p>
+   * The LogConfigurationException occurs after the log files have been opened
+   * and locked. As a result, it is necessary to call close to unlock the files.
+   * 
    * @throws Exception
    */
-  public void testLogConfigurationException_ClassNotFound() throws Exception
-  {
+  public void testLogConfigurationException_ClassNotFound() throws Exception {
     cfg.setBufferClassName("org.objectweb.howl.log.noSuchBufferClass");
-    
+
     try {
       log.open();
       log.close();
@@ -308,20 +311,22 @@ public class LogTest extends TestDriver
         throw e;
       // otherwise this is what we expected so ignore it
     }
-    
+
     // close and unlock the log files
     log.close();
   }
-  
+
   /**
-   * Verify that log.open() will throw an exception if the configuration
-   * is changed after a set of log files is created.
-   * <p>In this test, we change the number of log files.
-   * <p>PRECONDITION: log files exist from prior test.
+   * Verify that log.open() will throw an exception if the configuration is
+   * changed after a set of log files is created.
+   * <p>
+   * In this test, we change the number of log files.
+   * <p>
+   * PRECONDITION: log files exist from prior test.
+   * 
    * @throws Exception
    */
-  public void testLogConfigurationException_maxLogFiles() throws Exception
-  {
+  public void testLogConfigurationException_maxLogFiles() throws Exception {
     // increase number of log files for current set
     cfg.setMaxLogFiles(cfg.getMaxLogFiles() + 1);
 
@@ -335,34 +340,30 @@ public class LogTest extends TestDriver
     }
     log.close();
   }
-  
+
   /**
-   * Verify that FileNotFoundException is processed
-   * correctly.
+   * Verify that FileNotFoundException is processed correctly.
    * 
-   * <p>In order to test FileNotFoundException
-   * it is necessary to devise a pathname that will fail
-   * on all platforms.  The technique used here is to
-   * create a file, then use the file as a directory
-   * name in cfg.setLogFileDir.  So far, all file
-   * systems reject the attempt to create a file
-   * subordinate to another file, so this technique
-   * seems to be platform neutral.
+   * <p>
+   * In order to test FileNotFoundException it is necessary to devise a pathname
+   * that will fail on all platforms. The technique used here is to create a
+   * file, then use the file as a directory name in cfg.setLogFileDir. So far,
+   * all file systems reject the attempt to create a file subordinate to another
+   * file, so this technique seems to be platform neutral.
    * 
-   * <p>The test fails if FileNotFoundException is
-   * not thrown by the logger.
+   * <p>
+   * The test fails if FileNotFoundException is not thrown by the logger.
    * 
    * @throws Exception
    */
-  public void testFileNotFoundException() throws Exception
-  {
+  public void testFileNotFoundException() throws Exception {
     // create a file (not directory) that will be used as LogFileDir for test
     File invalidDir = new File(outDir, "invalid");
     if (!invalidDir.exists() && !invalidDir.createNewFile())
-        fail("unable to create 'invalid' directory");
-    
+      fail("unable to create 'invalid' directory");
+
     String invalid = invalidDir.getPath();
-    
+
     // set log dir to some invalid value
     cfg.setLogFileDir(invalid);
     try {
@@ -373,8 +374,9 @@ public class LogTest extends TestDriver
     } finally {
       log.close();
     }
-    
-    // one more time to make sure the file locks set via system properties are cleared
+
+    // one more time to make sure the file locks set via system properties are
+    // cleared
     // FEATURE 300922
     try {
       log.open();
@@ -386,8 +388,7 @@ public class LogTest extends TestDriver
     }
   }
 
-  public void testLogConfigurationException_1File() throws Exception
-  {
+  public void testLogConfigurationException_1File() throws Exception {
     // a single log file is not allowed
     cfg.setMaxLogFiles(1);
 
@@ -400,25 +401,25 @@ public class LogTest extends TestDriver
       // this is what we expected so ignore it
     }
   }
-  
+
   public void testLogRecordSizeException() throws Exception {
     log.open();
     // record size == block size is guaranteed to fail
     byte[] data = new byte[cfg.getBufferSize() * 1024]; // BUG 300957
-    
+
     try {
-      log.put(data,false);
+      log.put(data, false);
       fail("expected LogRecordSizeException");
     } catch (LogRecordSizeException e) {
       // this is what we expected so ignore it
     }
     log.close();
   }
-  
+
   public void testInvalidLogKeyException_NegativeKey() throws Exception {
     TestLogReader tlr = new TestLogReader();
     log.open();
-    
+
     // try log key == -1
     try {
       log.replay(tlr, -1L);
@@ -434,7 +435,7 @@ public class LogTest extends TestDriver
   public void testInvalidLogKeyException_InvalidKey() throws Exception {
     TestLogReader tlr = new TestLogReader();
     log.open();
-    
+
     // try a key that is invalid
     try {
       log.replay(tlr, (log.getActiveMark() + 1L));
@@ -456,93 +457,97 @@ public class LogTest extends TestDriver
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
-  final class DataRecords {  // make class final to clear findbugs warnings
+
+  final class DataRecords { // make class final to clear findbugs warnings
     final int count;
+
     final String[] sVal;
+
     final byte[][] r1;
+
     final long[] key;
+
     final LogRecord lr;
-    
+
     DataRecords(int count) {
       this.count = count;
       sVal = new String[count];
-      r1   = new byte[count][];
-      key  = new long[count];
+      r1 = new byte[count][];
+      key = new long[count];
 
       // initialize test records
-      for (int i=0; i< count; ++i)
-      {
-        sVal[i] = "Record_" + (i+1);
+      for (int i = 0; i < count; ++i) {
+        sVal[i] = "Record_" + (i + 1);
         r1[i] = sVal[i].getBytes();
       }
       int last = count - 1;
-      lr = new LogRecord(sVal[last].length()+6);
+      lr = new LogRecord(sVal[last].length() + 6);
     }
-    
+
     void putAll(boolean forceLastRecord) throws Exception {
       // populate journal with test records
-      for (int i=0; i< count; ++i) {
-        boolean force = (i == sVal.length - 1) ? forceLastRecord : false ;
-        key[i] = log.put(r1[i], force); 
+      for (int i = 0; i < count; ++i) {
+        boolean force = (i == sVal.length - 1) ? forceLastRecord : false;
+        key[i] = log.put(r1[i], force);
       }
     }
-    
+
     LogRecord verify(int index) throws Exception {
       log.get(lr, key[index]);
       verifyLogRecord(lr, sVal[index], key[index]);
       return lr;
     }
-    
+
     LogRecord verify(int index, LogRecord lr) throws Exception {
       verifyLogRecord(lr, sVal[index], key[index]);
       return lr;
     }
-    
+
   }
-  
+
   /**
    * Verify that Logger.get() method returns requested records.
-   * <p>We write records to the journal than go through
-   * a series of Logger.get() requests to verify that Logger.get()
-   * works as expected.
+   * <p>
+   * We write records to the journal than go through a series of Logger.get()
+   * requests to verify that Logger.get() works as expected.
    * 
-   * <p>We also verify that channel position is not affected
-   * by the Logger.get() methods.
+   * <p>
+   * We also verify that channel position is not affected by the Logger.get()
+   * methods.
    * 
    * @throws Exception
    */
   public void testGetMethods() throws Exception {
     DataRecords dr = new DataRecords(5);
     LogRecord lr = dr.lr;
-    
+
     // make sure we are working from the beginning of a new file.
-    deleteLogFiles(); 
-    
+    deleteLogFiles();
+
     log.open();
-    
+
     // populate journal with test records
     dr.putAll(true);
-    
+
     // remember file position for subsequent validations
     long pos = log.lfmgr.currentLogFile.channel.position();
-    
+
     lr.setFilterCtrlRecords(true);
-    for (int i=0; i < dr.sVal.length; ++i) {
+    for (int i = 0; i < dr.sVal.length; ++i) {
       dr.verify(i);
     }
-    
+
     // read backwards
-    for (int i = dr.sVal.length-1; i >= 0; --i) {
+    for (int i = dr.sVal.length - 1; i >= 0; --i) {
       dr.verify(i);
     }
     long posNow = log.lfmgr.currentLogFile.channel.position();
     assertEquals("File Position", pos, posNow);
-    
+
     // check the Logger.getNext method
     lr = dr.verify(0);
-    
-    for (int i=1; i < dr.count; ++i) {
+
+    for (int i = 1; i < dr.count; ++i) {
       do {
         lr = log.getNext(lr);
       } while (lr.isCTRL()); // skip control records
@@ -550,49 +555,49 @@ public class LogTest extends TestDriver
     }
     posNow = log.lfmgr.currentLogFile.channel.position();
     assertEquals("File Position", pos, posNow);
-    
+
     // now read to end of journal
     int recordCount = 0;
     while (true) {
       lr = log.getNext(lr);
-      if (lr.type == LogRecordType.END_OF_LOG) break;
+      if (lr.type == LogRecordType.END_OF_LOG)
+        break;
       ++recordCount;
     }
     posNow = log.lfmgr.currentLogFile.channel.position();
     assertEquals("File Position", pos, posNow);
-    
+
     // read backwards, and write a new record after each read
-    for (int j = 0, i = dr.count-1; i >= 0; --i, ++j)
-    {
+    for (int j = 0, i = dr.count - 1; i >= 0; --i, ++j) {
       lr = dr.verify(i);
       log.put(dr.r1[j], true);
     }
-    
+
     // verify that we now have two sets of records
     lr = dr.verify(0);
 
-    for (int i=1; i < dr.count; ++i) {
+    for (int i = 1; i < dr.count; ++i) {
       do {
         lr = log.getNext(lr);
       } while (lr.isCTRL()); // skip control records
       dr.verify(i, lr);
     }
-    
+
     // make sure have a second set of records.
-    for (int i=0; i < dr.count; ++i) {
+    for (int i = 0; i < dr.count; ++i) {
       do {
         lr = log.getNext(lr);
       } while (lr.isCTRL()); // skip control records
       verifyLogRecord(lr, dr.sVal[i], lr.key);
     }
-    
+
     log.close();
-    
+
   }
-  
+
   /**
-   * Verify that Logger.get() method returns a record
-   * that was written with force = false.
+   * Verify that Logger.get() method returns a record that was written with
+   * force = false.
    * 
    * @throws Exception
    */
@@ -603,39 +608,38 @@ public class LogTest extends TestDriver
     dr.verify(0);
     log.close();
   }
-  
-  
-  
+
   /**
-   * Verify that getNext method will detect the logical end of
-   * journal by reading a block with bsn < current block.
+   * Verify that getNext method will detect the logical end of journal by
+   * reading a block with bsn < current block.
    * 
    * @throws Exception
    */
   public void testGetNextMethod() throws Exception {
     long keys[] = new long[20]; // array of last 10 keys
-    int  kx = 0;  // index into keys array
-    
+    int kx = 0; // index into keys array
+
     byte[][] rec = new byte[2][];
     rec[0] = "testGetNextMethod_".getBytes();
-        
+
     // start with clean set of log files
     cfg.setBufferSize(1);
     cfg.setMaxBlocksPerFile(5);
     cfg.setLogFileName("TestGetNext");
     log = new Logger(cfg);
     this.deleteLogFiles();
-    
+
     log.open();
-    log.setAutoMark(true);  // to prevent LogOverflowException
-    
+    log.setAutoMark(true); // to prevent LogOverflowException
+
     // write records until journal wraps around
     int counter = 1;
-    while(true) {
+    while (true) {
       rec[1] = Integer.toHexString(counter++).getBytes();
-      keys[kx++] = log.put(rec,false);
+      keys[kx++] = log.put(rec, false);
       kx %= keys.length;
-      if (log.lfmgr.currentLogFile.rewindCounter > 1) break;
+      if (log.lfmgr.currentLogFile.rewindCounter > 1)
+        break;
     }
 
     // Logger.get() will force the current buffer so we need
@@ -644,60 +648,64 @@ public class LogTest extends TestDriver
     LogRecord lr = log.get(null, keys[kx]);
 
     /*
-     * write another record in a separate thread to create
-     * a new high-water mark in the log file.
-     * The record is written with force=false to create the
+     * write another record in a separate thread to create a new high-water mark
+     * in the log file. The record is written with force=false to create the
      * condition reported in BUG 304982
      */
     Writer writer = new Writer();
     writer.run();
     writer.join();
-    assertNull(getName() + ": Exception thrown in Writer thread", writer.exception);
-    
+    assertNull(getName() + ": Exception thrown in Writer thread",
+        writer.exception);
+
     // read records until END_OF_LOG
     long currentKey = lr.key;
     while (true) {
       log.getNext(lr);
-      assertFalse(getName() + ": END_OF_LOG not detected",lr.key < currentKey);
+      assertFalse(getName() + ": END_OF_LOG not detected", lr.key < currentKey);
       currentKey = lr.key;
-      if (lr.type == LogRecordType.END_OF_LOG) break;
+      if (lr.type == LogRecordType.END_OF_LOG)
+        break;
       ++counter;
     }
-    
+
     // we should have read back the number of records i
-    assertEquals(getName() + ": unexpected number of records processed", keys.length, counter);
+    assertEquals(getName() + ": unexpected number of records processed",
+        keys.length, counter);
   }
 
   /**
    * Helper thread for testGetNextMethod
    */
-  private class Writer extends Thread { 
+  private class Writer extends Thread {
     public Exception exception = null;
+
     public void run() {
       try {
-        log.put("TestGetNextExtra".getBytes(),false); // DO NOT force this block to disk
+        log.put("TestGetNextExtra".getBytes(), false); // DO NOT force this
+                                                        // block to disk
       } catch (Exception e) {
         e.printStackTrace();
         exception = e;
       }
     }
   }
-  
+
   /**
-   * BUG 303659 - Verify that single instance of log can be
-   * opened and closed multiple times.
+   * BUG 303659 - Verify that single instance of log can be opened and closed
+   * multiple times.
+   * 
    * @throws Exception
    */
-  public void testMultipleOpenClose() throws Exception
-  {
+  public void testMultipleOpenClose() throws Exception {
     log.open();
     log.setAutoMark(true);
-    
+
     prop.setProperty("msg.count", "1");
     workers = 1;
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
-    
+
     // now see what happens when we open the log a second time
     log.open();
     runWorkers(LogTestWorker.class);
@@ -708,25 +716,23 @@ public class LogTest extends TestDriver
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   /**
-   * Verify that a second attempt to open a log causes
-   * a LogConfigurationException.
-   * <p>BUG 303907 reported by JOTM is a result of
-   * multiple instances of Logger opening same
-   * set of files.  The bug resulted from JOTM
-   * running with HOWL_0_1_7 version.
+   * Verify that a second attempt to open a log causes a
+   * LogConfigurationException.
+   * <p>
+   * BUG 303907 reported by JOTM is a result of multiple instances of Logger
+   * opening same set of files. The bug resulted from JOTM running with
+   * HOWL_0_1_7 version.
    * 
-   * Multiple openings are also possible
-   * on non-Windows platforms such as
-   * Linux and OS/X.
+   * Multiple openings are also possible on non-Windows platforms such as Linux
+   * and OS/X.
    * 
    * @throws Exception
    */
-  public void testMultipleOpen() throws Exception
-  {
+  public void testMultipleOpen() throws Exception {
     log.open();
-    
+
     Logger l2 = new Logger(cfg);
     try {
       l2.open();
@@ -735,60 +741,66 @@ public class LogTest extends TestDriver
       ; // expected result
     }
   }
-  
+
   /**
    * BUG: 303659 - Verify that log can shut down even if FlushManager is not
    * running.
-   * <p>If there are unforced records waiting to be written
-   * to disk at the time the application closes the log,
-   * and if the FlushManager thread has failed for some
-   * reason, then the application will hang in LogBufferManager.flushAll()
+   * <p>
+   * If there are unforced records waiting to be written to disk at the time the
+   * application closes the log, and if the FlushManager thread has failed for
+   * some reason, then the application will hang in LogBufferManager.flushAll()
    * waiting for buffers to be returned to the free pool.
-   * <p>This test simulates failure of the FlushManager by
-   * seting FlushManager.isClosed = true to prevent it from running.
+   * <p>
+   * This test simulates failure of the FlushManager by seting
+   * FlushManager.isClosed = true to prevent it from running.
+   * 
    * @throws Exception
    */
-  public void simulateFlushManagerFailure(boolean flushPartialBuffers) throws Exception
-  {
+  public void simulateFlushManagerFailure(boolean flushPartialBuffers)
+      throws Exception {
     DataRecords dr = new DataRecords(10);
 
     cfg.setFlushPartialBuffers(flushPartialBuffers);
     log = new Logger(cfg);
     log.open();
     log.setAutoMark(true);
-    
+
     // simulate FlushManager interrupt
     log.bmgr.flushManager.isClosed = true;
-    
+
     dr.putAll(false);
     log.close();
   }
-  
+
   /**
    * BUG: 303659 - Make sure log can be closed if FlushManager thread has
    * stopped running.
+   * 
    * @throws Exception
    */
-  public void testFlushManagerFailure_FPB_TRUE() throws Exception
-  {
+  public void testFlushManagerFailure_FPB_TRUE() throws Exception {
     simulateFlushManagerFailure(true);
   }
 
   /**
    * BUG: 303659 - Make sure log can be closed if FlushManager thread has
    * stopped running.
+   * 
    * @throws Exception
    */
-  public void testFlushManagerFailure_FPB_FALSE() throws Exception
-  {
+  public void testFlushManagerFailure_FPB_FALSE() throws Exception {
     simulateFlushManagerFailure(false);
   }
-  
+
   /**
    * Verifies the content of the LogRecord is correct.
-   * @param lr LogRecord to be verified
-   * @param eVal expected value
-   * @param eKey expected record key
+   * 
+   * @param lr
+   *          LogRecord to be verified
+   * @param eVal
+   *          expected value
+   * @param eKey
+   *          expected record key
    */
   void verifyLogRecord(LogRecord lr, String eVal, long eKey) {
     byte[][] r2 = lr.getFields();
@@ -798,23 +810,22 @@ public class LogTest extends TestDriver
     assertEquals("Record Data", eVal, rVal);
     assertEquals("Field Count != 1", 1, r2.length);
   }
-  
-  public void testLogFileOverflow() throws Exception
-  {
+
+  public void testLogFileOverflow() throws Exception {
     this.deleteLogFiles();
 
     int recCount = 1;
-    
+
     cfg.setMaxLogFiles(2);
     cfg.setMaxBlocksPerFile(5);
     log.open();
-    
+
     // display highmark for each log file
-    byte[][] record = new byte[][] {"record".getBytes(), "1".getBytes()};
-    
+    byte[][] record = new byte[][] { "record".getBytes(), "1".getBytes() };
+
     // keep reference to first log file
     long initialKey = log.put(record, false);
-    
+
     // write records until switch to second log file
     LogFile firstLF = log.lfmgr.currentLogFile;
     do {
@@ -822,33 +833,34 @@ public class LogTest extends TestDriver
       log.put(record, false);
     } while (firstLF.equals(log.lfmgr.currentLogFile));
 
-    // write records until switch to first log file -- should get LogFileOverflowException
+    // write records until switch to first log file -- should get
+    // LogFileOverflowException
     try {
       LogFile currentLF = log.lfmgr.currentLogFile;
       do {
         record[1] = Integer.toString(++recCount).getBytes();
         log.put(record, false);
-      } while(currentLF.equals(log.lfmgr.currentLogFile));
-      
+      } while (currentLF.equals(log.lfmgr.currentLogFile));
+
       fail("LogFileOverflowException expected");
     } catch (LogFileOverflowException e) {
       // expected
     }
-    
+
     // verify that first record in file has not been overwritten.
     LogRecord lr = log.get(null, 0L);
-    while (lr.type != LogRecordType.USER) log.getNext(lr);
+    while (lr.type != LogRecordType.USER)
+      log.getNext(lr);
     assertEquals("Unexpected log key: ", initialKey, lr.key);
     byte[][] fields = lr.getFields();
     assertTrue("record".equals(new String(fields[0])));
     assertTrue("1".equals(new String(fields[1])));
-    
+
     // close the log, reopen and write a record -- should get overflow
     log.close();
-    
+
     log = new Logger(cfg);
     log.open();
-    System.out.println("activeMark: " + Long.toHexString(log.lfmgr.activeMark));
     try {
       record[1] = Integer.toString(++recCount).getBytes();
       log.put(record, false);
@@ -856,8 +868,123 @@ public class LogTest extends TestDriver
     } catch (LogFileOverflowException e) {
       // expected
     }
+
+    log.close();
+  }
+
+  /**
+   * BUG 306425 - verify that app can read and replay records when 
+   * BSN is > Integer.MAX_VALUE
+   * <p>
+   * This test should fail if fix for 306425 is not applied.
+   * 
+   * @throws Exception
+   */
+  public void testGetMethod_NegativeBSN() throws Exception {
+    DataRecords dr = new DataRecords(5);
+    LogRecord lr = dr.lr;
+
+    // make sure we are working from the beginning of a new file.
+    deleteLogFiles();
+    log.open();
+
+    // force BSN to be negative
+    log.bmgr.init(log.lfmgr, Integer.MAX_VALUE+1);
     
-    log.close(); 
+    // populate journal with test records
+    dr.putAll(true);
+    
+    // verify that we can read a record
+    dr.verify(0);
+    
+    log.close();
+  }
+  
+  public void testLoggerReplay_NegativeMark() throws Exception {
+    DataRecords dr = new DataRecords(5);
+
+    // make sure we are working from the beginning of a new file.
+    deleteLogFiles();
+    log.open();
+
+    // force BSN to be negative
+    log.bmgr.init(log.lfmgr, Integer.MAX_VALUE+1);
+
+    // populate journal with test records and set mark at first test record
+    dr.putAll(true);
+    log.mark(dr.key[0]);
+    
+    long key = dr.key[0];
+    System.out.println(Long.toHexString(key));
+    TestLogReader reader = new TestLogReader();
+    log.replay(reader, key);
+    log.close();
+    if (reader.exception != null)
+      throw reader.exception;
+  }
+
+  public void testLoggerReplay_NegativeActiveMark() throws Exception {
+    DataRecords dr = new DataRecords(5);
+
+    // make sure we are working from the beginning of a new file.
+    deleteLogFiles();
+    log.open();
+
+    // force BSN to be negative
+    log.bmgr.init(log.lfmgr, Integer.MAX_VALUE+1);
+
+    // populate journal with test records and set mark at first test record
+    dr.putAll(true);
+    log.mark(dr.key[0]);
+    
+    long key = dr.key[0];
+    System.out.println(Long.toHexString(key));
+    TestLogReader reader = new TestLogReader();
+    log.replay(reader);
+    log.close();
+    if (reader.exception != null)
+      throw reader.exception;
+  }
+  
+  /**
+   * Verify that we can create a log that is larger than 2 Gb.
+   * @throws Exception
+   */
+  public void test2GigLog() throws Exception {
+
+    // define a log that will be larger than 2 Gb
+    cfg.setBufferSize(4);
+    cfg.setMaxBlocksPerFile(Integer.MAX_VALUE);
+    
+    deleteLogFiles();
+    log.open();
+    log.setAutoMark(true);
+    
+    // Generate enough log records to fill > 2Gb (this will take a while)
+    prop.setProperty("msg.count", "20000");
+    workers = 1000;
+    runWorkers(LogTestWorker.class);
+    
+  }
+  
+  public void test2GigLogRestart() throws Exception {
+    DataRecords dr = new DataRecords(50);
+
+    // define a log that will be larger than 2 Gb
+    cfg.setBufferSize(4);
+    cfg.setMaxBlocksPerFile(Integer.MAX_VALUE);
+    
+    // open log again and add a few more records
+    log.open();
+    log.setAutoMark(false);
+
+    dr.putAll(false);
+    log.mark(dr.key[0], true);
+    dr.putAll(true);
+    
+    // now try to replay from the mark
+    TestLogReader reader = new TestLogReader();
+    log.replay(reader);
   }
 
 }
