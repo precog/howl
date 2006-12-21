@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogFileManager.java,v 1.20 2006-04-14 21:13:23 girouxm Exp $
+ * $Id: LogFileManager.java,v 1.21 2006-12-21 16:27:25 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -633,7 +633,7 @@ class LogFileManager extends LogObject
     // compute position of requested block
     long position = 0;
     if (bsn > 0) {
-      int blocksToSkip = bsn - lf.firstBSN;
+      long blocksToSkip = bsn - lf.firstBSN;  // BUG 306425
       position = blocksToSkip * lb.buffer.capacity();
     }
     
