@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Version.java,v 1.8 2007-01-02 20:39:28 girouxm Exp $
+ * $Id: Version.java,v 1.9 2007-01-02 21:08:37 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -66,9 +66,9 @@ public class Version {
     InputStream is = this.getClass().getClassLoader().getResourceAsStream("cvs/status.txt");
     if (is == null) return;
 
-    byte[] data = new byte[100];
+    byte[] data = new byte[200];
     String residue = "";
-    Pattern p = Pattern.compile("^.*Repository revision:[ \\t]+(.+?)[ \\t]+.*src/java/((.+/)*)(.+\\.java),v");
+    Pattern p = Pattern.compile("^.*?Repository revision:[ \t]+(.+?)[ \t]+.*src/java/((.+/)*)(.+\\.java),v");
     String currentPackage = "";
 
     final char[] fill = new char[40];
@@ -86,7 +86,7 @@ public class Version {
         String s = residue.concat(new String(data, 0, bytesread));
         int fromIndex = 0;
         for (int i = s.indexOf('\n', fromIndex); i >= 0; i = s.indexOf('\n', fromIndex)) {
-          String line = s.substring(fromIndex, i);
+          String line = s.substring(fromIndex, i-1);
           Matcher m = p.matcher(line);
           if (m.matches())
           {
