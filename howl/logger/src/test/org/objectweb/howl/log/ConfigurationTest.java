@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: ConfigurationTest.java,v 1.12 2006-12-19 17:09:28 girouxm Exp $
+ * $Id: ConfigurationTest.java,v 1.13 2007-01-02 17:17:19 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -188,10 +188,12 @@ public class ConfigurationTest extends TestCase
     }
   }
   
-  public void testBufferSize_33()
+  // MG 20060509 rename testBufferSize_33 to testMaxBufferSize
+  public void testMaxBufferSize()
   throws LogException, Exception
   {
-    prop.setProperty("bufferSize", "33");
+    // MG 20060508 use Configuration.MAX_BUFFER_SIZE instead of literal.
+    prop.setProperty("bufferSize", "" + (Configuration.MAX_BUFFER_SIZE + 1));
     try {
       cfg = new Configuration(prop);
       fail("Expected LogConfigurationException");
