@@ -90,7 +90,12 @@ public class BigLogTest extends TestDriver {
     
     log.close();
   }
-  
+
+  /**
+   * This test should fail if fix for 306425 is not applied.
+
+   * @throws Exception
+   */
   public void testLoggerReplay_NegativeMark() throws Exception {
     DataRecords dr = new DataRecords(log, 5);
 
@@ -114,6 +119,11 @@ public class BigLogTest extends TestDriver {
       throw reader.exception;
   }
 
+  /**
+   * This test should fail if fix for 306425 is not applied.
+
+   * @throws Exception
+   */
   public void testLoggerReplay_NegativeActiveMark() throws Exception {
     DataRecords dr = new DataRecords(log, 5);
 
