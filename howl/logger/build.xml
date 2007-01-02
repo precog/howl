@@ -3,7 +3,7 @@
          xmlns:dav="antlib:org.apache.webdav.ant"
 >
 
-  <!-- $Id: build.xml,v 1.21 2006-04-21 19:50:52 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.22 2007-01-02 20:14:51 girouxm Exp $ -->
 
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env" />
@@ -258,6 +258,7 @@
         <fileset dir='${test.src.dir}'>
           <include name='**/*Test.java' />
           <exclude name='**/allTest.java' />
+          <exclude name='**/BigLogTest.java' />
           <exclude name='**/ExceptionTest.java' />
           <exclude name='**/MBeanTest.java' />
           <exclude name='**/ThroughputTest.java' />
@@ -412,6 +413,9 @@
          knownhosts='${ssh.knownhosts}'
          command='cd ${not.in.cvs} &amp;&amp; rm -fr jdoc junitreport &amp;&amp; tar -xzf docs.tar.gz &amp;&amp; rm -f docs.tar.gz'
 />
+  <echo>***
+    Connect to HOWL forge and push the new files to the web.
+  </echo>
 
 </target>
 
