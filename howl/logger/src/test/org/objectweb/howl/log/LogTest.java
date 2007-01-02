@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: LogTest.java,v 1.32 2006-12-21 15:43:04 girouxm Exp $
+ * $Id: LogTest.java,v 1.33 2007-01-02 19:43:01 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -458,52 +458,6 @@ public class LogTest extends TestDriver {
     // log.close(); called by runWorkers()
   }
 
-  final class DataRecords { // make class final to clear findbugs warnings
-    final int count;
-
-    final String[] sVal;
-
-    final byte[][] r1;
-
-    final long[] key;
-
-    final LogRecord lr;
-
-    DataRecords(int count) {
-      this.count = count;
-      sVal = new String[count];
-      r1 = new byte[count][];
-      key = new long[count];
-
-      // initialize test records
-      for (int i = 0; i < count; ++i) {
-        sVal[i] = "Record_" + (i + 1);
-        r1[i] = sVal[i].getBytes();
-      }
-      int last = count - 1;
-      lr = new LogRecord(sVal[last].length() + 6);
-    }
-
-    void putAll(boolean forceLastRecord) throws Exception {
-      // populate journal with test records
-      for (int i = 0; i < count; ++i) {
-        boolean force = (i == sVal.length - 1) ? forceLastRecord : false;
-        key[i] = log.put(r1[i], force);
-      }
-    }
-
-    LogRecord verify(int index) throws Exception {
-      log.get(lr, key[index]);
-      verifyLogRecord(lr, sVal[index], key[index]);
-      return lr;
-    }
-
-    LogRecord verify(int index, LogRecord lr) throws Exception {
-      verifyLogRecord(lr, sVal[index], key[index]);
-      return lr;
-    }
-
-  }
 
   /**
    * Verify that Logger.get() method returns requested records.
@@ -518,7 +472,7 @@ public class LogTest extends TestDriver {
    * @throws Exception
    */
   public void testGetMethods() throws Exception {
-    DataRecords dr = new DataRecords(5);
+    DataRecords dr = new DataRecords(log, 5);
     LogRecord lr = dr.lr;
 
     // make sure we are working from the beginning of a new file.
@@ -588,7 +542,7 @@ public class LogTest extends TestDriver {
       do {
         lr = log.getNext(lr);
       } while (lr.isCTRL()); // skip control records
-      verifyLogRecord(lr, dr.sVal[i], lr.key);
+      dr.verifyLogRecord(lr, dr.sVal[i], lr.key);
     }
 
     log.close();
@@ -602,7 +556,7 @@ public class LogTest extends TestDriver {
    * @throws Exception
    */
   public void testGetMethods_UnforcedRecord() throws Exception {
-    DataRecords dr = new DataRecords(1);
+    DataRecords dr = new DataRecords(log, 1);
     log.open();
     dr.putAll(false);
     dr.verify(0);
@@ -758,8 +712,6 @@ public class LogTest extends TestDriver {
    */
   public void simulateFlushManagerFailure(boolean flushPartialBuffers)
       throws Exception {
-    DataRecords dr = new DataRecords(10);
-
     cfg.setFlushPartialBuffers(flushPartialBuffers);
     log = new Logger(cfg);
     log.open();
@@ -768,6 +720,7 @@ public class LogTest extends TestDriver {
     // simulate FlushManager interrupt
     log.bmgr.flushManager.isClosed = true;
 
+    DataRecords dr = new DataRecords(log, 10);
     dr.putAll(false);
     log.close();
   }
@@ -790,25 +743,6 @@ public class LogTest extends TestDriver {
    */
   public void testFlushManagerFailure_FPB_FALSE() throws Exception {
     simulateFlushManagerFailure(false);
-  }
-
-  /**
-   * Verifies the content of the LogRecord is correct.
-   * 
-   * @param lr
-   *          LogRecord to be verified
-   * @param eVal
-   *          expected value
-   * @param eKey
-   *          expected record key
-   */
-  void verifyLogRecord(LogRecord lr, String eVal, long eKey) {
-    byte[][] r2 = lr.getFields();
-    String rVal = new String(r2[0]);
-    assertEquals("Record Type: " + Long.toHexString(lr.type), 0, lr.type);
-    assertEquals("Record Key: " + Long.toHexString(eKey), eKey, lr.key);
-    assertEquals("Record Data", eVal, rVal);
-    assertEquals("Field Count != 1", 1, r2.length);
   }
 
   public void testLogFileOverflow() throws Exception {
@@ -871,120 +805,5 @@ public class LogTest extends TestDriver {
 
     log.close();
   }
-
-  /**
-   * BUG 306425 - verify that app can read and replay records when 
-   * BSN is > Integer.MAX_VALUE
-   * <p>
-   * This test should fail if fix for 306425 is not applied.
-   * 
-   * @throws Exception
-   */
-  public void testGetMethod_NegativeBSN() throws Exception {
-    DataRecords dr = new DataRecords(5);
-    LogRecord lr = dr.lr;
-
-    // make sure we are working from the beginning of a new file.
-    deleteLogFiles();
-    log.open();
-
-    // force BSN to be negative
-    log.bmgr.init(log.lfmgr, Integer.MAX_VALUE+1);
-    
-    // populate journal with test records
-    dr.putAll(true);
-    
-    // verify that we can read a record
-    dr.verify(0);
-    
-    log.close();
-  }
   
-  public void testLoggerReplay_NegativeMark() throws Exception {
-    DataRecords dr = new DataRecords(5);
-
-    // make sure we are working from the beginning of a new file.
-    deleteLogFiles();
-    log.open();
-
-    // force BSN to be negative
-    log.bmgr.init(log.lfmgr, Integer.MAX_VALUE+1);
-
-    // populate journal with test records and set mark at first test record
-    dr.putAll(true);
-    log.mark(dr.key[0]);
-    
-    long key = dr.key[0];
-    System.out.println(Long.toHexString(key));
-    TestLogReader reader = new TestLogReader();
-    log.replay(reader, key);
-    log.close();
-    if (reader.exception != null)
-      throw reader.exception;
-  }
-
-  public void testLoggerReplay_NegativeActiveMark() throws Exception {
-    DataRecords dr = new DataRecords(5);
-
-    // make sure we are working from the beginning of a new file.
-    deleteLogFiles();
-    log.open();
-
-    // force BSN to be negative
-    log.bmgr.init(log.lfmgr, Integer.MAX_VALUE+1);
-
-    // populate journal with test records and set mark at first test record
-    dr.putAll(true);
-    log.mark(dr.key[0]);
-    
-    long key = dr.key[0];
-    System.out.println(Long.toHexString(key));
-    TestLogReader reader = new TestLogReader();
-    log.replay(reader);
-    log.close();
-    if (reader.exception != null)
-      throw reader.exception;
-  }
-  
-  /**
-   * Verify that we can create a log that is larger than 2 Gb.
-   * @throws Exception
-   */
-  public void test2GigLog() throws Exception {
-
-    // define a log that will be larger than 2 Gb
-    cfg.setBufferSize(4);
-    cfg.setMaxBlocksPerFile(Integer.MAX_VALUE);
-    
-    deleteLogFiles();
-    log.open();
-    log.setAutoMark(true);
-    
-    // Generate enough log records to fill > 2Gb (this will take a while)
-    prop.setProperty("msg.count", "20000");
-    workers = 1000;
-    runWorkers(LogTestWorker.class);
-    
-  }
-  
-  public void test2GigLogRestart() throws Exception {
-    DataRecords dr = new DataRecords(50);
-
-    // define a log that will be larger than 2 Gb
-    cfg.setBufferSize(4);
-    cfg.setMaxBlocksPerFile(Integer.MAX_VALUE);
-    
-    // open log again and add a few more records
-    log.open();
-    log.setAutoMark(false);
-
-    dr.putAll(false);
-    log.mark(dr.key[0], true);
-    dr.putAll(true);
-    
-    // now try to replay from the mark
-    TestLogReader reader = new TestLogReader();
-    log.replay(reader);
-  }
-
 }
