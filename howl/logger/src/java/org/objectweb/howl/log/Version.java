@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Version.java,v 1.7 2005-11-23 20:58:42 girouxm Exp $
+ * $Id: Version.java,v 1.8 2007-01-02 20:39:28 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -68,7 +68,7 @@ public class Version {
 
     byte[] data = new byte[100];
     String residue = "";
-    Pattern p = Pattern.compile("^.*Repository revision:[ \\t]+(.+)[ \\t]+.*src/java/((.+/)*)(.+\\.java),v");
+    Pattern p = Pattern.compile("^.*Repository revision:[ \\t]+(.+?)[ \\t]+.*src/java/((.+/)*)(.+\\.java),v");
     String currentPackage = "";
 
     final char[] fill = new char[40];
