@@ -3,7 +3,7 @@
          xmlns:dav="antlib:org.apache.webdav.ant"
 >
 
-  <!-- $Id: build.xml,v 1.24 2007-01-03 15:43:41 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.25 2007-01-03 16:41:25 girouxm Exp $ -->
 
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env" />
@@ -113,8 +113,8 @@
     <cvstagdiff destfile='${temp.dir}/tagdiff.xml'
                 cvsroot=":pserver:anonymous@cvs.forge.objectweb.org:/cvsroot/howl"
                 passfile='nul'
-                startTag='HOWL_1_0_1'
-                endTag='HOWL_1_0_2'
+                startTag='${tag.previous}'
+                endTag='${tag.current}'
                 package='howl/logger'
     >
 
@@ -123,10 +123,10 @@
     <mkdir dir='${doc.dir}/cvs' />
 
     <style in="${temp.dir}/tagdiff.xml"
-           out="${doc.dir}/cvs/HOWL_1_0_2.html"
+           out="${doc.dir}/cvs/${tag.current}.html"
            style="${ant.home}/etc/tagdiff.xsl"
     >
-      <param name="title" expression="HOWL Version 1.0.2 Diff" />
+      <param name="title" expression="HOWL Version ${howl.version} Diff" />
       <param name="module" expression="howl/logger" />
       <param name="cvsweb"
              expression="http://cvs.forge.objectweb.org/cgi-bin/viewcvs.cgi/howl/"
@@ -162,7 +162,7 @@
     >
     </javac>
 
-    <jar destfile='${classes.dir}/howl.jar' manifest="${src.dir}/manifest">
+    <jar destfile='${classes.dir}/howl-${howl.version}.jar' manifest="${src.dir}/manifest">
       <fileset dir='${lib.classes.dir}' includes='**/*.class' />
       <fileset dir='${temp.dir}' includes='resources/*.*' />
     </jar>
