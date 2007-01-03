@@ -24,7 +24,7 @@
 				HOWL is intended to be used for logging of temporary
 				data such as XA transaction events. HOWL is not a
 				replacement for traditional log kits such as LOG4J and
-				J2SE Logging.
+				Java SE Logging.
 			</p>
 			<s2 name="">
 				<p>
