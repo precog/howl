@@ -3,7 +3,7 @@
          xmlns:dav="antlib:org.apache.webdav.ant"
 >
 
-  <!-- $Id: build.xml,v 1.23 2007-01-02 21:39:53 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.24 2007-01-03 15:43:41 girouxm Exp $ -->
 
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env" />
@@ -38,7 +38,9 @@
   <property name='delete.verbose' value='false' />
   <property name='temp.dir' value='target/temp' />
   <property name='logFileDir' value='target/logs' />
-  <property name='ssh.knownhosts' value='${env.HOMEDRIVE}${env.HOMEPATH}/ssh/known_hosts' />
+  <property name='ssh.knownhosts'
+            value='${env.HOMEDRIVE}${env.HOMEPATH}/.ssh/known_hosts'
+  />
 
   <target name='changelog'>
     <mkdir dir="${doc.dir}/cvs" />
@@ -398,7 +400,9 @@
 <gzip zipfile="${temp.dir}/docs.tar.gz" src="${temp.dir}/docs.tar" />
 
 <!-- copy new files -->
-<scp todir="${cvs.user}:${cvs.pwd}@${cvs.site}:${not.in.cvs}" knownhosts='${ssh.knownhosts}'>
+<scp todir="${cvs.user}:${cvs.pwd}@${cvs.site}:${not.in.cvs}"
+     knownhosts='${ssh.knownhosts}'
+>
   <fileset dir='${temp.dir}'>
     <include name='docs.tar.gz' />
   </fileset>
@@ -411,9 +415,9 @@
          username='${cvs.user}'
          password='${cvs.pwd}'
          knownhosts='${ssh.knownhosts}'
-         command='cd ${not.in.cvs} &amp;&amp; rm -fr jdoc junitreport &amp;&amp; tar -xzf docs.tar.gz &amp;&amp; rm -f docs.tar.gz'
+         command='cd ${not.in.cvs} &amp;&amp; rm -fr jdoc junitreport &amp;&amp; tar -xzmf docs.tar.gz &amp;&amp; rm -f docs.tar.gz'
 />
-  <echo>***
+<echo>***
     Connect to HOWL forge and push the new files to the web.
   </echo>
 
