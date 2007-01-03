@@ -49,6 +49,10 @@
       </s2>
       <s2 name="CVS Difference Reports">
         <p>
+          A complete <a href="cvs/HOWL_1_0_2.html">list of differences</a>
+          between the HOWL_1_0_1 TAG and  the HOWL_1_0_2 TAG.
+        </p>
+        <p>
           A complete <a href="cvs/HOWL_1_0_1.html">list of differences</a>
           between the HOWL_1_0_0 TAG and  the HOWL_1_0_1 TAG.
         </p>
