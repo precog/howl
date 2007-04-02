@@ -77,6 +77,29 @@
           </tr>
         </table>
       </s2>
+      <s2 name="Known Issues">
+        <subtitle>Restart Performance</subtitle>
+        <p>
+        During restart, HOWL locates the active journal file then reads through
+        the entire file looking for the logical end of the journal.  The logical
+        end is either the physical end, or the if the journal has been reused, 
+        the block with the largest block number.
+        <em>When a journal file is reused, the new block numbers are larger
+        than the original block numbers.  The logical end of the journal
+        occurs where a block with a smaller block number than the previous
+        block occurs.
+        </em>
+        If HOWL is configured with very large journal files it may take a minute
+        or two to process through the entire file.  Given Murphy's law, the
+        restart point will always be near the end of the file, so restart
+        times will be noticeable if using large files.
+        </p>
+        <p>
+        If an application requires a large amount of journal space, 
+        rather than configure extremely large files, it is
+        better to configure several smaller journal files.
+        </p>
+      </s2>
     </s1>
   </body>
 </document>
