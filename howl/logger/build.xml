@@ -3,7 +3,7 @@
          xmlns:dav="antlib:org.apache.webdav.ant"
 >
 
-  <!-- $Id: build.xml,v 1.25 2007-01-03 16:41:25 girouxm Exp $ -->
+  <!-- $Id: build.xml,v 1.26 2008-06-13 22:06:15 girouxm Exp $ -->
 
   <!-- define properties that cannot be overridden by build.properties -->
   <property environment="env" />
@@ -340,7 +340,7 @@
 </target>
 
 <target name='jdoc-project'
-        description='Generate JavaDocs for public classes and methods'
+        description='Generate JavaDocs for all classes and methods'
 >
 
   <delete failonerror='false' verbose='${delete.verbose}'>
