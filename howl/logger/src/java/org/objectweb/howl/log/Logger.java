@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * ------------------------------------------------------------------------------
- * $Id: Logger.java,v 1.14 2006-04-21 15:03:36 girouxm Exp $
+ * $Id: Logger.java,v 1.15 2008-06-13 22:04:16 girouxm Exp $
  * ------------------------------------------------------------------------------
  */
 package org.objectweb.howl.log;
@@ -262,9 +262,12 @@ public class Logger extends LogObject
   /**
    * Sets the LogFile marking mode.
    * 
-   * <p>passes call to LogFileManager
+   * <p>passes call to LogFileManager.setAutoMark(boolean)
    * 
    * @param autoMark true to indicate automatic marking.
+   * 
+   * @see LogFileManager#setAutoMark(boolean)
+   * @see LogFileManager#activeMark
    */
   public void setAutoMark(boolean autoMark)
     throws InvalidLogKeyException, LogClosedException, LogFileOverflowException, IOException, InterruptedException
