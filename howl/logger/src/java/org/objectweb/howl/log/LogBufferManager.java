@@ -2,22 +2,22 @@
  * JOnAS: Java(TM) Open Application Server
  * Copyright (C) 2004 Bull S.A.
  * All rights reserved.
- * 
+ *
  * Contact: howl@objectweb.org
- * 
+ *
  * This software is licensed under the BSD license.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *     
+ *
  *   * Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer in the
  *     documentation and/or other materials provided with the distribution.
- *     
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -29,7 +29,7 @@
  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * ------------------------------------------------------------------------------
  * $Id: LogBufferManager.java,v 1.28 2005-11-29 23:09:48 girouxm Exp $
  * ------------------------------------------------------------------------------
@@ -60,19 +60,19 @@ class LogBufferManager extends LogObject
     super(config);
     threadsWaitingForceThreshold = config.getThreadsWaitingForceThreshold();
     forceRequired = config.getLogFileMode().equals("rw");
-    
+
     flushPartialBuffers = config.isFlushPartialBuffers();
-    
+
     flushManager = new FlushManager(flushManagerName);
     flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
-    flushManager.start(); // BUG 303659 
+    flushManager.start(); // BUG 303659
   }
-  
+
   /**
    * @see Configuration#flushPartialBuffers
    */
-  private final boolean flushPartialBuffers; 
-  
+  private final boolean flushPartialBuffers;
+
   /**
    * boolean is set <b> true </b> when an IOException is returned
    * by a write or force to a log file.
@@ -81,12 +81,12 @@ class LogBufferManager extends LogObject
    * to the caller.
    */
   private boolean haveIOException = false;  // BUG 300803
-  
+
   /**
    * The last IOException returned to the logger
    */
   private IOException ioexception = null;   // BUG 300803
-  
+
   /**
    * mutex for synchronizing access to buffers list.
    * <p>also synchronizes access to fqPut in routines
@@ -99,30 +99,30 @@ class LogBufferManager extends LogObject
    * portion of force() that forces the channel.
    */
   private final Object forceManagerLock = new Object();
-  
+
   /**
    * reference to LogFileManager that owns this Buffer Manager instance.
-   * 
+   *
    * @see LogFileManager#getLogFileForWrite(LogBuffer)
    */
   private LogFileManager lfm = null;
-  
+
   /**
    * indicates if a force() must be called in the flush() method.
    * <p>Set false in constructor if config.getLogFileMode() is "rwd".
    */
   final boolean forceRequired;
-  
+
   /**
    * The LogBuffer that is currently being filled.
    */
   private LogBuffer fillBuffer = null;
-  
+
   /**
    * array of LogBuffer objects available for filling
    */
   private LogBuffer[] freeBuffer = null;
-  
+
   /**
    * array of all LogBuffer objects allocated.
    * <p>Used to find and debug buffers that are not in the
@@ -135,21 +135,21 @@ class LogBufferManager extends LogObject
    * workerID into freeBuffer list maintained in getBuffer.
    */
   short nextIndex = 0;
-  
+
   /**
    * number of times there were no buffers available.
-   * 
+   *
    * <p>The FlushManager thread monitors this field
    * to determine if the buffer pool needs to be
    * grown.
    */
   private long waitForBuffer = 0;
-  
+
   /**
    * number of times buffer was forced because it is full.
    */
   private long noRoomInBuffer = 0;
-  
+
   /**
    * number of times buffer size was increased because
    * of threads waiting for buffers.
@@ -166,7 +166,7 @@ class LogBufferManager extends LogObject
    * <p>synchronized by forceManagerLock
    */
   int nextWriteBSN = 1;
-  
+
   /**
    * LogBuffer.tod from previous buffer written.
    * <p>maintained in force() method.  Used to
@@ -174,7 +174,7 @@ class LogBufferManager extends LogObject
    * Added to help investigate BUG 303907
    */
   long prevWriteTOD = 0;
-  
+
   /**
    * number of buffers waiting to be forced.
    * <p>synchronized by bufferManagerLock.
@@ -186,74 +186,74 @@ class LogBufferManager extends LogObject
    * a single thread running.
    */
   int buffersWaitingForce = 0;
-  
+
   /**
    * last BSN forced to log.
    * <p>synchronized by forceManagerLock
    */
   int lastForceBSN = 0;
-  
+
   /**
    * number of times channel.force() called.
    */
   private long forceCount = 0;
-  
+
   /**
    * number of times channel.write() called.
    */
   private long writeCount = 0;
-  
+
   /**
    * minimum number of buffers forced by channel.force().
    */
   private int minBuffersForced = Integer.MAX_VALUE;
-  
+
   /**
    * maximum number of buffers forced by channel.force()
    */
   private int maxBuffersForced = Integer.MIN_VALUE;
-  
+
   /**
    * total amount of time spent in channel.force();
    */
   private long totalForceTime = 0;
-  
+
   /**
    * total amount of time spent in channel.write();
    */
   private long totalWriteTime = 0;
-  
+
   /**
    * maximum time (ms) for any single write
    */
   private long maxWriteTime = 0;
-  
+
   /**
    * total amount of time (ms) spent waiting for the forceMangerLock
    */
   private long totalWaitForWriteLockTime = 0;
-  
+
   /**
    * total time between channel.force() calls
    */
   private long totalTimeBetweenForce = 0;
   private long minTimeBetweenForce = Long.MAX_VALUE;
   private long maxTimeBetweenForce = Long.MIN_VALUE;
-  
+
   /**
    * time of last force used to compute totalTimeBetweenForce
    */
   private long lastForceTOD = 0;
-  
+
   /**
    * number of threads waiting for a force
    */
   private int threadsWaitingForce = 0;
   private int maxThreadsWaitingForce = 0;
   private long totalThreadsWaitingForce = 0;
-  
+
   private int threadsWaitingForceThreshold = 0;
-  
+
 
   // reasons for doing force
   long forceOnTimeout = 0;
@@ -261,42 +261,42 @@ class LogBufferManager extends LogObject
   long forceHalfOfBuffers = 0;
   long forceMaxWaitingThreads = 0;
   long forceOnFileSwitch = 0;
-  
+
   /**
    * thread used to flush long waiting buffers
    */
   final FlushManager flushManager; // BUG 303659 change type from Thread to FlushManager so we can access isClosed
-  
+
   /**
    * name of flush manager thread
    */
   private static final String flushManagerName = "FlushManager";
-  
+
   /**
-   * queue of buffers waiting to be written.  The queue guarantees that 
-   * buffers are written to disk in BSN order.  Buffers are placed into 
+   * queue of buffers waiting to be written.  The queue guarantees that
+   * buffers are written to disk in BSN order.  Buffers are placed into
    * the forceQueue using the fqPut workerID, and removed from the forceQueue
-   * using the fqGet workerID.  Access to these two workerID members is 
+   * using the fqGet workerID.  Access to these two workerID members is
    * synchronized using separate objects to allow most threads to be
    * storing log records while a single thread is blocked waiting for
    * a physical force.
-   * 
+   *
    * <p>Buffers are added to the queue when put() detects the buffer is full,
    * and when the FlushManager thread detects that a buffer has waited
    * too long to be written.  The <i> fqPut </i> member is the workerID of
    * the next location in forceQueue to put a LogBuffer that is to
    * be written.  <i> fqPut </i> is protected by <i> bufferManagerLock </i>.
-   * 
+   *
    * <p>Buffers are removed from the queue in force() and written to disk.
    * The <i> fqGet </i> member is an workerID to the next buffer to remove
    * from the forceQueue.  <i> fqGet </i> is protected by
    * <i> forceManagerLock </i>.
-   * 
+   *
    * <p>The size of forceQueue[] is one larger than the size of freeBuffer[]
    * so that fqPut == fqGet always means the queue is empty.
    */
   private LogBuffer[] forceQueue = null;
-  
+
   /**
    * next put workerID into <i> forceQueue </i>.
    * <p>synchronized by bufferManagerLock.
@@ -308,7 +308,7 @@ class LogBufferManager extends LogObject
    * <p>synchronized by forceManagerLock.
    */
   private int fqGet = 0;
-  
+
   /**
    * compute elapsed time for an event
    * @param startTime time event began
@@ -318,42 +318,42 @@ class LogBufferManager extends LogObject
   {
     return System.currentTimeMillis() - startTime;
   }
-  
+
   /**
    * forces buffer to disk.
    *
    * <p>batches multiple buffers into a single force
    * when possible.
-   * 
+   *
    * <p>Design Note:<br/>
    * It was suggested that using forceManagerLock to
    * control writes from the forceQueue[] and forces
    * would reduce overlap due to the amount of time
    * that forceManagerLock is shut while channel.force()
-   * is active. 
+   * is active.
    * <p>Experimented with using two separate locks to
    * manage the channel.write() and the channel.force() calls,
    * but it appears that thread calling channel.force()
    * will block another thread trying to call channel.write()
    * so both locks end up being shut anyway.
    * Since two locks did not provide any measurable benefit,
-   * it seems best to use a single forceManagerLock 
+   * it seems best to use a single forceManagerLock
    * to keep the code simple.
    */
   private void force(boolean timeout)
     throws IOException, InterruptedException
   {
     LogBuffer logBuffer = null;
-    
+
     long startWait = System.currentTimeMillis();
     synchronized(forceManagerLock)  // write buffers in ascending BSN sequence
-    { 
+    {
       totalWaitForWriteLockTime += elapsedTime(startWait);
-      
+
       logBuffer = forceQueue[fqGet]; // logBuffer stuffed into forceQ
-      forceQueue[fqGet] = null;      // so someone using debug doesn't think it is in the queue 
+      forceQueue[fqGet] = null;      // so someone using debug doesn't think it is in the queue
       fqGet = (fqGet + 1) % forceQueue.length;
-      
+
       if (haveIOException)
       {
         // BUG 300803 - do not try the write if we already have an error
@@ -369,7 +369,7 @@ class LogBufferManager extends LogObject
         // write the logBuffer to disk (hopefully non-blocking)
         try {
           assert logBuffer.bsn == nextWriteBSN : "BSN error expecting " + nextWriteBSN + " found " + logBuffer.bsn;
-          assert logBuffer.tod > prevWriteTOD : "TOD error at BSN: " + logBuffer.bsn; 
+          assert logBuffer.tod > prevWriteTOD : "TOD error at BSN: " + logBuffer.bsn;
           long startWrite = System.currentTimeMillis();
           logBuffer.write();
           long writeTime = elapsedTime(startWrite);
@@ -381,18 +381,18 @@ class LogBufferManager extends LogObject
         catch (IOException ioe) {
           // BUG 300803 - remember that we had an error
           // BUG 303907 add a message to the IOException
-          ioexception = new IOException("LogBufferManager.force(): writing " + 
+          ioexception = new IOException("LogBufferManager.force(): writing " +
               logBuffer.lf.file.getName() + "[" + ioe.getMessage() + "]");
           ioexception.setStackTrace(ioe.getStackTrace());
           haveIOException = true;
         }
       }
-      
+
       threadsWaitingForce += logBuffer.getWaitingThreads();
       // NOTE: following is not synchronized so the stats may be inaccurate.
       if (threadsWaitingForce > maxThreadsWaitingForce)
         maxThreadsWaitingForce = threadsWaitingForce;
-  
+
       /*
        * The lastForceBSN member is updated by the thread
        * that actually does a force().  All threads
@@ -404,18 +404,18 @@ class LogBufferManager extends LogObject
       // has been written prior to the force, so get the
       // bsn for the last known write prior to the force.
       int forcebsn = nextWriteBSN - 1;
-      
+
       boolean doforce = true;
-      
+
       /*
        * 2004-06-25 Michael Giroux
        *   Remove test for logBuffer.bsn < forcebsn.  This cannot
        *   happen now that we stay in the forceManagerLock.
-       * 
+       *
        *   Rearranged tests to improve the accuracy of the counters.
-       * 
+       *
        * 2004-09-09 Michael Giroux
-       *   BUG 300803 - Add test for IOException 
+       *   BUG 300803 - Add test for IOException
        */
       if (haveIOException)
       {
@@ -459,17 +459,17 @@ class LogBufferManager extends LogObject
           logBuffer.lf.force(false);
         } catch (IOException ioe) {
           // BUG 303907 add a message to the IOException
-          ioexception = new IOException("LogBufferManager.force(): error attempting to force " + 
+          ioexception = new IOException("LogBufferManager.force(): error attempting to force " +
               logBuffer.lf.file.getName() + "[" + ioe.getMessage() + "]");
           ioexception.setStackTrace(ioe.getStackTrace());
           haveIOException = true;
           logBuffer.ioexception = ioe;
         }
         totalForceTime += elapsedTime(startForce);
-        
+
         if (lastForceTOD > 0)
         {
-          long timeBetweenForce = startForce - lastForceTOD; 
+          long timeBetweenForce = startForce - lastForceTOD;
           totalTimeBetweenForce += timeBetweenForce;
           minTimeBetweenForce = Math.min(minTimeBetweenForce, timeBetweenForce);
           if (!timeout)
@@ -478,7 +478,7 @@ class LogBufferManager extends LogObject
           }
         }
         lastForceTOD = System.currentTimeMillis();
-        
+
         if (lastForceBSN > 0)
         {
           int buffersForced = forcebsn - lastForceBSN;
@@ -487,10 +487,10 @@ class LogBufferManager extends LogObject
         }
         totalThreadsWaitingForce += threadsWaitingForce;
         threadsWaitingForce = 0;
-        
+
         lastForceBSN = forcebsn;
       }
-      
+
       // notify everyone who is waiting for the force
       if (doforce || haveIOException)
         forceManagerLock.notifyAll();
@@ -501,14 +501,14 @@ class LogBufferManager extends LogObject
         forceManagerLock.wait();
       }
     } // synchronized(forceManagerLock)
-    
+
     // notify threads waiting for this buffer to force
     synchronized(logBuffer)
     {
       // BUG: 300613 must synchronize the update of iostatus
       if (logBuffer.iostatus == LogBufferStatus.WRITING)
         logBuffer.iostatus = LogBufferStatus.COMPLETE;
-      
+
       // BUG: 300803 report error to threads that are waiting
       if (haveIOException)
       {
@@ -516,11 +516,11 @@ class LogBufferManager extends LogObject
         logBuffer.ioexception = ioexception;
       }
 
-      logBuffer.notifyAll(); 
+      logBuffer.notifyAll();
     }
 
     releaseBuffer(logBuffer);
-    
+
     // BUG 300803 report error to our caller
     if (haveIOException) throw ioexception;
   }
@@ -567,12 +567,12 @@ class LogBufferManager extends LogObject
       }
     }
   }
-  
+
   /**
    * returns a LogBuffer to be filled.
-   * 
+   *
    * <p>PRECONDITION: caller holds bufferManagerLock monitor.
-   * 
+   *
    * @return a LogBuffer to be filled.
    */
   private LogBuffer getFillBuffer() throws LogFileOverflowException
@@ -601,12 +601,12 @@ class LogBufferManager extends LogObject
     }
     return fillBuffer;
   }
-  
+
   /**
    * return a new instance of LogBuffer.
    * <p>Actual LogBuffer implementation class is specified by
    * configuration.
-   * 
+   *
    * @return a new instance of LogBuffer
    */
   LogBuffer getLogBuffer(int index) throws ClassNotFoundException
@@ -628,10 +628,10 @@ class LogBufferManager extends LogObject
     } catch (InvocationTargetException e) {
       throw new ClassNotFoundException(e.toString());
     }
-    
-    return lb; 
+
+    return lb;
   }
-  
+
   /**
    * Add a buffer to the forceQueue.
    * <p>PRECONDITION: bufferManagerLock owned by caller
@@ -649,11 +649,11 @@ class LogBufferManager extends LogObject
     fqPut = (fqPut + 1) % forceQueue.length;
     ++buffersWaitingForce;  // BUG 303660
   }
-  
+
   /**
    * writes <i> data </i> byte[][] to log and returns a log key.
    * <p>waits for IO to complete if sync is true.
-   * 
+   *
    * <p>MG 27/Jan/05 modified code to force buffer if caller
    * has set sync == true, and there are no buffers waiting
    * to be written.  This causes buffers to be written
@@ -667,17 +667,17 @@ class LogBufferManager extends LogObject
    * @throws LogRecordSizeException
    *   when size of byte[] is larger than the maximum possible
    *   record for the configured buffer size.
-   * 
-   * @see #buffersWaitingForce 
+   *
+   * @see #buffersWaitingForce
    */
   long put(short type, byte[][] data, boolean sync)
-    throws LogRecordSizeException, LogFileOverflowException, 
+    throws LogRecordSizeException, LogFileOverflowException,
                 InterruptedException, IOException
   {
     long token = 0;
     LogBuffer currentBuffer = null;
     boolean forceNow = false;
-    
+
     do {
       // allocate the current fillBuffer
       synchronized(bufferManagerLock)
@@ -687,7 +687,7 @@ class LogBufferManager extends LogObject
           ++waitForBuffer;
           bufferManagerLock.wait();
         }
-        
+
         token = currentBuffer.put(type, data, sync);
         if (sync && buffersWaitingForce == 0)
         {
@@ -720,7 +720,7 @@ class LogBufferManager extends LogObject
 
     return token;
   }
-  
+
   /**
    * Force the current buffer to disk
    * before starting a replay().
@@ -728,7 +728,7 @@ class LogBufferManager extends LogObject
   void forceCurrentBuffer() throws IOException
   {
     LogBuffer buffer = null;
-    
+
     synchronized(bufferManagerLock)
     {
       if (fillBuffer != null)
@@ -748,22 +748,22 @@ class LogBufferManager extends LogObject
     }
 
   }
-  
+
   /**
    * Replays log from requested mark forward to end of log.
-   * 
-   * <p>Blocks caller until replay completes due to end of log, 
+   *
+   * <p>Blocks caller until replay completes due to end of log,
    * or an exception is passed to listener.onError().
-   * 
+   *
    * @param listener ReplayListener to receive notifications for each log record.
    * @param mark log key for the first record to be replayed.
    * <p>If mark is zero then the entire active log is replayed.
    * @param replayCtrlRecords indicates whether to return control records.
    * <p>used by utility routines such as CopyLog.
-   * 
+   *
    * @throws InvalidLogKeyException
    * if the requested key is not found in the log.
-   * 
+   *
    * @see org.objectweb.howl.log.Logger#replay(ReplayListener, long)
    */
   void replay(ReplayListener listener, long mark, boolean replayCtrlRecords)
@@ -772,16 +772,16 @@ class LogBufferManager extends LogObject
     int bsn = bsnFromMark(mark);
     if (mark < 0 || (bsn == 0 && mark != 0))
       throw new InvalidLogKeyException(Long.toHexString(mark));
-    
+
     LogBuffer buffer = null;
-    
+
     // get a LogBuffer for reading
     try {
       buffer = getLogBuffer(-1);
     } catch (ClassNotFoundException e) {
       throw new LogConfigurationException(e.toString());
     }
-    
+
     // get a LogRecord from caller
     LogRecord record = listener.getLogRecord();
     record.buffer = buffer;
@@ -809,14 +809,14 @@ class LogBufferManager extends LogObject
         return;
       }
       else {
-        String msg = "The mark [" + Long.toHexString(mark) + 
+        String msg = "The mark [" + Long.toHexString(mark) +
         "] requested for replay was not found in the log. " +
         "activeMark is [" + Long.toHexString(lfm.activeMark) +
         "]";
         throw new InvalidLogKeyException(msg);
       }
     }
-    
+
     // verify we have the desired block
     // if requested mark == 0 then we start with the oldest block available
     int markBSN = (mark == 0) ? buffer.bsn : bsnFromMark(mark);
@@ -826,10 +826,10 @@ class LogBufferManager extends LogObject
       listener.onError(lbe);
       return;
     }
-    
+
     /*
      * position buffer to requested mark.
-     * 
+     *
      * Although the mark contains a buffer offset, we search forward
      * through the buffer to guarantee that we have the start
      * of a record.  This protects against using marks that were
@@ -844,7 +844,7 @@ class LogBufferManager extends LogObject
           record.get(buffer);
         }
         if (record.key != mark) {
-          String msg = "The initial mark [" + Long.toHexString(mark) + 
+          String msg = "The initial mark [" + Long.toHexString(mark) +
             "] requested for replay was not found in the log.";
           // BUG 300733 following line changed to throw an exception
           throw new InvalidLogKeyException(msg);
@@ -854,7 +854,7 @@ class LogBufferManager extends LogObject
       listener.onError(new LogException(e.toString()));
       return;
     }
-    
+
     /*
      * If we get this far then we have found the requested mark.
      * Replay the log starting at the requested mark through the end of log.
@@ -874,7 +874,7 @@ class LogBufferManager extends LogObject
           listener.onError(new LogException(e.toString()));
           return;
         }
-        
+
         // return end of log indicator
         if (buffer.bsn == -1 || buffer.bsn < nextBSN) {
           record.type = LogRecordType.END_OF_LOG;
@@ -897,14 +897,14 @@ class LogBufferManager extends LogObject
       }
     }
   }
-  
+
   /**
    * Allocate pool of IO buffers for Logger.
-   * 
+   *
    * <p>The LogBufferManager class is a generalized manager for any
    * type of LogBuffer.  The class name for the type of LogBuffer
    * to use is specified by configuration parameters.
-   * 
+   *
    * @throws ClassNotFoundException
    * if the configured LogBuffer class cannot be found.
    */
@@ -919,7 +919,7 @@ class LogBufferManager extends LogObject
       freeBuffer[i] = getLogBuffer(i);
       bufferList[i] = freeBuffer[i]; // bufferList used to debug
     }
-    
+
     synchronized(forceManagerLock)
     {
       // one larger than bufferPoolSize to guarantee we never overrun this queue
@@ -930,26 +930,28 @@ class LogBufferManager extends LogObject
 
     // inform flushManager that LogBufferManager is ready for operation
     if (flushManager != null) {
-      flushManager.isClosed = false; // BUG 303659 
+      flushManager.isClosed = false; // BUG 303659
     }
   }
-  
+
   /**
    * Shutdown any threads that are started by this LogBufferManager instance.
    */
   void close()
   {
     // inform the flush manager thread
-    if (flushManager != null)
+    if (flushManager != null) {
       flushManager.isClosed = true; // BUG 303659
+      flushManager.isShutdown = true;
+    }
   }
-  
+
   /**
    * perform initialization following reposition of LogFileManager.
    *
    * @param lfm LogFileManager used by the buffer manager to obtain
-   * log files for writing buffers. 
-   * @param bsn last Block Sequence Number written by Logger. 
+   * log files for writing buffers.
+   * @param bsn last Block Sequence Number written by Logger.
    */
   void init(LogFileManager lfm, int bsn)
   {
@@ -962,11 +964,11 @@ class LogBufferManager extends LogObject
       nextWriteBSN = nextFillBSN;
     }
   }
-  
+
   /**
    * flush active buffers to disk and wait for all LogBuffers to
    * be returned to the freeBuffer pool.
-   * 
+   *
    * <p>May be called multiple times.
    */
   void flushAll() throws IOException
@@ -1007,7 +1009,7 @@ class LogBufferManager extends LogObject
       // ignore it
     }
   }
-  
+
   /**
    * convert a double to String with fixed number of decimal places
    * @param val double to be converted
@@ -1028,7 +1030,7 @@ class LogBufferManager extends LogObject
    * Returns an XML node containing statistics for the LogBufferManager.
    * <p>The nested <LogBufferPool> element contains entries for each
    * LogBuffer object in the buffer pool.
-   * 
+   *
    * @return a String containing statistics.
    */
   String getStats()
@@ -1040,21 +1042,21 @@ class LogBufferManager extends LogObject
     String avgWriteTime = doubleToString((totalWriteTime / (double)writeCount), 2);
     String avgWaitForWriteLockTime = doubleToString((totalWaitForWriteLockTime / (double)writeCount), 2);
     String name = this.getClass().getName();
-    
+
     StringBuffer stats = new StringBuffer(
            "\n<LogBufferManager  class='" + name + "'>" +
            "\n  <bufferSize value='" + (config.getBufferSize() * 1024) + "'>Buffer Size (in bytes)</bufferSize>" + /* BUG 300957 */
-           "\n  <poolsize    value='" + freeBuffer.length + "'>Number of buffers in the pool</poolsize>" + 
+           "\n  <poolsize    value='" + freeBuffer.length + "'>Number of buffers in the pool</poolsize>" +
            "\n  <initialPoolSize value='" + config.getMinBuffers() + "'>Initial number of buffers in the pool</initialPoolSize>" +
            "\n  <growPoolCounter value='" + growPoolCounter + "'>Number of times buffer pool was grown</growPoolCounter>" +
            "\n  <bufferwait  value='" + getWaitForBuffer()     + "'>Wait for available buffer</bufferwait>" +
-           "\n  <bufferfull  value='" + noRoomInBuffer    + "'>Buffer full</bufferfull>" + 
+           "\n  <bufferfull  value='" + noRoomInBuffer    + "'>Buffer full</bufferfull>" +
            "\n  <nextfillbsn value='" + nextFillBSN       + "'></nextfillbsn>" +
            "\n  <writeStats>" +
            "\n    <writeCount  value='" + writeCount        + "'>Number of channel.write() calls</writeCount>" +
            "\n    <totalWriteTime   value='" + totalWriteTime         + "'>Total time (ms) spent in channel.write</totalWriteTime>" +
-           "\n    <avgWriteTime value='" + avgWriteTime + "'>Average channel.write() time (ms)</avgWriteTime>" + 
-           "\n    <maxWriteTime value='" + maxWriteTime + "'>Maximum channel.write() time (ms)</maxWriteTime>" + 
+           "\n    <avgWriteTime value='" + avgWriteTime + "'>Average channel.write() time (ms)</avgWriteTime>" +
+           "\n    <maxWriteTime value='" + maxWriteTime + "'>Maximum channel.write() time (ms)</maxWriteTime>" +
            "\n    <totalWaitForWriteLockTime   value='" + totalWaitForWriteLockTime         + "'>Total time (ms) spent waiting for forceManagerLock to issue a write</totalWaitForWriteLockTime>" +
            "\n    <avgWaitForWriteLockTime   value='" + avgWaitForWriteLockTime         + "'>Average time (ms) spent waiting for forceManagerLock to issue a write</avgWaitForWriteLockTime>" +
            "\n  </writeStats>" +
@@ -1062,10 +1064,10 @@ class LogBufferManager extends LogObject
            "\n    <forceCount  value='" + forceCount        + "'>Number of channel.force() calls</forceCount>" +
            "\n    <totalForceTime   value='" + totalForceTime         + "'>Total time (ms) spent in channel.force</totalForceTime>" +
            "\n    <avgForceTime value='" + avgForceTime + "'>Average channel.force() time (ms)</avgForceTime>" +
-           "\n    <totalTimeBetweenForce value='" + totalTimeBetweenForce + "'>Total time (ms) between calls to channel.force()</totalTimeBetweenForce>" + 
-           "\n    <minTimeBetweenForce value='" + minTimeBetweenForce + "'>Minimum time (ms) between calls to channel.force()</minTimeBetweenForce>" + 
-           "\n    <maxTimeBetweenForce value='" + maxTimeBetweenForce + "'>Maximum time (ms) between calls to channel.force()</maxTimeBetweenForce>" + 
-           "\n    <avgTimeBetweenForce value='" + avgTimeBetweenForce + "'>Average time (ms) between calls to channel.force()</avgTimeBetweenForce>" + 
+           "\n    <totalTimeBetweenForce value='" + totalTimeBetweenForce + "'>Total time (ms) between calls to channel.force()</totalTimeBetweenForce>" +
+           "\n    <minTimeBetweenForce value='" + minTimeBetweenForce + "'>Minimum time (ms) between calls to channel.force()</minTimeBetweenForce>" +
+           "\n    <maxTimeBetweenForce value='" + maxTimeBetweenForce + "'>Maximum time (ms) between calls to channel.force()</maxTimeBetweenForce>" +
+           "\n    <avgTimeBetweenForce value='" + avgTimeBetweenForce + "'>Average time (ms) between calls to channel.force()</avgTimeBetweenForce>" +
            "\n    <avgBuffersPerForce value='" + avgBuffersPerForce + "'>Average number of buffers per force</avgBuffersPerForce>" +
            "\n    <minBuffersForced value='" + minBuffersForced + "'>Minimum number of buffers forced</minBuffersForced>" +
            "\n    <maxBuffersForced value='" + maxBuffersForced + "'>Maximum number of buffers forced</maxBuffersForced>" +
@@ -1082,12 +1084,12 @@ class LogBufferManager extends LogObject
            "\n  <LogBufferPool>" +
            "\n"
          );
-    
+
     /*
      * collect stats for each buffer that is in the freeBuffer list.
      * If log is active one or more buffers will not be in the freeBuffer list.
      * The only time we can be sure that all buffers are in the list is
-     * when the log is closed. 
+     * when the log is closed.
      */
     for (int i=0; i < freeBuffer.length; ++i)
     {
@@ -1100,7 +1102,7 @@ class LogBufferManager extends LogObject
          "\n</LogBufferManager>" +
       "\n"
     );
-     
+
      return stats.toString();
   }
 
@@ -1119,7 +1121,7 @@ class LogBufferManager extends LogObject
     public final int getBufferPoolInitialSize() { return config.getMinBuffers(); }
     public final int getBufferPoolGrowCount() { return growPoolCounter; }
   }
-  
+
   public interface ForceStatsMBean {
     public abstract double getAverageThreadsWaitingForce();
     public abstract long getForceCount();
@@ -1132,7 +1134,7 @@ class LogBufferManager extends LogObject
     public abstract int getMaxBuffersForced();
     public abstract int getMaxThreadsWaitingForce();
   }
-  
+
   public class ForceStats implements ForceStatsMBean {
     public final double getAverageThreadsWaitingForce() {
       return totalThreadsWaitingForce / (double)forceCount;
@@ -1150,10 +1152,10 @@ class LogBufferManager extends LogObject
       return writeCount / (double) forceCount;
     }
     public final int getMinBuffersForced() { return minBuffersForced; }
-    public final int getMaxBuffersForced() { return maxBuffersForced; } 
+    public final int getMaxBuffersForced() { return maxBuffersForced; }
     public final int getMaxThreadsWaitingForce() { return maxThreadsWaitingForce; }
   }
-  
+
   public interface WriteStatsMBean {
     public abstract long getWriteCount();
     public abstract double getAverageWriteTime();
@@ -1161,7 +1163,7 @@ class LogBufferManager extends LogObject
     public abstract double getAverageWaitForWriteLockTime();
     public abstract long getWaitForBuffer();
   }
-  
+
   public class WriteStats implements WriteStatsMBean
   {
     public final long getWriteCount() { return writeCount; }
@@ -1177,19 +1179,19 @@ class LogBufferManager extends LogObject
       return parent.getWaitForBuffer();
     }
   }
-  
+
   /**
    * returns the BSN value portion of a log key <i> mark </i>.
-   * 
+   *
    * @param mark log key or log mark to extract BSN from.
-   * 
+   *
    * @return BSN portion of <i> mark </i>
    */
   int bsnFromMark(long mark)
   {
     return (int) (mark >> 24);
   }
-  
+
   /**
    * generate a log mark (log key).
    * @param bsn Block Sequence Number.
@@ -1201,7 +1203,7 @@ class LogBufferManager extends LogObject
   {
     return ((long)bsn << 24) | offset;
   }
-  
+
   /**
    * provides synchronized access to waitForBuffer
    * @return the current value of waitForBuffer
@@ -1217,7 +1219,7 @@ class LogBufferManager extends LogObject
   /**
    * helper thread to flush buffers that have threads waiting
    * longer than configured maximum.
-   * 
+   *
    * <p>This thread is shut down by #close().
    * @see #close()
    */
@@ -1227,10 +1229,15 @@ class LogBufferManager extends LogObject
      * prevents FlushManager from flushing buffers when true.
      * <p>Managed by setClosed() and tested by isClosed().</p>
      * <p>Initially true to prevent flush manager thread
-     * from doing anything while open processing is going on.</p> 
+     * from doing anything while open processing is going on.</p>
      */
     boolean isClosed = true; // BUG 303659
-    
+
+    /**
+     * Flag to indicate final shutdown (as opposed to interrupting)
+     */
+    boolean isShutdown = false;
+
     FlushManager(String name)
     {
       super(name);
@@ -1240,21 +1247,21 @@ class LogBufferManager extends LogObject
     {
       LogBuffer buffer = null;
       LogBufferManager parent = LogBufferManager.this;
-      
+
       int flushSleepTime = config.getFlushSleepTime();
-      
+
       long waitForBuffer = parent.getWaitForBuffer();
 
       for (;;)
       {
-        if (interrupted()) return;
+        if (interrupted() || isShutdown) return;
 
         try
         {
           sleep(flushSleepTime); // check for timeout every 50 ms
-          
+
           if (isClosed) continue;  // BUG 303659 - do nothing while LogBufferManager is closed
-          
+
           /*
            * Dynamically grow buffer pool until number of waits
            * for a buffer is less than 1/2 the pool size.
@@ -1274,7 +1281,7 @@ class LogBufferManager extends LogObject
             // increase size of buffer pool if number of waits > 1/2 buffer pool size
             LogBuffer[] fb = new LogBuffer[freeBuffer.length + increment];
             LogBuffer[] bl = new LogBuffer[fb.length]; // increase size of bufferList also.
-            
+
             ++growPoolCounter;
 
             // initialize the new slots
@@ -1297,7 +1304,7 @@ class LogBufferManager extends LogObject
                 // copy bufferList to new array
                 for(int i=0; i<bufferList.length; ++i)
                   bl[i] = bufferList[i];
-                
+
                 // replace bufferList with new array
                 bufferList = bl;
 
