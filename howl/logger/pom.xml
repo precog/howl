@@ -5,7 +5,7 @@
     <artifactId>howl</artifactId>
     <name>HOWL logger</name>
     <packaging>jar</packaging>
-    <version>1.0.1-1</version>
+    <version>1.0.1-1-precog</version>
 
     <url>http://forge.objectweb.org/projects/howl/</url>
     <description>HOWL is a logger implementation providing features required by the JOTM project. HOWL uses unformatted
@@ -174,12 +174,17 @@ mvn  clean  source:jar javadoc:jar deploy -Dsource=1.4 -Dmaven.test.skip=true   
     </profiles>
 
     <distributionManagement>
+        <repository>
+            <id>nexus.reportgrid.com</id>
+            <name>ReportGrid Maven Repository</name>
+            <url>http://nexus.reportgrid.com/content/repositories/releases/</url>
+        </repository>
         <!-- After deploy, you need to go to http://forge.objectweb.org/projects/maven/ and hit the Push button -->
+        <!--
         <repository>
             <id>objectweb</id>
             <name>ObjectWeb Maven Repository</name>
             <url>scp://jupiter.objectweb.org/var/lib/gforge/chroot/home/groups/maven/htdocs/maven2</url>
-            <!--url>file:/tmp/repo</url-->
         </repository>
         <snapshotRepository>
             <id>objectweb-snapshot</id>
@@ -190,7 +195,7 @@ mvn  clean  source:jar javadoc:jar deploy -Dsource=1.4 -Dmaven.test.skip=true   
             <id>howl.website</id>
             <url>file:/tmp/site</url>
         </site>
-
+        -->
     </distributionManagement>
 
 </project>
