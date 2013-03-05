@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Properties;
 
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -401,7 +402,7 @@ public class Configuration implements ConfigurationMBean {
   /**
    * The scheduler for internal tasks.
    */
-  private ScheduledThreadPoolExecutor scheduler = null;
+  private ScheduledExecutorService scheduler = null;
 
   /* ---------------------------------------------------
    * LogFileManager configuration settings
@@ -682,7 +683,7 @@ public class Configuration implements ConfigurationMBean {
     prop.setProperty("logFileMode", logFileMode);
   }
 
-  public ScheduledThreadPoolExecutor getScheduler() {
+  public ScheduledExecutorService getScheduler() {
     if (scheduler == null) {
       // Default scheduler is 10 threads
       this.scheduler = new ScheduledThreadPoolExecutor(10, new ThreadFactory() {
@@ -697,7 +698,7 @@ public class Configuration implements ConfigurationMBean {
     return scheduler;
   }
 
-  public void setScheduler(ScheduledThreadPoolExecutor scheduler) {
+  public void setScheduler(ScheduledExecutorService scheduler) {
     this.scheduler = scheduler;
   }
 

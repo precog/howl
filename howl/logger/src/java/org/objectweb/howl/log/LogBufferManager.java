@@ -36,7 +36,6 @@
  */
 package org.objectweb.howl.log;
 
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -1357,8 +1356,7 @@ class LogBufferManager extends LogObject
           // TODO: report IOException to error log
           System.err.println("FlushManager: IOException in force(true)");
         }
-      }
     }
   }
-
 }
+
