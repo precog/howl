@@ -2,22 +2,22 @@
  * JOnAS: Java(TM) Open Application Server
  * Copyright (C) 2004 Bull S.A.
  * All rights reserved.
- * 
+ *
  * Contact: howl@objectweb.org
- * 
+ *
  * This software is licensed under the BSD license.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *     
+ *
  *   * Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer in the
  *     documentation and/or other materials provided with the distribution.
- *     
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -29,7 +29,7 @@
  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * ------------------------------------------------------------------------------
  * $Id: ThroughputTest.java,v 1.6 2006-05-24 07:57:05 djencks Exp $
  * ------------------------------------------------------------------------------
@@ -62,9 +62,9 @@ public class ThroughputTest extends TestDriver {
 
     log = new Logger(cfg);
     prop.setProperty("msg.count", "200");
-    
+
   }
-  
+
   /*
    * @see TestDriver#tearDown()
    */
@@ -80,7 +80,7 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   public void testLoggerThroughput_rw() throws Exception, LogException {
     log.open();
     log.setAutoMark(true);
@@ -89,18 +89,18 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
 }
-  
+
   public void testLoggerThroughput_rwd() throws Exception, LogException {
     cfg.setLogFileMode("rwd");
     log.open();
-    
+
     log.setAutoMark(true);
     prop.setProperty("msg.force.interval", "0");
     prop.setProperty("msg.count", "1000");
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   /**
    * Runs a single worker thread with flushPartialBuffers false.
    * <p>This simulates the original implementation for journal forcing.
@@ -119,7 +119,7 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   /**
    * Runs a single worker thread with flushPartialBuffers true.
    * <p>In this mode, buffers are flushed anytime the channel
@@ -140,7 +140,7 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   public void testThroughput_25() throws Exception, LogException {
     cfg.setLogFileName("log_2k");
     cfg.setBufferSize(2);
@@ -152,7 +152,7 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   public void testThroughput_25_FSB() throws Exception, LogException {
     cfg.setLogFileName("log_2k");
     cfg.setBufferSize(2);
@@ -164,7 +164,7 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   public void testThroughput_50() throws Exception, LogException {
     log.open();
     log.setAutoMark(true);
@@ -172,7 +172,7 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   public void testThroughput_100() throws Exception, LogException {
     log.open();
     log.setAutoMark(true);
@@ -180,7 +180,7 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   public void testThroughput_200() throws Exception, LogException {
     cfg.setFlushPartialBuffers(false);
     log = new Logger(cfg);
@@ -190,7 +190,7 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   public void testThroughput_200_FSB() throws Exception, LogException {
     cfg.setFlushPartialBuffers(true);
     log = new Logger(cfg);
@@ -200,7 +200,7 @@ public class ThroughputTest extends TestDriver {
     runWorkers(LogTestWorker.class);
     // log.close(); called by runWorkers()
   }
-  
+
   public void testThroughput_1200() throws Exception, LogException {
     cfg.setLogFileName("log_12k");
     cfg.setBufferSize(12);

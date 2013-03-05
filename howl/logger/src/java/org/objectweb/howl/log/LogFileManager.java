@@ -284,25 +284,19 @@ class LogFileManager extends LogObject
   LogFileManager(Configuration config)
   {
     super(config);
-    
+
     // remember that initialization is not yet complete
     initComplete = false; // BUG 300934
-    
-    // light up the event managemer thread
-    eventManagerThread = new EventManager("LogFileManager.EventManager");
-    eventManagerThread.setDaemon(true);  // so we can shut down while eventManagerThread is running
-    eventManagerThread.start();
-    
   }
-  
+
   /**
    * Returns the LogFile that contains the requested <i> mark </i>.
    * <p>Called by LogBufferManager to locate a log file needed
    * for a replay() request.
-   * 
+   *
    * @param mark A log key previously returned by LogBufferManager.put().
    * The log key is used to compute the desired file.
-   * 
+   *
    * @return LogFile containing the requested <i> mark </i>.
    * <p>Returns null if none of the files in fileSet[] contain
    * the requested mark.
@@ -488,14 +482,37 @@ class LogFileManager extends LogObject
         // active mark is somewhere in next file
         synchronized(eventManagerLock)
         {
-          // do not notify this event if it is already being processed
+          // only notify this event if it isn't already being processed
           if ((event & LOG_OVERFLOW_EVENT) == 0)
           {
             lowestSafeLogKey = nextLogFile.highMark;
 
-            // kick the event manager thread
+            // Flag the event as being in process
             event |= LOG_OVERFLOW_EVENT;
-            eventManagerLock.notifyAll();
+
+            config.getScheduler().execute(new Runnable() {
+              public void run() {
+                if (eventListener != null)
+                {
+                  try {
+                    // protect HOWL from RuntimeExceptions in application code
+                    eventListener.logOverflowNotification(lowestSafeLogKey);
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                  }
+
+                  // update count of notifications
+                  overflowNotificationCount += 1;
+                }
+
+                synchronized(eventManagerLock)
+                {
+                  lowestSafeLogKey = 0;
+                  // Flag the even handling as complete
+                  event ^= LOG_OVERFLOW_EVENT;
+                }
+              }
+            });
           }
         } // synchronized(eventManagerLock)
       }
@@ -1157,11 +1174,7 @@ class LogFileManager extends LogObject
       interrupted = true;  // remember and throw it on the way out.
       exception = e;
     }
-    
-    // shut down the event manager thread before we close the files
-    if (eventManagerThread != null)
-      eventManagerThread.interrupt();
-  	
+
     // close the log files
     for (int i=0; i < fileSet.length; ++i)
     {
@@ -1219,84 +1232,7 @@ class LogFileManager extends LogObject
     stats.append("\n</LogFiles>");
 
     stats.append("\n</LogFileManager>");
-    
+
     return stats.toString();
-  }
-  
-  /**
-   * helper thread used invoke LogEventListener when
-   * log overflow (or other event) is about to occur.
-   * 
-   */
-  class EventManager extends Thread
-  {
-    EventManager(String name)
-    {
-      super(name);
-    }
-
-    /**
-     * Wait on eventManagerLock until
-     * LogFileManager needs an event to be
-     * sent to the registered LogEventListener.
-     */
-    public void run()
-    {
-      // provide access to members in containing class
-      LogFileManager parent = LogFileManager.this;
-      
-      int event;
-      long lowestSafeLogKey;
-      
-      while(true)
-      {
-        if (interrupted()) return;
-        
-        synchronized(eventManagerLock)
-        {
-          try {
-            while ((event = parent.event) == 0)
-            {
-              eventManagerLock.wait(); 
-            }
-          } catch (InterruptedException e) {
-            // we've been shut down.
-            return;
-          }
-          
-          lowestSafeLogKey = parent.lowestSafeLogKey;
-        }
-        
-        if ((event & LOG_OVERFLOW_EVENT) != 0)
-        {
-          if (eventListener != null)
-          {
-            try {
-              // protect HOWL from RuntimeExceptions in application code
-              eventListener.logOverflowNotification(lowestSafeLogKey);
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-            
-            // update count of notifications
-            parent.overflowNotificationCount += 1;
-          }
-          
-          synchronized(eventManagerLock)
-          {
-            parent.lowestSafeLogKey = 0;
-            parent.event ^= LOG_OVERFLOW_EVENT;
-          }
-        }
-
-        else
-        {
-          assert false :
-            "unexpected event type [" +
-            event +
-            "] in LogFileManager eventManagetThread"; 
-        }
-      }
-    }
   }
 }

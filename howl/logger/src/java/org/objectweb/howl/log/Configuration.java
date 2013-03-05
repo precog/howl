@@ -2,22 +2,22 @@
  * JOnAS: Java(TM) Open Application Server
  * Copyright (C) 2004 Bull S.A.
  * All rights reserved.
- * 
+ *
  * Contact: howl@objectweb.org
- * 
+ *
  * This software is licensed under the BSD license.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *     
+ *
  *   * Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer in the
  *     documentation and/or other materials provided with the distribution.
- *     
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -29,7 +29,7 @@
  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * ------------------------------------------------------------------------------
  * $Id: Configuration.java,v 1.15 2006-12-05 13:51:54 girouxm Exp $
  * ------------------------------------------------------------------------------
@@ -43,6 +43,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Properties;
 
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Provides configuration information for a
  * {@link org.objectweb.howl.log.Logger Logger}
@@ -50,7 +53,7 @@ import java.util.Properties;
  * @author girouxm
  */
 public class Configuration implements ConfigurationMBean {
-  
+
   /**
    * Construct a Configuration object with default values.
    * <p>Caller will use setter methods to change the defaults.
@@ -58,7 +61,7 @@ public class Configuration implements ConfigurationMBean {
   public Configuration()
   {
     this.prop = new Properties();
-    
+
     // populate this.prop with default values
     try {
       parseProperties();
@@ -66,7 +69,7 @@ public class Configuration implements ConfigurationMBean {
       // will not happen
     }
   }
-  
+
   /**
    * Construct a Configuration object using a Properties
    * object supplied by the caller.
@@ -75,11 +78,11 @@ public class Configuration implements ConfigurationMBean {
   public Configuration(Properties prop) throws LogConfigurationException
   {
     this.prop = new Properties(prop); // so we do not modify callers prop object
-    
+
     // apply settings from caller supplied Properties parameter
     parseProperties();
   }
-  
+
   /**
    * Construct a Configuration object using a Properties
    * file specified by the caller.
@@ -87,13 +90,13 @@ public class Configuration implements ConfigurationMBean {
    * @throws LogConfigurationException
    * if property file cannot be processed.
    */
-  public Configuration(File propertyFile) throws LogConfigurationException 
+  public Configuration(File propertyFile) throws LogConfigurationException
   {
     // perform default construction
     this();
-    
+
     // TODO: if File has xml extension then parse as xml
-    
+
     try {
       prop.load(new FileInputStream(propertyFile));
       parseProperties();
@@ -105,26 +108,26 @@ public class Configuration implements ConfigurationMBean {
     {
       throw new LogConfigurationException(e.toString(), e);
     }
-    
+
   }
-  
+
   /**
    * maximum size of a LogBuffer (number of K bytes).
    * <p>Good performance can be achieved with buffers between
    * 2K and 6K when using a reasonably fast disk.  Larger
    * sizes may help with slower disks, but large buffers
    * may be mostly empty in lightly loaded systems.
-   * 
+   *
    * MG 20060508 remove private qualifier so test case can
    * access the constant.
    */
-  static final int MAX_BUFFER_SIZE = 32; 
-  
+  static final int MAX_BUFFER_SIZE = 32;
+
   /**
    * The Properties used to construct this object.
    */
   private Properties prop = null;
-  
+
   /**
    * Display the value of an int configuration parameter to System.err
    * if <var> listConfig </var> is true.
@@ -132,7 +135,7 @@ public class Configuration implements ConfigurationMBean {
    * provide additional text that will be displayed following the
    * value to explain the type of value.  For example, values that
    * represent Milliseconds might be displayed with "Ms".
-   * 
+   *
    * @param key name of the parameter being displaed
    * @param val value for the parameter
    * @param text additional text to be displayed such as "Kb" or "Ms".
@@ -141,13 +144,13 @@ public class Configuration implements ConfigurationMBean {
   {
     if (listConfig) System.err.println(key + ": " + val + " " + text);
   }
-  
+
   /**
    * called by parseProperties to obtain an int configuration
    * property and optionally display the configured value.
-   * 
+   *
    * <p>save result in prop member.
-   * 
+   *
    * @param key name of the parameter to return
    * @param val default value if the parameter is not configured
    * @param text additional text to pass to showConfig(String, int, String)
@@ -159,19 +162,19 @@ public class Configuration implements ConfigurationMBean {
     // BUG: 300738 - trim property value
     val = Integer.parseInt(prop.getProperty(key, Integer.toString(val)).trim());
     showConfig(key, val, text);
-    
+
     prop.setProperty(key, Integer.toString(val));
     return val;
   }
-  
+
   /**
    * called by parseProperties to obtain an int configuration
    * property and optionally display the configured value.
    * <p>This routine calls getInteger(String, ing, String) passing
    * a zero length string as the third parameter.
-   * 
+   *
    * <p>save result in prop member.
-   * 
+   *
    * @param key name of parameter to return
    * @param val default value if the parameter is not configured
    * @return int value of requested parameter
@@ -181,13 +184,13 @@ public class Configuration implements ConfigurationMBean {
   {
     return getInteger(key, val, "");
   }
-  
+
   /**
    * called by parseProperties to obtain a boolean configuration
    * property and optionally display the configured value.
-   * 
+   *
    * <p>save result in prop member.
-   * 
+   *
    * @param key name of parameter to return
    * @param val default value if the parameter is not configured
    * @return boolean value of the requested parameter
@@ -203,20 +206,20 @@ public class Configuration implements ConfigurationMBean {
     if (!pval.equals("true") && !pval.equals("false"))
       throw new LogConfigurationException(key + "[" + pval +
           "] must be true of false");
-    
+
     val = Boolean.valueOf(pval).booleanValue();
     if (listConfig) System.err.println(key + ": " + val);
-    
+
     prop.setProperty(key, Boolean.toString(val));
     return val;
   }
-  
+
   /**
    * called by parseProperties to obtain a String configuration
    * property and optionally display the configured value.
-   * 
+   *
    * <p>save result in prop member.
-   * 
+   *
    * @param key name of parameter to return
    * @param val default value if the parameter is not configured
    * @return String value of the requested parameter
@@ -225,17 +228,17 @@ public class Configuration implements ConfigurationMBean {
   {
     val = prop.getProperty(key, val).trim();
     if (listConfig) System.err.println(key + ": " + val);
-    
+
     prop.setProperty(key,val);
     return val;
   }
-  
+
   /**
    * initialize member variables from property file.
-   * 
+   *
    * <p>entire property set is saved in prop member
    * for use in store(OutputStream) method.
-   * 
+   *
    * @throws LogConfigurationException
    * with text explaining the reason for the exception.
    */
@@ -244,41 +247,41 @@ public class Configuration implements ConfigurationMBean {
     listConfig = getBoolean("listConfig", listConfig);
 
     bufferClassName = getString("bufferClassName", bufferClassName);
-    
+
     setBufferSize(getInteger("bufferSize", (bufferSize / 1024), "Kb")); // BUG 300791
-    
+
     adler32Checksum = getBoolean("adler32Checksum", adler32Checksum);
-    
+
     checksumEnabled = getBoolean("checksumEnabled", checksumEnabled);
-    
+
     flushPartialBuffers = getBoolean("flushPartialBuffers", flushPartialBuffers);
 
     flushSleepTime = getInteger("flushSleepTime", flushSleepTime);
-    
+
     logFileDir = getString("logFileDir", logFileDir);
-    
+
     logFileExt = getString("logFileExt", logFileExt);
-    
+
     setLogFileMode(getString("logFileMode", logFileMode)); // BUG 300791
-    
+
     logFileName = getString("logFileName", logFileName);
 
     maxBlocksPerFile = getInteger("maxBlocksPerFile", maxBlocksPerFile);
-    
+
     setMinBuffers(getInteger("minBuffers", minBuffers)); // BUG 300791
 
     setMaxBuffers(getInteger("maxBuffers", maxBuffers)); // BUG 300791
-    
+
     maxLogFiles = getInteger("maxLogFiles", maxLogFiles);
-    
+
     threadsWaitingForceThreshold = getInteger("threadsWaitingForceThreshold", threadsWaitingForceThreshold);
   }
-  
+
   /* ---------------------------------------------------
    * LogBufferManager configuration settings
    * ---------------------------------------------------
    */
-  
+
   /**
    * When set to <b> true </b> the configuration properties
    * are displayed to System.out following construction
@@ -286,35 +289,35 @@ public class Configuration implements ConfigurationMBean {
    * <p>Default is false --> config is not displayed
    */
   private boolean listConfig = false;
-  
+
   /**
    * When set to <b> true </b> and
-   * checksumEnabled is also <b> true </b> 
+   * checksumEnabled is also <b> true </b>
    * checksums are computed
    * using java.util.zip.Adler32.
    */
   private boolean adler32Checksum = false;
-  
+
   /**
    * When set to <b> true </b> checksums are computed on the contents
    * of each buffer prior to writing buffer contents to disk.
-   * 
+   *
    * <p>The checksum is used when blocks of data are retrieved
    * from the log during replay to validate the content of the
    * file.
    * <p>Default value is true.
    * <p>Setting this option to <b> false </b> may reduce
    * slightly the amount of cpu time that is used by the
-   * logger. 
+   * logger.
    */
   private boolean checksumEnabled = false;
 
   /**
    * Size (in K bytes) of buffers used to write log blocks.
-   * 
+   *
    * <p>Specify values between 1 and 32 to allocate buffers
-   * between 1K and 32K in size. 
-   * 
+   * between 1K and 32K in size.
+   *
    * <p>The default size of 4K bytes should be suitable
    * for most applications.
    * <p>Larger buffers may provide improved performance
@@ -322,20 +325,20 @@ public class Configuration implements ConfigurationMBean {
    * exceed 5K TX/Sec and a large number of threads.
    */
   private int bufferSize = 4 * 1024;
-  
+
   /**
    * Name of class that implements LogBuffer used by
    * LogBufferManager.
    * <p>Class must extend LogBuffer.
    */
   private String bufferClassName = "org.objectweb.howl.log.BlockLogBuffer";
-  
+
   /**
    * maximum number of buffers to be allocated by LogBufferManager.
    * <p>Default value is 0 (zero) -- no limit.
    */
   private int maxBuffers = 0;
-  
+
   /**
    * minimum number of buffers to be allocated by LogBufferManager.
    * <p>Default value is 4.
@@ -346,23 +349,23 @@ public class Configuration implements ConfigurationMBean {
    * The amount of time
    * (specified in number of milli-seconds)
    * the ForceManager sleeps between log forces.
-   *  
+   *
    * <p>During periods of low activity, threads could
-   * wait an excessive amount of time 
+   * wait an excessive amount of time
    * (possibly for ever) for buffers to fill and be
    * flushed.  To mitigate this situation, the
    * Logger runs a ForceManager thread that wakes
    * up periodically and forces IO when other
-   * threads are waiting.  
+   * threads are waiting.
    *
    * <p>The default value is 50 milli-seconds.
    */
   private int flushSleepTime = 50;
-  
+
   /**
    * Indicates whether LogBufferManager should flush buffers
    * before they are full.
-   * 
+   *
    * <p>Normally, buffers are flushed to disk only when
    * they become full.  In lightly loaded situations,
    * one or more threads may have to wait until the
@@ -371,61 +374,66 @@ public class Configuration implements ConfigurationMBean {
    * log, and every put() with sync requested will
    * be delayed flushSleepTime ms before the buffer is
    * written.
-   * 
+   *
    * <p>Setting flushPartialBuffers true will allow
    * the LogBufferManager to flush buffers to disk
    * any time the channel is not busy.  This improves
    * throughput in single threaded and lightly loaded
-   * environments. 
-   * 
+   * environments.
+   *
    * <p>By default, this feature is disabled (false) to
    * provide compatability with earlier versions of
    * this library.
    */
   private boolean flushPartialBuffers = false;
-  
+
   /**
    * the maximum number of threads that should wait
    * for an IO force.
    * <p>Setting this value may have an effect
    * on latency when threads are waiting for
-   * the force. 
-   * 
+   * the force.
+   *
    * <p>By default, there is no limit.
    */
   private int threadsWaitingForceThreshold = Integer.MAX_VALUE;
-  
+
+  /**
+   * The scheduler for internal tasks.
+   */
+  private ScheduledThreadPoolExecutor scheduler = null;
+
   /* ---------------------------------------------------
    * LogFileManager configuration settings
    * ---------------------------------------------------
    */
-  
+
   /**
    * maximum number of blocks to store in each LogFile.
-   * 
+   *
    * <p>controls when logging is switched to a new log file, and/or when a circular
    * log is reset to  seek address zero.
    */
   private int maxBlocksPerFile = Integer.MAX_VALUE;
-  
+
   /**
    * number of log files to configure.
    * <p>Default is 2 log files.
    */
   private int maxLogFiles = 2;
-  
+
   /**
    * directory used to create log files.
    * <p>Default is logs directory relative to parent of current working dir.
    */
   private String logFileDir = "../logs";
-  
+
   /**
    * file name extension for log files.
    * <p>Default value is "log"
    */
   private String logFileExt = "log";
-  
+
   /**
    * filename used to create log files.
    * <p>Default value is "logger"
@@ -435,16 +443,16 @@ public class Configuration implements ConfigurationMBean {
    * </pre>
    */
   private String logFileName = "logger";
-  
+
   /**
    * IO mode used to open the file.
    * <p>Default is "rw"
    * <p>Must be "rw" or "rwd"
-   * 
+   *
    * @see java.io.RandomAccessFile#RandomAccessFile(java.io.File, java.lang.String)
    */
   private String logFileMode = "rw";
-  
+
   /**
    * @return Returns the logDir.
    */
@@ -458,7 +466,7 @@ public class Configuration implements ConfigurationMBean {
     this.logFileDir = logFileDir;
     prop.setProperty("logFiledir", logFileDir);
   }
-  
+
   /**
    * @return Returns the logFileExt.
    */
@@ -485,21 +493,21 @@ public class Configuration implements ConfigurationMBean {
     this.logFileName = logFileName;
     prop.setProperty("logFileName", logFileName);
   }
-  
+
   /**
    * @return the adler32Checksum option.
    */
   public boolean isAdler32ChecksumEnabled() {
     return adler32Checksum;
   }
-  
+
   /**
    * @return Returns the checksumEnabled option.
    */
   public boolean isChecksumEnabled() {
     return checksumEnabled;
   }
-  
+
   /**
    * @param checksumOption The checksumOption to set.
    */
@@ -507,7 +515,7 @@ public class Configuration implements ConfigurationMBean {
     this.checksumEnabled = checksumOption;
     prop.setProperty("checksumEnabled", Boolean.toString(checksumEnabled));
   }
-  
+
   /**
    * Returns the size of buffers specified as a number of 1K blocks.
    * <p>As an example, if buffers are 4096 bytes large, getBufferSize()
@@ -530,18 +538,18 @@ public class Configuration implements ConfigurationMBean {
     if (bufferSize < 1 || bufferSize > MAX_BUFFER_SIZE)
       throw new LogConfigurationException("bufferSize [" + bufferSize + "] must be" +
           " between 1 and "+ MAX_BUFFER_SIZE);
-    
+
     this.bufferSize = bufferSize * 1024;
     prop.setProperty("bufferSize", Integer.toString(bufferSize));
   }
-  
+
   /**
    * @return Returns the bufferClassName.
    */
   public String getBufferClassName() {
     return bufferClassName;
   }
-  
+
   /**
    * @param adler32Checksum <b>true</b> if application
    * wishes to use java.util.zip.Adler32 checksum method.
@@ -550,7 +558,7 @@ public class Configuration implements ConfigurationMBean {
   {
     this.adler32Checksum = adler32Checksum;
   }
-  
+
   /**
    * @param bufferClassName The bufferClassName to set.
    */
@@ -558,7 +566,7 @@ public class Configuration implements ConfigurationMBean {
     this.bufferClassName = bufferClassName;
     prop.setProperty("bufferClassName", bufferClassName);
   }
-  
+
   /**
    * @return Returns the maxBuffers.
    */
@@ -574,11 +582,11 @@ public class Configuration implements ConfigurationMBean {
     if (maxBuffers > 0 && maxBuffers < minBuffers)
       throw new LogConfigurationException("minBuffers [" + minBuffers +
           "] must be <= than maxBuffers[" + maxBuffers +  "]");
-    
+
     this.maxBuffers = maxBuffers;
     prop.setProperty("maxBuffers", Integer.toString(maxBuffers));
   }
-  
+
   /**
    * @return Returns the minBuffers.
    */
@@ -592,13 +600,13 @@ public class Configuration implements ConfigurationMBean {
   throws LogConfigurationException
   {
     if (minBuffers <= 0)
-      throw new LogConfigurationException("minBuffers[" + minBuffers + 
+      throw new LogConfigurationException("minBuffers[" + minBuffers +
           "] must be > 0");
 
     this.minBuffers = minBuffers;
     prop.setProperty("minBuffers", Integer.toString(minBuffers));
   }
-  
+
   /**
    * @return Returns the flushSleepTime.
    */
@@ -664,19 +672,38 @@ public class Configuration implements ConfigurationMBean {
    * @param logFileMode The logFileMode to set.
    */
   public void setLogFileMode(String logFileMode)
-  throws LogConfigurationException 
+  throws LogConfigurationException
   {
     if (!logFileMode.equals("rw") && !logFileMode.equals("rwd"))
       throw new LogConfigurationException("logFileMode[" + logFileMode +
           "] must be \"rw\" or \"rwd\"");
-      
+
     this.logFileMode = logFileMode;
     prop.setProperty("logFileMode", logFileMode);
   }
-  
+
+  public ScheduledThreadPoolExecutor getScheduler() {
+    if (scheduler == null) {
+      // Default scheduler is 10 threads
+      this.scheduler = new ScheduledThreadPoolExecutor(10, new ThreadFactory() {
+          private AtomicInteger threadId = new AtomicInteger();
+
+          public Thread newThread(Runnable r) {
+            return new Thread(r, "HOWL-Scheduler-" + threadId.getAndIncrement());
+          }
+        });
+    }
+
+    return scheduler;
+  }
+
+  public void setScheduler(ScheduledThreadPoolExecutor scheduler) {
+    this.scheduler = scheduler;
+  }
+
   /**
    * Stores configuration properties to OutputStream.
-   *  
+   *
    * @see java.util.Properties#store(java.io.OutputStream, java.lang.String)
    */
   public void store(OutputStream out)
@@ -694,14 +721,14 @@ public class Configuration implements ConfigurationMBean {
       throw ioe;
     }
   }
-  
+
   /**
    * @return Returns the flushPartialBuffers.
    */
   public boolean isFlushPartialBuffers() {
     return flushPartialBuffers;
   }
-  
+
   /**
    * @param flushPartialBuffers The flushPartialBuffers to set.
    */

@@ -36,6 +36,9 @@
  */
 package org.objectweb.howl.log;
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import java.io.IOException;
 
@@ -64,8 +67,6 @@ class LogBufferManager extends LogObject
     flushPartialBuffers = config.isFlushPartialBuffers();
 
     flushManager = new FlushManager(flushManagerName);
-    flushManager.setDaemon(true);  // so we can shutdown while flushManager is running
-    flushManager.start(); // BUG 303659
   }
 
   /**
@@ -266,6 +267,7 @@ class LogBufferManager extends LogObject
    * thread used to flush long waiting buffers
    */
   final FlushManager flushManager; // BUG 303659 change type from Thread to FlushManager so we can access isClosed
+  private ScheduledFuture flushManagerTask; // Allows us to cancel the execution of the FlushManager on close
 
   /**
    * name of flush manager thread
@@ -931,6 +933,10 @@ class LogBufferManager extends LogObject
     // inform flushManager that LogBufferManager is ready for operation
     if (flushManager != null) {
       flushManager.isClosed = false; // BUG 303659
+
+      int flushSleepTime = config.getFlushSleepTime();
+
+      flushManagerTask = config.getScheduler().scheduleWithFixedDelay(flushManager, flushSleepTime, flushSleepTime, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -942,7 +948,7 @@ class LogBufferManager extends LogObject
     // inform the flush manager thread
     if (flushManager != null) {
       flushManager.isClosed = true; // BUG 303659
-      flushManager.isShutdown = true;
+      flushManagerTask.cancel(false); // Stop further flushing
     }
   }
 
@@ -1223,7 +1229,7 @@ class LogBufferManager extends LogObject
    * <p>This thread is shut down by #close().
    * @see #close()
    */
-  class FlushManager extends Thread
+  class FlushManager implements Runnable
   {
     /**
      * prevents FlushManager from flushing buffers when true.
@@ -1233,50 +1239,38 @@ class LogBufferManager extends LogObject
      */
     boolean isClosed = true; // BUG 303659
 
-    /**
-     * Flag to indicate final shutdown (as opposed to interrupting)
-     */
-    boolean isShutdown = false;
+    private final LogBufferManager parent;
 
     FlushManager(String name)
     {
-      super(name);
+      super();
+      parent = LogBufferManager.this;
     }
 
     public void run()
     {
       LogBuffer buffer = null;
-      LogBufferManager parent = LogBufferManager.this;
-
-      int flushSleepTime = config.getFlushSleepTime();
 
       long waitForBuffer = parent.getWaitForBuffer();
 
-      for (;;)
-      {
-        if (interrupted() || isShutdown) return;
+      try {
+        if (isClosed) return;  // BUG 303659 - do nothing while LogBufferManager is closed
 
-        try
-        {
-          sleep(flushSleepTime); // check for timeout every 50 ms
-
-          if (isClosed) continue;  // BUG 303659 - do nothing while LogBufferManager is closed
-
-          /*
-           * Dynamically grow buffer pool until number of waits
-           * for a buffer is less than 1/2 the pool size.
-           */
-          long bufferWaits = parent.getWaitForBuffer() - waitForBuffer;
-          int maxBuffers = config.getMaxBuffers();
-          int increment = freeBuffer.length / 2;
-          if (maxBuffers > 0)
+        /*
+         * Dynamically grow buffer pool until number of waits
+         * for a buffer is less than 1/2 the pool size.
+         */
+        long bufferWaits = parent.getWaitForBuffer() - waitForBuffer;
+        int maxBuffers = config.getMaxBuffers();
+        int increment = freeBuffer.length / 2;
+        if (maxBuffers > 0)
           {
             // make sure max is larger than current (min)
             maxBuffers = Math.max(maxBuffers, freeBuffer.length);
             increment = Math.min(increment, maxBuffers - freeBuffer.length);
           }
 
-          if ((increment > 0) && (bufferWaits > increment))
+        if ((increment > 0) && (bufferWaits > increment))
           {
             // increase size of buffer pool if number of waits > 1/2 buffer pool size
             LogBuffer[] fb = new LogBuffer[freeBuffer.length + increment];

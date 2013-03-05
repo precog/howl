@@ -5,7 +5,7 @@
     <artifactId>howl</artifactId>
     <name>HOWL logger</name>
     <packaging>jar</packaging>
-    <version>1.0.1-1-precog</version>
+    <version>1.0.1-2-precog</version>
 
     <url>http://forge.objectweb.org/projects/howl/</url>
     <description>HOWL is a logger implementation providing features required by the JOTM project. HOWL uses unformatted
